@@ -301,6 +301,13 @@ set_trait_model <- function(no_sp = 10,
                             gamma = NA,
                             knife_edge_size = 1000,
                             gear_names = "knife_edge_gear",
+                            ### AAsp#### 
+                            lambda_ben = 2+q-n,
+                            kappa_ben = 0.005,
+                            r_bb = 4,
+                            min_w_bb = 1e-10,  
+                            w_bb_cutoff = 1,
+                            ### AAsp####
                             ...){
     if (!is.na(no_w_pp))
         warning("New mizer code does not support the parameter no_w_pp")
@@ -335,7 +342,9 @@ set_trait_model <- function(no_sp = 10,
         sel_func = "knife_edge",
         knife_edge_size = knife_edge_size,
         gear = gear_names,
-        erepro = 1
+        erepro = 1,
+        ##AAsp##
+        prefer = prefer
     )
     # Make the MizerParams
     trait_params <-
@@ -351,7 +360,14 @@ set_trait_model <- function(no_sp = 10,
             q = q,
             r_pp = r_pp,
             kappa = kappa,
-            lambda = lambda
+            lambda = lambda,
+            ##AAsp####
+            min_w_bb = min_w_bb,
+            w_bb_cutoff = w_bb_cutoff,
+            r_bb = r_bb,
+            kappa_ben = kappa_ben,
+            lambda_ben = lambda_ben
+            ##AAsp####
         ) 
     # Sort out maximum recruitment - see A&P 2009 Get max flux at recruitment
     # boundary, R_max R -> | -> g0 N0 R is egg flux, in numbers per time Actual
