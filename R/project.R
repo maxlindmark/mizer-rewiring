@@ -41,7 +41,10 @@ NULL
 #'   should be a numeric vector of the same length as the \code{w_full} slot of
 #'   the \code{MizerParams} argument. By default the \code{initial_n_pp} slot of the
 #'   \linkS4class{MizerParams} argument is used.
-#' @param shiny_progress A shiny progress object used to update shiny progress bar.
+#'   ##AAsp##
+#' @param initial_n_bb The initial population of the benthic spectrum. At the moment it is
+#'  just follows the same code as for the plankton spectrum 
+#'  #' @param shiny_progress A shiny progress object used to update shiny progress bar.
 #'   Default NULL.
 #' @param ... Currently unused.
 #' 
@@ -100,6 +103,9 @@ NULL
 project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
                     initial_n = params@initial_n,
                     initial_n_pp = params@initial_n_pp, 
+                    ##AAsp####
+                    initial_n_bb = params@initial_n_bb,
+                    ##AAsp##
                     shiny_progress = NULL, ...) {
     validObject(params)
     
@@ -176,6 +182,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     # Set initial population
     sim@n[1,,] <- initial_n 
     sim@n_pp[1,] <- initial_n_pp
+    ##AAsp####
+    sim@n_bb[1,] <- initial_n_bb
+    ##AAsp##
     
     # Handy things
     no_sp <- nrow(sim@params@species_params) # number of species
@@ -199,6 +208,10 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     n <- array(sim@n[1, , ], dim = dim(sim@n)[2:3])
     dimnames(n) <- dimnames(sim@n)[2:3]
     n_pp <- sim@n_pp[1, ]
+    ##AAsp####
+    n_bb <- sim@n_bb[1, ]
+    ##AAsp##
+    
     t_steps <- dim(effort_dt)[1] - 1
     # Set up progress bar
     pb <- progress::progress_bar$new(
@@ -212,35 +225,39 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     for (i_time in 1:t_steps) {
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
-        avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp)
+        avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp, n_bb = n_bb) ##AAsp##
         # Calculate amount f_i(w) of food consumed
-        feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp,
+        feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, ##AAsp##
                                          avail_energy = avail_energy)
         # Calculate the predation rate
-        pred_rate <- getPredRate(sim@params, n = n, n_pp = n_pp,
+        pred_rate <- getPredRate(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, ##AAsp##
                                  feeding_level = feeding_level)
         # Calculate predation mortality on fish \mu_{p,i}(w)
         m2 <- getPredMort(sim@params, pred_rate = pred_rate)
         # Calculate mortality on the plankton spectrum
-        m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp,
+        m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, ##AAsp_DO - do we need n_bb here 
                                          pred_rate = pred_rate)
+        ##AAsp_DO ### 
+        ## m2_benthos - add a separate function to get mortality of the benthic spectrum 
+        ##AAsp ##
+        
         # Calculate the resources available for reproduction and growth
-        e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, 
+        e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, ##AAsp##
                                 feeding_level = feeding_level)
         #Moved total mortality calculation after the e calculation betcause we need e for stravation
         # Calculate total mortality \mu_i(w)
-        z <- getMort(sim@params, n = n, n_pp = n_pp, 
+        z <- getMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, ##AAsp##
                      effort = effort_dt[i_time,], e = e, m2 = m2)
         # Calculate the resources for reproduction
-        e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, e = e)
+        e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, e = e)  ##AAsp##
         # Calculate the growth rate g_i(w)
-        e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, 
+        e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, n_bb = n_bb,  ##AAsp##
                                e_repro = e_repro, e = e)
         # R_{p,i}
-        rdi <- getRDI(sim@params, n = n, n_pp = n_pp, 
+        rdi <- getRDI(sim@params, n = n, n_pp = n_pp, n_bb = n_bb,   ##AAsp##
                       e_repro = e_repro, sex_ratio = sex_ratio)
         # R_i
-        rdd <- getRDD(sim@params, n = n, n_pp = n_pp, rdi = rdi)
+        rdd <- getRDD(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, rdi = rdi)  ##AAsp##
         
         # Iterate species one time step forward:
         # See Ken's PDF
@@ -268,6 +285,13 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         tmp <- (sim@params@rr_pp * sim@params@cc_pp / (sim@params@rr_pp + m2_background))
         n_pp <- tmp - (tmp - n_pp) * exp(-(sim@params@rr_pp + m2_background) * dt)
         
+        ##AAsp######
+        # Dynamics of benthic spectrum uses a semi-chemostat model 
+        # currently it follows exactly the same rules as plankton but has it's own parameters
+        tmp <- (sim@params@rr_bb * sim@params@cc_bb / (sim@params@rr_bb + m2_benthos))
+        n_bb <- tmp - (tmp - n_bb) * exp(-(sim@params@rr_bb + m2_benthos) * dt)
+        ##AAsp##
+        
         # Store results only every t_step steps.
         store <- t_dimnames_index %in% (i_time + 1)
         if (any(store)) {
@@ -279,6 +303,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
             # Store result
             sim@n[which(store), , ] <- n 
             sim@n_pp[which(store), ] <- n_pp
+            ##AAsp######
+            sim@n_bb[which(store), ] <- n_bb
+            ##AAsp#
         }
     }
     return(sim)
