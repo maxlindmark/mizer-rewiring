@@ -111,6 +111,9 @@ valid_MizerSim <- function(object){
 #'   gear
 #' @slot n_pp Array that stores the projected plankton abundance by time and
 #'   size
+#'   ##AAsp
+#' @slot n_bb Array that stores the projected benthos abundance by time and
+#'   size
 #'   
 #' @seealso \code{\link{project}} \code{\link{MizerParams}}
 #' @export
@@ -120,7 +123,9 @@ setClass(
         params = "MizerParams",
         n = "array",
         effort = "array",
-        n_pp = "array"
+        n_pp = "array",
+        ##AAsp####
+        n_bb = "array"
     ),
     prototype = prototype(
         params = new("MizerParams"),
@@ -132,7 +137,12 @@ setClass(
         ),
         n_pp = array(
             NA,dim = c(1,1), dimnames = list(time = NULL, w = NULL)
+        ),
+        ##AAsp####
+        n_bb = array(
+          NA,dim = c(1,1), dimnames = list(time = NULL, w = NULL)
         )
+        ##AAsp##
     ),
     validity = valid_MizerSim
 )
@@ -188,11 +198,19 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
     array_n_pp <- array(NA, dim = c(t_dim, no_w_full), 
                         dimnames = list(time=t_dimnames, 
                                         w = w_full_names))
+    ##AAsp####
+    array_n_bb <- array(NA, dim = c(t_dim, no_w_full), 
+                        dimnames = list(time=t_dimnames, 
+                                        w = w_full_names))
+    ##AAsp##
     
     sim <- new('MizerSim',
                n = array_n, 
                effort = array_effort,
                n_pp = array_n_pp,
+               ##AAsp####
+               n_bb = array_n_bb,
+               ##AAsp##
                params = params)
     return(sim)
 }
