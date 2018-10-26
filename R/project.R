@@ -235,9 +235,11 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # Calculate predation mortality on fish \mu_{p,i}(w)
         m2 <- getPredMort(sim@params, pred_rate = pred_rate)
         # Calculate mortality on the plankton spectrum
-        m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, ##AAsp_DO - do we need n_bb here 
+        m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, 
                                          pred_rate = pred_rate)
-        ##AAsp_DO ##### 
+        ###AAsp_FIX####
+        ## I need to separate m2_benthos from m2_background (which is now only plankton), but I don't know how 
+        ## for now I don't calculate benthos mortality at all and semi-chemostat in project.R will use m2_background for benthos, which is wrong
         ## m2_benthos - add a separate function to get mortality of the benthic spectrum 
         ##AAsp ##
         
@@ -285,11 +287,13 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         tmp <- (sim@params@rr_pp * sim@params@cc_pp / (sim@params@rr_pp + m2_background))
         n_pp <- tmp - (tmp - n_pp) * exp(-(sim@params@rr_pp + m2_background) * dt)
         
-        ##AAsp######
+        ##AAsp_FIX####
+        ##Julia?
+        ### The m2_background here MUST BE REPLACED with m2_benthos
         # Dynamics of benthic spectrum uses a semi-chemostat model 
         # currently it follows exactly the same rules as plankton but has it's own parameters
-        tmp <- (sim@params@rr_bb * sim@params@cc_bb / (sim@params@rr_bb + m2_benthos))
-        n_bb <- tmp - (tmp - n_bb) * exp(-(sim@params@rr_bb + m2_benthos) * dt)
+        tmp <- (sim@params@rr_bb * sim@params@cc_bb / (sim@params@rr_bb + m2_background))
+        n_bb <- tmp - (tmp - n_bb) * exp(-(sim@params@rr_bb + m2_background) * dt)
         ##AAsp##
         
         # Store results only every t_step steps.

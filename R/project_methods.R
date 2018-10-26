@@ -83,32 +83,20 @@ getAvailEnergy <- function(object, n, n_pp, n_bb) {
     #prey_backgr <- matrix(0, nrow = dim(n)[1], ncol = length(object@w_full))
     
     #first get the available plankton spectrum food. For this I convert the availability vector into a one column matrix, so I can use matrix multiplication with n_pp. This will give a matrix of species x size groups in the full spectrum (species and background)
-    pl_food <- matrix(object@species_params@avail_PP, nrow = length(object@species_params@avail_PP), ncol = 1) %*% n_pp
-    print("dim pl_food")
-    print(dim(pl_food))
+    pl_food <- matrix(object@species_params$avail_PP, nrow = length(object@species_params$avail_PP), ncol = 1) %*% n_pp
     #do the same for the benthic spectrum
-    ben_food <- matrix(object@species_params@avail_BB, nrow = length(object@species_params@avail_BB), ncol = 1) %*% n_bb
-    print("dim ben_food")
-    print(dim(ben_food))
-    #now we can simply add these matrices because their dimensions should be the same. This is because n_pp and n_bb include the full spectrum, but values are zero above the maximum plankton and benthos size 
+    ben_food <- matrix(object@species_params$avail_BB, nrow = length(object@species_params$avail_PP), ncol = 1) %*% n_bb
+
+    #now we can simply add these matrices because their dimensions should be the same. This is because n_pp and n_bb include the full spectrum, but values are zero above the maximum plankton and benthos size     
     prey_backgr <- pl_food + ben_food 
-    print("dim prey_backgr")
-    print(dim(prey_backgr))
-    
     ## now we should be able to simply add prey matrix (which includes species) and prey_backgr matrix without needing a sweep
-    
     prey_all <- prey + prey_backgr
-    print("dim prey_all")
-    print(dim(prey_all))
     # The vector f2 equals everything inside integral (3.4) except the feeding
     # kernel phi_i(w_p/w).
     # We work in log-space so an extra multiplier w_p is introduced.
 
     #f2 <- sweep(sweep(prey, 2, n_pp, "+"), 2, object@w_full^2, "*")
     f2 <- sweep(prey_all, 2, object@w_full^2, "*")
-    print("dim f2")
-    print(dim(f2))
-    
     # Eq (3.4) is then a convolution integral in terms of f2[w_p] and phi[w_p/w].
     # We approximate the integral by the trapezoidal method. Using the
     # convolution theorem we can evaluate the resulting sum via fast fourier
@@ -916,7 +904,7 @@ getEGrowth <- function(object, n, n_pp, n_bb,
 #' # Get the recruitment at a particular time step
 #' getRDI(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getRDI <- function(object, n, n_pp,
+getRDI <- function(object, n, n_pp, n_bb,
                    e_repro = getERepro(object, n = n, n_pp = n_pp, n_bb = n_bb),
                    sex_ratio = 0.5) {
     if (!all(dim(e_repro) == c(nrow(object@species_params), length(object@w)))) {

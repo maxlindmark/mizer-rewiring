@@ -399,7 +399,6 @@ setClass(
 #' @param max_w  Largest weight
 #' @param no_w   Number of weight brackets
 #' @param min_w_pp Smallest plankton weight
-#' ##AAsp## ?? Not sure this is needed, unless benthos is smaller than plankton which is unrealistic
 #' @param min_w_bb Smallest benthos weight
 #' @param no_w_pp  No longer used
 #' @param species_names Names of species
@@ -409,7 +408,7 @@ setClass(
 #' @return An empty but valid MizerParams object
 #' 
 emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,  
-                        min_w_pp = 1e-10, no_w_pp = NA,  ##AAsp####?? would I need to add min_w_bb here?? This just sets the grid
+                        min_w_pp = 1e-10, no_w_pp = NA,  min_w_bb = 1e-10,
                         species_names=1:object, gear_names=species_names) {
     if (!is.na(no_w_pp))
         warning("New mizer code does not support the parameter no_w_pp")
@@ -616,7 +615,7 @@ multispeciesParams <- function(object, interaction,
                     n = 2/3, p = 0.7, q = 0.8, r_pp = 10,
                     kappa = 1e11, lambda = (2 + q - n), w_pp_cutoff = 10,
                     ##AAsp####
-                    min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), w_bb_cutoff = 10,
+                    min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), w_bb_cutoff = 10, r_bb = 10,
                     ##AAsp##
                     f0 = 0.6, z0pre = 0.6, z0exp = n - 1) {
     
