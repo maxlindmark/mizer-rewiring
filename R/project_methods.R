@@ -75,8 +75,7 @@ getAvailEnergy <- function(object, n, n_pp, n_bb) {
     # the sum over all species j of fish, of theta_{i,j}*N_j(wFull[k])
     prey[, idx_sp] <- object@interaction %*% n
  
-    ##AAsp####
-    #now apply preference parameter for pelagic and benthic spectra and add them to get availability of total background prey 
+    # apply preference parameter for pelagic and benthic spectra and add them to get availability of total background prey 
     # first create a matrix to store availability of background spectrum food 
     # originally we only needed to add n_pp to all species and it was identical for all species, so we only needed a vector. 
     # Now the total availability of background spectrum can vary across species, so we need a matrix

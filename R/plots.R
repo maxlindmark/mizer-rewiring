@@ -522,7 +522,7 @@ plotSpectra <- function(object, species = NULL,
                         time_range,
                         min_w, ylim = c(NA, NA),
                         power = 1, biomass = TRUE, print_it = TRUE,
-                        total = FALSE, plankton = TRUE, 
+                        total = FALSE, plankton = TRUE,
                         background = TRUE, ...) {
     if (is(object, "MizerSim")) {
         if (missing(time_range)){
@@ -538,10 +538,12 @@ plotSpectra <- function(object, species = NULL,
         time_elements <- get_time_elements(object,time_range)
         n <- apply(object@n[time_elements, , ,drop = FALSE], c(2, 3), mean)
         n_pp <- apply(object@n_pp[time_elements,,drop = FALSE], 2, mean)
-        ps <- plot_spectra(object@params, n = n, n_pp = n_pp,
+        ##AAsp##
+        #n_bb <- apply(object@n_bb[time_elements,,drop = FALSE], 2, mean)
+        ps <- plot_spectra(object@params, n = n, n_pp = n_pp, 
                            species = species, min_w = min_w, ylim = ylim,
                            power = power, print_it = print_it,
-                           total = total, plankton = plankton,
+                           total = total, plankton = plankton, 
                            background = background)
         return(ps)
     } else {
@@ -555,14 +557,14 @@ plotSpectra <- function(object, species = NULL,
                            n_pp = object@initial_n_pp,
                            species = species, min_w = min_w, ylim = ylim,
                            power = power, print_it = print_it,
-                           total = total, plankton = plankton,
+                           total = total, plankton = plankton, 
                            background = background)
         return(ps)
     }
 }
 
 
-plot_spectra <- function(params, n, n_pp,
+plot_spectra <- function(params, n, n_pp, 
                          species, min_w, ylim, power, print_it,
                          total, plankton, background) {
     if (total) {
