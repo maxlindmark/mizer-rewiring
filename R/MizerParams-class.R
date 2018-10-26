@@ -741,6 +741,29 @@ multispeciesParams <- function(object, interaction,
         object$ks[missing] <- object$h[missing] * 0.2
     }
     
+    ##AAsp####
+    # Sort out avail_PP column
+    if (!("avail_PP" %in% colnames(object))) {
+      message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.5")
+      object$avail_PP <- 0.5
+    }
+    missing <- is.na(object$avail_PP)
+    if (any(missing)) {
+      object$avail_PP[missing] <- 0.5
+    }
+    
+    # Sort out avail_BB column
+    if (!("avail_BB" %in% colnames(object))) {
+      message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0.5")
+      object$avail_BB <- 0.5
+    }
+    missing <- is.na(object$avail_BB)
+    if (any(missing)) {
+      object$avail_BB[missing] <- 0.5
+    }
+    ##AAsp##
+    
+    
     # Check essential columns: species (name), wInf, wMat, h, gamma,  ks, beta, sigma 
     check_species_params_dataframe(object)
     
