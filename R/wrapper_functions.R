@@ -344,7 +344,8 @@ set_trait_model <- function(no_sp = 10,
         gear = gear_names,
         erepro = 1,
         ##AAsp##
-        prefer = prefer
+        avail_PP = avail_PP,
+        avail_BB = avail_BB
     )
     # Make the MizerParams
     trait_params <-
