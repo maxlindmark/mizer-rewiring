@@ -87,8 +87,12 @@ getAvailEnergy <- function(object, n, n_pp, n_bb) {
     #do the same for the benthic spectrum
     ben_food <- matrix(object@species_params$avail_BB, nrow = length(object@species_params$avail_PP), ncol = 1) %*% n_bb
 
+<<<<<<< HEAD
     #now we can simply add these matrices because their dimensions should be the same. This is because n_pp and n_bb include the full spectrum, but values are zero above the maximum plankton and benthos size     
     prey_backgr <- pl_food + ben_food 
+=======
+    #now we can simply add these matrices because their dimensions should be the same. This is because n_pp and n_bb include the full spectrum, but values are zero above the maximum plankton and benthos size     prey_backgr <- pl_food + ben_food 
+>>>>>>> d0a0ea502bf03e66403f12b6753fdc5f59e4fa09
     ## now we should be able to simply add prey matrix (which includes species) and prey_backgr matrix without needing a sweep
     prey_all <- prey + prey_backgr
     # The vector f2 equals everything inside integral (3.4) except the feeding
