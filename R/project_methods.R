@@ -372,10 +372,12 @@ getM2 <- getPredMort
 #' @param object A \code{MizerParams} object.
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
-#' @param pred_rate An array of predation rates of dimension no. sp x no.
-#'   community size bins x no. of size bins in whole spectra (i.e. community +
+#' @param n_bb A vector of the benthos abundance by size.
+#' @param pred_rate An array of predation rates of dimension no. sp x 
+#'   no. of size bins in whole spectra (i.e. community +
 #'   plankton, the w_full slot). The array is optional. If it is not provided
 #'   it is calculated by the \code{getPredRate()} method.
+#' ##AAsp the output of pred_rate is no. sp x no. full size bins, the original description suggested 3D output which is incorrect
 #'
 #' @return A vector of mortality rate by plankton size.
 #' @seealso \code{\link{project}} and \code{\link{getPredMort}}.
@@ -393,8 +395,8 @@ getM2 <- getPredMort
 #' getPlanktonMort(params,n,n_pp)
 #' }
 getPlanktonMort <- 
-    function(object, n, n_pp,
-             pred_rate = getPredRate(object, n = n, n_pp = n_pp)) {
+    function(object, n, n_pp, n_bb,
+             pred_rate = getPredRate(object, n = n, n_pp = n_pp, n_bb = n_bb)) {
 
     if ( (!all(dim(pred_rate) ==
                c(nrow(object@species_params), length(object@w_full)))) |
@@ -404,8 +406,69 @@ getPlanktonMort <-
              ") x no. size bins in community + plankton (",
              length(object@w_full), ")")
     }
-    return(colSums(pred_rate))
+    #print("pred_rate dims")  
+    #print(dim(pred_rate))  
+    #print(pred_rate[,c(25:34)])
+    ## First, get the availability of plankton for all species and put it in the right dimensions. We need a matrix of 1 x no. sp.  
+    temp <- matrix(object@species_params$avail_PP, nrow = 1, ncol = length(object@species_params$avail_PP), byrow = T)
+    #print(temp)
+    #print(dim(temp))
+    ## Next, multiply this availability matrix by the size specific mortality imposed by predators (pred_rate has dimensions of no. sp x no. size bins)
+    m2_plankton <- temp %*% pred_rate
+    #print(dim(m2_plankton))
+    #print(m2_plankton[c(25:34)])
+  
+    #return(colSums(pred_rate))
+    return(m2_plankton)
 }
+
+#' Get predation mortality rate for benthos
+#' 
+#' Calculates the predation mortality rate \eqn{\mu_p(w)} on the benthos
+#' spectrum by plankton size. Used by the \code{project} method for running size
+#' based simulations.
+#' @param object A \code{MizerParams} object.
+#' @param n A matrix of species abundance (species x size).
+#' @param n_pp A vector of the plankton abundance by size.
+#' @param n_bb A vector of the benthos abundance by size.
+#' @param pred_rate An array of predation rates of dimension no. sp x 
+#'   no. of size bins in whole spectra (i.e. community +
+#'   plankton, the w_full slot). The array is optional. If it is not provided
+#'   it is calculated by the \code{getPredRate()} method.
+#'
+#' @return A vector of mortality rate by benthos size.
+
+getBenthosMort <- 
+    function(object, n, n_pp, n_bb,
+             pred_rate = getPredRate(object, n = n, n_pp = n_pp, n_bb = n_bb)) {
+
+    if ( (!all(dim(pred_rate) ==
+               c(nrow(object@species_params), length(object@w_full)))) |
+         (length(dim(pred_rate)) != 2)) {
+        stop("pred_rate argument must have 2 dimensions: no. species (",
+             nrow(object@species_params),
+             ") x no. size bins in community + plankton (",
+             length(object@w_full), ")")
+    }
+
+    #To get the right slots for benthos mortality we might need to identify the slots of benthos. This is because for planktons the slots are from minimum until the cut-off, so we don't need to worry about them. For fish, the slots are from minimum size of fish to maximum w, as it is used in getPredMort. But for benthos the minimum size of benthos is above the minimum community size, but most likely below the maximum size. However, at the moment object does not store any minimum and maximum benthos info. Is this a problem??
+      
+# idx_sp <- (length(object@w_full) - length(object@w) + 1):length(object@w_full)
+      
+      
+    ## First, get the availability of plankton for all species and put it in the right dimensions. We need a matrix of 1 x no. sp.  
+    temp <- matrix(object@species_params$avail_BB, nrow = 1, ncol = length(object@species_params$avail_BB), byrow = T)
+    #print(temp)
+    #print(dim(temp))
+    ## Next, multiply this availability matrix by the size specific mortality imposed by predators (pred_rate has dimensions of no. sp x no. size bins)
+    m2_benthos <- temp %*% pred_rate
+    #print(dim(m2_plankton))
+    #print(m2_plankton[c(25:34)])
+  
+    #return(colSums(pred_rate))
+    return(m2_benthos)
+}
+
 
 #' Alias for getPlanktonMort
 #' 
