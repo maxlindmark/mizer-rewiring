@@ -237,7 +237,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # Calculate mortality on the plankton spectrum
         m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, ##AAsp_DO - do we need n_bb here 
                                          pred_rate = pred_rate)
-        ##AAsp_DO ### 
+        ##AAsp_DO ##### 
         ## m2_benthos - add a separate function to get mortality of the benthic spectrum 
         ##AAsp ##
         
