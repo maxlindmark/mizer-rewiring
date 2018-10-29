@@ -692,8 +692,9 @@ getFMort <- function(object, effort, time_range, drop=TRUE){
 #' # Get the total mortality at a particular time step
 #' getMort(params,sim@@n[21,,],sim@@n_pp[21,],effort=0.5)
 #' }
-getMort <- function(object, n, n_pp, n_bb, effort, e,
-                 m2 = getPredMort(object, n = n, n_pp = n_pp, n_bb = n_bb)){
+getMort <- function(object, n, n_pp, n_bb, effort, 
+                 m2 = getPredMort(object, n = n, n_pp = n_pp, n_bb = n_bb), 
+                 e = getEReproAndGrowth(object, n= n, n_pp = n_pp, n_bb = n_bb)){
     if (!all(dim(m2) == c(nrow(object@species_params), length(object@w)))) {
         stop("m2 argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",

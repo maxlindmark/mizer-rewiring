@@ -1204,22 +1204,24 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
         proginc <- 1/ceiling(t_max/t_per)
     }
     # Force the recruitment to stay at the current level
-    rdd <- getRDD(p, p@initial_n, p@initial_n_pp)
+    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb) ##AA
     p@srr <- function(rdi, species_params) {rdd}
     
     n <- p@initial_n
     n_pp <- p@initial_n_pp
-    old_rdi <- getRDI(p, n, n_pp)
+    n_bb <- p@initial_n_bb ##AA
+    old_rdi <- getRDI(p, n, n_pp, n_bb) #AA
     for (ti in (1:ceiling(t_max/t_per))){
         sim <- project(p, t_max = t_per, t_save = t_per, effort = effort, 
-                       initial_n = n, initial_n_pp = n_pp)
+                       initial_n = n, initial_n_pp = n_pp, initial_n_bb = n_bb) ##AA
         # advance shiny progress bar
         if (hasArg(shiny_progress)) {
             shiny_progress$inc(amount = proginc)
         }
         n <- sim@n[dim(sim@n)[1],,]
         n_pp <- sim@n_pp[dim(sim@n_pp)[1],]
-        new_rdi <- getRDI(p, n, n_pp)
+        n_bb <- sim@n_bb[dim(sim@n_bb)[1],] ##AA
+        new_rdi <- getRDI(p, n, n_pp, n_bb) ##AA
         deviation <- max(abs((new_rdi - old_rdi)/old_rdi)[!is.na(p@A)])
         if (deviation < tol) {
             break
@@ -1242,12 +1244,13 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
     no_t <- dim(sim@n)[1]
     p@initial_n <- sim@n[no_t, , ]
     p@initial_n_pp <- sim@n_pp[no_t, ]
+    p@initial_n_bb <- sim@n_bb[no_t, ] ##AA
     
     # Retune the values of erepro so that we get the correct level of
     # recruitment
-    mumu <- getMort(p, p@initial_n, p@initial_n_pp, effort = effort)
-    gg <- getEGrowth(p, p@initial_n, p@initial_n_pp)
-    rdd <- getRDD(p, p@initial_n, p@initial_n_pp)
+    mumu <- getMort(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, effort = effort) ##AA
+    gg <- getEGrowth(p, p@initial_n, p@initial_n_pp, p@initial_n_bb)  ##AA
+    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb) ##AA
     # TODO: vectorise this
     for (i in (1:no_sp)) {
         gg0 <- gg[i, p@w_min_idx[i]]

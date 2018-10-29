@@ -883,7 +883,7 @@ plotGrowthCurves <- function(object, species,
         ws <- array(dim = c(length(species), length(age)),
                     dimnames = list("Species" = species, "Age" = age))
         g <- getEGrowth(sim@params, sim@n[dim(sim@n)[1], , ], 
-                        sim@n_pp[dim(sim@n)[1], ])
+                        sim@n_pp[dim(sim@n)[1], ], sim@n_bb[dim(sim@n)[1], ]) #AA
         for (j in 1:length(species)) {
             i <- idx[j]
             g_fn <- stats::approxfun(sim@params@w, g[i, ])
@@ -948,7 +948,7 @@ plotGrowthCurves <- function(object, species,
         age <- seq(0, max_age, length.out = 50)
         ws <- array(dim = c(length(species), length(age)),
                     dimnames = list(Species = species, Age = age))
-        g <- getEGrowth(params, params@initial_n, params@initial_n_pp)
+        g <- getEGrowth(params, params@initial_n, params@initial_n_pp, params@initial_n_bb) ##AA
         for (j in 1:length(species)) {
             i <- idx[j]
             g_fn <- stats::approxfun(params@w, g[i, ])
