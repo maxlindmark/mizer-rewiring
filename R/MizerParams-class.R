@@ -819,7 +819,7 @@ multispeciesParams <- function(object, interaction,
         unlist(
             tapply(res@w, 1:length(res@w),
                    function(wx, w_inf, w_mat,n) {
-                       ((1 + (wx / (w_mat))^-7)^-1) * (wx / w_inf)^(1 - n) ##AAsp## - changed parameter 10 to 7 here 
+                       ((1 + (wx / (w_mat))^-5)^-1) * (wx / w_inf)^(1 - n) ##AAsp## - changed parameter 10 to 5 here 
                    },
                    w_inf = object$w_inf, w_mat = object$w_mat, n = n
             )

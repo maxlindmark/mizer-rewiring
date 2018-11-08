@@ -935,7 +935,7 @@ getEGrowth <- function(object, n, n_pp, n_bb,
     
     #Because getEReproAndGrowth now can return negative values, we add an extra line here 
     e[e < 0] <- 0 # Do not allow negative growth
-    e_growth <- e - e_repro
+    e_growth <- (e - e_repro)*0.6 ##AAsp = add growth cost
     return(e_growth)
 }
 
