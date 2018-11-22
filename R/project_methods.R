@@ -645,22 +645,31 @@ getZ <- getMort
 #' # Get the energy at a particular time step
 #' getEReproAndGrowth(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getEReproAndGrowth <- function(object, n, n_pp,
+getEReproAndGrowth <- function(object, metabolismArray , n, n_pp,
                                feeding_level = getFeedingLevel(object, n = n,
                                                                n_pp = n_pp)) {
-    if (!all(dim(feeding_level) == c(nrow(object@species_params), length(object@w)))) {
-        stop("feeding_level argument must have dimensions: no. species (",
-             nrow(object@species_params), ") x no. size bins (",
-             length(object@w), ")")
-    }
-    # assimilated intake
-    e <- sweep(feeding_level * object@intake_max, 1,
-               object@species_params$alpha, "*", check.margin = FALSE)
-    # Subtract metabolism
-    e <- e - object@metab
-    # in order to apply starvation mortality we need to return the actual positive or negative e here
-    #e[e < 0] <- 0 # Do not allow negative growth
-    return(e)
+  if (!all(dim(feeding_level) == c(nrow(object@species_params), length(object@w)))) {
+    stop("feeding_level argument must have dimensions: no. species (",
+         nrow(object@species_params), ") x no. size bins (",
+         length(object@w), ")")
+  }
+
+  
+  # assimilated intake
+  e <- sweep(feeding_level * object@intake_max, 1,
+             object@species_params$alpha, "*", check.margin = FALSE)
+  
+  # if(object@species_param$metabolismTemp != "none") temperatureScalar <- expFun(object = object,temperature = temperature) 
+  # else temperatureScalar = 1
+  
+  temperatureScalar <- metabolismArray[,temperature,] # metabolismarray is the slice of the 3*3 array at the right time
+  
+  
+  # Subtract metabolism
+  e <- e - (object@metab * temperatureScalar)
+  # in order to apply starvation mortality we need to return the actual positive or negative e here
+  #e[e < 0] <- 0 # Do not allow negative growth
+  return(e)
 }
 
 #' Get starvation mortality 
@@ -941,3 +950,85 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
     names(time_elements) <- dimnames(sim@effort)$time
     return(time_elements)
 }
+
+### temperature functions ###
+
+# expFun calculate the temperature scalar by size depending on temperature, activation energy (var1) and mass corrected temperature scaling (var2) using an exponential method
+# var1 is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
+# var2 is mass corrected temperature scaling, when var2 = 0 you get "independent from size" type
+# var3 is the reference temperature (at which the temperature scalar = 1)
+# temperature is integer
+# object is mizer object with all necessary parameters (so we might get var1 to 3 in object directly)
+expFun <- function(object, temperature, var1, var2, var3) 
+{
+  temperatureScalar <- exp(log((exp(-var1/(c*var3)) * w^(var2*var3))^(-1))) * exp(-var1/(8.617332e-5*temperature)) * object@w^(var2*temperature)
+  return(temperatureScalar)
+}
+# var1 is the activation energy
+# var2 is the deactivation energy
+# var3 is the reference temperature (at which the temperature scalar = 1)
+# var4 is the temperature at which the rate is highest 
+
+optFun <- function(object, temperature, var1, var2, var3) 
+{
+  Th <- var2/(var2/var4-8.617332e-5*log(var2/var1-1)) # intermediate step / don't know what Th stands for
+  temperatureScalar <- thing + var1*(1/(8.617332e-5*var3) - 1/(8.617332e-5*temperature)) - log(1 + exp(var2*(1/(8.617332e-5*Th) - 1/(8.617332e-5*temperature))))
+  return(temperatureScalar)
+}
+
+# test zone
+var1 <- 0.62
+var2 <- 6.8
+var3 <- 273
+var4 <- 293
+temperature = 283
+
+var4 <- 273+ seq(1,30)
+
+
+
+
+
+temperatureScalar <- (Ea + Ea_c*object@w)*(1/(k*temperature) - 1/(k*temp_K)) - log(1 + exp((Eh + Ea_h*object@w)*(1/(k*Th) - 1/(k*temp_K)))) + thing
+
+
+# test zone
+thing <- log((exp(-var1/(8.617332e-5*var3)) * w[1]^(var2*var3))^(-1))
+
+# to get scalar predictions for all temperatures
+tempMatrix <- sweep(temperature,1,FUN = expFun(object = object, var1 = var1, var2 = var2))
+
+temperature <- c(275,276,277,278,279)
+w <- c(10,15,24,67,100,150)
+var1 <- 0.65
+var2 <- 0.01
+var3 <- 275
+x <- 2 # temperature vector pos
+
+temperatureScalar <- exp(log((exp(-var1/(8.617332e-5*var3)) * w^(var2*var3))^(-1))) * exp(-var1/(8.617332e-5*temperature[x])) * w^(var2*temperature[x])
+
+### work in progress ###
+
+# get scalar that influence parameter and is temperature dependent
+getTempScl <- function(object, temperature, type, rate )
+{
+  switch()
+  
+  if(object@species_params$int_form == "exp_indep") # what is the type of temperature dependence of intake?
+  {
+
+
+    
+    
+    genericFunction <- exp_indepF
+    
+    
+  }
+  
+  
+  
+  
+}
+
+
+
