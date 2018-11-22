@@ -114,6 +114,8 @@ valid_MizerSim <- function(object){
 #'   ##AAsp
 #' @slot n_bb Array that stores the projected benthos abundance by time and
 #'   size
+#' @slot n_aa Array that stores the projected algal abundance by time and
+#'   size
 #'   
 #' @seealso \code{\link{project}} \code{\link{MizerParams}}
 #' @export
@@ -125,7 +127,8 @@ setClass(
         effort = "array",
         n_pp = "array",
         ##AAsp####
-        n_bb = "array"
+        n_bb = "array",
+        n_aa = "array"
     ),
     prototype = prototype(
         params = new("MizerParams"),
@@ -140,6 +143,9 @@ setClass(
         ),
         ##AAsp####
         n_bb = array(
+          NA,dim = c(1,1), dimnames = list(time = NULL, w = NULL)
+        ),
+        n_aa = array(
           NA,dim = c(1,1), dimnames = list(time = NULL, w = NULL)
         )
         ##AAsp##
@@ -202,6 +208,9 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
     array_n_bb <- array(NA, dim = c(t_dim, no_w_full), 
                         dimnames = list(time=t_dimnames, 
                                         w = w_full_names))
+    array_n_aa <- array(NA, dim = c(t_dim, no_w_full), 
+                        dimnames = list(time=t_dimnames, 
+                                        w = w_full_names))
     ##AAsp##
     
     sim <- new('MizerSim',
@@ -210,6 +219,7 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
                n_pp = array_n_pp,
                ##AAsp####
                n_bb = array_n_bb,
+               n_aa = array_n_aa,
                ##AAsp##
                params = params)
     return(sim)

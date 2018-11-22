@@ -47,6 +47,7 @@ NULL
 #' @param n_pp A vector of the plankton abundance by size
 #' ##AAsp
 #' @param n_bb A vector of the benthos abundance by size
+#' @param n_aa A vector of the algal abundance by size
 #'   
 #' @return A two dimensional array (predator species x predator size)
 #' @seealso \code{\link{project}}
@@ -63,7 +64,7 @@ NULL
 #' getAvailEnergy(params,n,n_pp)
 #' }
 
-getAvailEnergy <- function(object, n, n_pp, n_bb) { 
+getAvailEnergy <- function(object, n, n_pp, n_bb, n_aa) { 
 
     # idx_sp are the index values of object@w_full such that
     # object@w_full[idx_sp] = object@w
@@ -85,9 +86,11 @@ getAvailEnergy <- function(object, n, n_pp, n_bb) {
     pl_food <- matrix(object@species_params$avail_PP, nrow = length(object@species_params$avail_PP), ncol = 1) %*% n_pp
     #do the same for the benthic spectrum
     ben_food <- matrix(object@species_params$avail_BB, nrow = length(object@species_params$avail_PP), ncol = 1) %*% n_bb
+    #do the same for the algal spectrum
+    alg_food <- matrix(object@species_params$avail_AA, nrow = length(object@species_params$avail_AA), ncol = 1) %*% n_aa
 
-    #now we can simply add these matrices because their dimensions should be the same. This is because n_pp and n_bb include the full spectrum, but values are zero above the maximum plankton and benthos size     
-    prey_backgr <- pl_food + ben_food 
+    #now we can simply add these matrices because their dimensions should be the same. This is because n_pp, n_bb and n_aa include the full spectrum, but values are zero above the maximum plankton and benthos and algal size     
+    prey_backgr <- pl_food + ben_food + alg_food
 
     ## now we should be able to simply add prey matrix (which includes species) and prey_backgr matrix without needing a sweep
     prey_all <- prey + prey_backgr
@@ -133,6 +136,8 @@ getPhiPrey <- getAvailEnergy
 #'   \code{object} argument is of type \code{MizerParams}.
 #' @param n_bb A vector of the plankton abundance by size. Only used if
 #'   \code{object} argument is of type \code{MizerParams}.
+#' @param n_aa A vector of the algal abundance by size. Only used if
+#'   \code{object} argument is of type \code{MizerParams}.
 #' @param avail_energy The available energy matrix (optional) of dimension no.
 #'   species x no. size bins. If not passed in, it is calculated internally
 #'   using the \code{\link{getAvailEnergy}} method. Only used if \code{object}
@@ -169,11 +174,11 @@ getPhiPrey <- getAvailEnergy
 #' # Get the feeding level for time 15 - 20
 #' fl <- getFeedingLevel(sim, time_range = c(15,20))
 #' }
-getFeedingLevel <- function(object, n, n_pp, n_bb, avail_energy,
+getFeedingLevel <- function(object, n, n_pp, n_bb, n_aa, avail_energy,
                             time_range, drop=FALSE){
     if (is(object, "MizerParams")) {
         if (missing(avail_energy)) {
-            avail_energy <- getAvailEnergy(object, n, n_pp, n_bb)
+            avail_energy <- getAvailEnergy(object, n, n_pp, n_bb, n_aa)
         }
         # Check dims of avail_energy
 
@@ -198,7 +203,7 @@ getFeedingLevel <- function(object, n, n_pp, n_bb, avail_energy,
             # species which makes using drop impossible
             n <- array(object@n[x, , ], dim = dim(object@n)[2:3])
             dimnames(n) <- dimnames(object@n)[2:3]
-            feed <- getFeedingLevel(object@params, n = n, n_pp = object@n_pp[x, ], n_bb = object@n_bb[x, ])
+            feed <- getFeedingLevel(object@params, n = n, n_pp = object@n_pp[x, ], n_bb = object@n_bb[x, ], n_aa = object@n_aa[x, ])
             return(feed)
             }, .drop = drop)
         return(feed_time)
@@ -219,6 +224,7 @@ getFeedingLevel <- function(object, n, n_pp, n_bb, avail_energy,
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param feeding_level The current feeding level (optional). A matrix of size
 #'   no. species x no. size bins. If not supplied, is calculated internally
 #'   using the \code{getFeedingLevel()} method.
@@ -241,8 +247,8 @@ getFeedingLevel <- function(object, n, n_pp, n_bb, avail_energy,
 #' getPredRate(params,n,n_pp)
 #' }
 
-getPredRate <- function(object, n,  n_pp, n_bb,
-                        feeding_level = getFeedingLevel(object, n = n, n_pp = n_pp, n_bb = n_bb)
+getPredRate <- function(object, n,  n_pp, n_bb, n_aa,
+                        feeding_level = getFeedingLevel(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)
                         ) {
 
     no_sp <- dim(object@interaction)[1]
@@ -292,6 +298,8 @@ getPredRate <- function(object, n,  n_pp, n_bb,
 #'   \code{object} argument is of type \code{MizerParams}.
 #' @param n_bb A vector of the benthos abundance by size. Only used if
 #'   \code{object} argument is of type \code{MizerParams}.
+#' @param n_aa A vector of the algal abundance by size. Only used if
+#'   \code{object} argument is of type \code{MizerParams}.
 #' @param pred_rate An array of predation rates of dimension no. sp x no.
 #'   community size bins x no. of size bins in whole spectra (i.e. community +
 #'   plankton, the w_full slot). The array is optional. If it is not provided
@@ -328,13 +336,13 @@ getPredRate <- function(object, n,  n_pp, n_bb,
 #' # Get predation mortality over the time 15 - 20
 #' getPredMort(sim, time_range = c(15,20))
 #' }
-getPredMort <- function(object, n, n_pp, n_bb, pred_rate, time_range, drop = TRUE) {
+getPredMort <- function(object, n, n_pp, n_bb, n_aa, pred_rate, time_range, drop = TRUE) {
     if (is(object, "MizerParams")) {
         if (missing(pred_rate)) {
-            feeding_level <- getFeedingLevel(object, n = n, n_pp = n_pp, n_bb = n_bb)
+            feeding_level <- getFeedingLevel(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)
 
             pred_rate <- getPredRate(object = object, n = n,
-                                     n_pp = n_pp, n_bb = n_bb, feeding_level = feeding_level)
+                                     n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, feeding_level = feeding_level)
         }
         idx_sp <- (length(object@w_full) - length(object@w) + 1):length(object@w_full)
 
@@ -348,7 +356,7 @@ getPredMort <- function(object, n, n_pp, n_bb, pred_rate, time_range, drop = TRU
         m2_time <- aaply(which(time_elements), 1, function(x) {
             n <- array(object@n[x, , ], dim = dim(object@n)[2:3])
             dimnames(n) <- dimnames(object@n)[2:3]
-            m2 <- getPredMort(object@params, n = n, n_pp = object@n_pp[x, ], n_bb = object@n_bb[x, ])
+            m2 <- getPredMort(object@params, n = n, n_pp = object@n_pp[x, ], n_bb = object@n_bb[x, ], n_aa = object@n_aa[x, ])
             return(m2)
         }, .drop = drop)
         return(m2_time)
@@ -372,6 +380,7 @@ getM2 <- getPredMort
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param pred_rate An array of predation rates of dimension no. sp x 
 #'   no. of size bins in whole spectra (i.e. community +
 #'   plankton, the w_full slot). The array is optional. If it is not provided
@@ -394,8 +403,8 @@ getM2 <- getPredMort
 #' getPlanktonMort(params,n,n_pp)
 #' }
 getPlanktonMort <- 
-    function(object, n, n_pp, n_bb,
-             pred_rate = getPredRate(object, n = n, n_pp = n_pp, n_bb = n_bb)) {
+    function(object, n, n_pp, n_bb, n_aa,
+             pred_rate = getPredRate(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)) {
 
     if ( (!all(dim(pred_rate) ==
                c(nrow(object@species_params), length(object@w_full)))) |
@@ -424,12 +433,13 @@ getPlanktonMort <-
 #' Get predation mortality rate for benthos
 #' 
 #' Calculates the predation mortality rate \eqn{\mu_p(w)} on the benthos
-#' spectrum by plankton size. Used by the \code{project} method for running size
+#' spectrum by size. Used by the \code{project} method for running size
 #' based simulations.
 #' @param object A \code{MizerParams} object.
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param pred_rate An array of predation rates of dimension no. sp x 
 #'   no. of size bins in whole spectra (i.e. community +
 #'   plankton, the w_full slot). The array is optional. If it is not provided
@@ -438,8 +448,8 @@ getPlanktonMort <-
 #' @return A vector of mortality rate by benthos size.
 
 getBenthosMort <- 
-    function(object, n, n_pp, n_bb,
-             pred_rate = getPredRate(object, n = n, n_pp = n_pp, n_bb = n_bb)) {
+    function(object, n, n_pp, n_bb, n_aa,
+             pred_rate = getPredRate(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)) {
 
     if ( (!all(dim(pred_rate) ==
                c(nrow(object@species_params), length(object@w_full)))) |
@@ -450,23 +460,62 @@ getBenthosMort <-
              length(object@w_full), ")")
     }
 
+###TODO###
     #To get the right slots for benthos mortality we might need to identify the slots of benthos. This is because for planktons the slots are from minimum until the cut-off, so we don't need to worry about them. For fish, the slots are from minimum size of fish to maximum w, as it is used in getPredMort. But for benthos the minimum size of benthos is above the minimum community size, but most likely below the maximum size. However, at the moment object does not store any minimum and maximum benthos info. Is this a problem??
       
 # idx_sp <- (length(object@w_full) - length(object@w) + 1):length(object@w_full)
-      
-      
-    ## First, get the availability of plankton for all species and put it in the right dimensions. We need a matrix of 1 x no. sp.  
+
+    ## First, get the availability of benthos for all species and put it in the right dimensions. We need a matrix of 1 x no. sp.  
     temp <- matrix(object@species_params$avail_BB, nrow = 1, ncol = length(object@species_params$avail_BB), byrow = T)
-    #print(temp)
-    #print(dim(temp))
     ## Next, multiply this availability matrix by the size specific mortality imposed by predators (pred_rate has dimensions of no. sp x no. size bins)
     m2_benthos <- temp %*% pred_rate
-    #print(dim(m2_plankton))
-    #print(m2_plankton[c(25:34)])
-  
-    #return(colSums(pred_rate))
+
     return(m2_benthos)
 }
+
+#' Get predation mortality rate for algae
+#' 
+#' Calculates the predation mortality rate \eqn{\mu_p(w)} on the algal spectrum
+#' spectrum by size. Used by the \code{project} method for running size
+#' based simulations.
+#' @param object A \code{MizerParams} object.
+#' @param n A matrix of species abundance (species x size).
+#' @param n_pp A vector of the plankton abundance by size.
+#' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
+#' @param pred_rate An array of predation rates of dimension no. sp x 
+#'   no. of size bins in whole spectra (i.e. community +
+#'   plankton, the w_full slot). The array is optional. If it is not provided
+#'   it is calculated by the \code{getPredRate()} method.
+#'
+#' @return A vector of mortality rate by benthos size.
+
+getAlgalMort <- 
+  function(object, n, n_pp, n_bb, n_aa,
+           pred_rate = getPredRate(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)) {
+    
+    if ( (!all(dim(pred_rate) ==
+               c(nrow(object@species_params), length(object@w_full)))) |
+         (length(dim(pred_rate)) != 2)) {
+      stop("pred_rate argument must have 2 dimensions: no. species (",
+           nrow(object@species_params),
+           ") x no. size bins in community + plankton (",
+           length(object@w_full), ")")
+    }
+    
+    ###TODO###
+    #Again as with benthos, what happens is minimum size of algae is above the minimum community size? Is this a problem??
+    
+    # idx_sp <- (length(object@w_full) - length(object@w) + 1):length(object@w_full)
+    
+    ## First, get the availability of benthos for all species and put it in the right dimensions. We need a matrix of 1 x no. sp.  
+    temp <- matrix(object@species_params$avail_AA, nrow = 1, ncol = length(object@species_params$avail_AA), byrow = T)
+    ## Next, multiply this availability matrix by the size specific mortality imposed by predators (pred_rate has dimensions of no. sp x no. size bins)
+    m2_algae <- temp %*% pred_rate
+    
+    return(m2_algae)
+  }
+
 
 
 #' Alias for getPlanktonMort
@@ -672,6 +721,7 @@ getFMort <- function(object, effort, time_range, drop=TRUE){
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param effort A numeric vector of the effort by gear or a single numeric
 #'   effort value which is used for all gears.
 #' @param m2 A two dimensional array of predation mortality (optional). Has
@@ -692,15 +742,15 @@ getFMort <- function(object, effort, time_range, drop=TRUE){
 #' # Get the total mortality at a particular time step
 #' getMort(params,sim@@n[21,,],sim@@n_pp[21,],effort=0.5)
 #' }
-getMort <- function(object, n, n_pp, n_bb, effort, 
-                 m2 = getPredMort(object, n = n, n_pp = n_pp, n_bb = n_bb), 
-                 e = getEReproAndGrowth(object, n= n, n_pp = n_pp, n_bb = n_bb)){
+getMort <- function(object, n, n_pp, n_bb, n_aa, effort, 
+                 m2 = getPredMort(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa), 
+                 e = getEReproAndGrowth(object, n= n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)){
     if (!all(dim(m2) == c(nrow(object@species_params), length(object@w)))) {
         stop("m2 argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
              length(object@w), ")")
     }
-    return(m2 + object@mu_b + getFMort(object, effort = effort) + getSMort(object, n=n, n_pp=n_pp, n_bb = n_bb, e = e)) 
+    return(m2 + object@mu_b + getFMort(object, effort = effort) + getSMort(object, n=n, n_pp=n_pp, n_bb = n_bb, n_aa = n_aa, e = e)) 
 }
 
 #' Alias for getMort
@@ -719,6 +769,7 @@ getZ <- getMort
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param feeding_level The current feeding level (optional). A matrix of size
 #'   no. species x no. size bins. If not supplied, is calculated internally
 #'   using the \code{getFeedingLevel()} method.
@@ -736,9 +787,9 @@ getZ <- getMort
 #' # Get the energy at a particular time step
 #' getEReproAndGrowth(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getEReproAndGrowth <- function(object, n, n_pp, n_bb,
+getEReproAndGrowth <- function(object, n, n_pp, n_bb, n_aa,
                                feeding_level = getFeedingLevel(object, n = n,
-                                                               n_pp = n_pp, n_bb = n_bb)) {
+                                                               n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)) {
     if (!all(dim(feeding_level) == c(nrow(object@species_params), length(object@w)))) {
         stop("feeding_level argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
@@ -765,13 +816,14 @@ getEReproAndGrowth <- function(object, n, n_pp, n_bb,
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param e The energy available for reproduction and growth (optional). A
 #'   matrix of size no. species x no. size bins. If not supplied, is calculated
 #'   internally using the \code{getEReproAndGrowth()} method. 
 #'
 #' @return A two dimensional array of instantaneous starvation mortality (species x size). 
-getSMort <- function(object, n, n_pp, n_bb,
-                     e = getEReproAndGrowth(object, n = n, n_pp = n_pp, n_bb = n_bb)){
+getSMort <- function(object, n, n_pp, n_bb, n_aa, 
+                     e = getEReproAndGrowth(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)){
             if (!all(dim(e) == c(nrow(object@species_params), length(object@w)))) {
               stop("e argument must have dimensions: no. species (",
                    nrow(object@species_params), ") x no. size bins (",
@@ -848,6 +900,7 @@ getSenMort <- function(object, n){
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param e The energy available for reproduction and growth (optional). A
 #'   matrix of size no. species x no. size bins. If not supplied, is calculated
 #'   internally using the \code{getEReproAndGrowth()} method.
@@ -865,8 +918,8 @@ getSenMort <- function(object, n){
 #' # Get the energy at a particular time step
 #' getERepro(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getERepro <- function(object, n, n_pp, n_bb,
-                         e = getEReproAndGrowth(object, n = n, n_pp = n_pp, n_bb = n_bb)) {
+getERepro <- function(object, n, n_pp, n_bb, n_aa,
+                         e = getEReproAndGrowth(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)) {
     if (!all(dim(e) == c(nrow(object@species_params), length(object@w)))) {
         stop("e argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
@@ -895,6 +948,7 @@ getESpawning <- getERepro
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param e The energy available for reproduction and growth (optional, although
 #'   if specified, e_repro must also be specified). A matrix of size no.
 #'   species x no. size bins. If not supplied, is calculated internally using
@@ -917,9 +971,9 @@ getESpawning <- getERepro
 #' # Get the energy at a particular time step
 #' getEGrowth(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getEGrowth <- function(object, n, n_pp, n_bb,
-                       e_repro = getERepro(object, n = n, n_pp = n_pp, n_bb = n_bb),
-                       e=getEReproAndGrowth(object, n = n, n_pp = n_pp, n_bb = n_bb)) {
+getEGrowth <- function(object, n, n_pp, n_bb, n_aa,
+                       e_repro = getERepro(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa),
+                       e=getEReproAndGrowth(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)) {
     if (!all(dim(e_repro) == c(nrow(object@species_params), length(object@w)))) {
         stop("e_repro argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
@@ -949,6 +1003,7 @@ getEGrowth <- function(object, n, n_pp, n_bb,
 #' @param n A matrix of species abundance (species x size).
 #' @param n_pp A vector of the plankton abundance by size.
 #' @param n_bb A vector of the benthos abundance by size.
+#' @param n_aa A vector of the algal abundance by size.
 #' @param e_repro The energy available for reproduction (optional). A matrix of
 #'   size no. species x no. size bins. If not supplied, is calculated internally
 #'   using the \code{\link{getERepro}} method.
@@ -968,8 +1023,8 @@ getEGrowth <- function(object, n, n_pp, n_bb,
 #' # Get the recruitment at a particular time step
 #' getRDI(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getRDI <- function(object, n, n_pp, n_bb,
-                   e_repro = getERepro(object, n = n, n_pp = n_pp, n_bb = n_bb),
+getRDI <- function(object, n, n_pp, n_bb, n_aa,
+                   e_repro = getERepro(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa),
                    sex_ratio = 0.5) {
     if (!all(dim(e_repro) == c(nrow(object@species_params), length(object@w)))) {
         stop("e_repro argument must have dimensions: no. species (",
@@ -995,6 +1050,7 @@ getRDI <- function(object, n, n_pp, n_bb,
 #' @param n A matrix of species abundance (species x size)
 #' @param n_pp A vector of the plankton abundance by size
 #' @param n_bb A vector of the benthos abundance by size
+#' @param n_aa A vector of the algal abundance by size.
 #' @param rdi A vector of density independent recruitment for each species. 
 #'   If not specified rdi is calculated internally using
 #'   the \code{\link{getRDI}} method.
@@ -1011,8 +1067,8 @@ getRDI <- function(object, n, n_pp, n_bb,
 #' # Get the energy at a particular time step
 #' getRDD(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getRDD <- function(object, n, n_pp, n_bb, sex_ratio = 0.5,
-                   rdi = getRDI(object, n = n, n_pp = n_pp, n_bb = n_bb, sex_ratio = sex_ratio)) {
+getRDD <- function(object, n, n_pp, n_bb, n_aa, sex_ratio = 0.5,
+                   rdi = getRDI(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, sex_ratio = sex_ratio)) {
     rdd <- object@srr(rdi = rdi, species_params = object@species_params)
     return(rdd)
 }

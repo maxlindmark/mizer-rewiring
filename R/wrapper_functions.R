@@ -213,11 +213,17 @@ set_community_model <- function(max_w = 1e6,
 #' @param max_w The largest size of the community spectrum. Default value is the
 #'   largest w_inf in the community x 1.1.
 #' @param min_w_pp The smallest size of the plankton spectrum.
+#' @param min_w_bb The smallest size of the benthos spectrum.
+#' @param min_w_aa The smallest size of the (macro)algal spectrum.
 #' @param no_w_pp Obsolete argument that is no longer used because the number
 #'    of plankton size bins is determined because all size bins have to
 #'    be logarithmically equally spaced.
 #' @param w_pp_cutoff The cut off size of the plankton spectrum. Default value
 #'   is 1.
+#' @param w_bb_cutoff The cut off size of the benthos spectrum. Default value
+#'   is 10.
+#' @param w_aa_cutoff The cut off size of the (macro)algal spectrum. Default value
+#'   is 100.
 #' @param k0 Multiplier for the maximum recruitment. Default value is 50.
 #' @param n Scaling of the intake. Default value is 2/3.
 #' @param p Scaling of the standard metabolism. Default value is 0.75.
@@ -227,6 +233,14 @@ set_community_model <- function(max_w = 1e6,
 #' @param kappa Coefficient in abundance power law. Default value is
 #'   0.005.
 #' @param lambda Exponent of the abundance power law. Default value is (2+q-n).
+#' @param r_bb Growth rate of the benthos productivity. Default value is 2.
+#' @param kappa_ben Coefficient in abundance power law for benthos. Default value is
+#'   0.005.
+#' @param lambda_ben Exponent of the abundance power law for benthos. Default value is (2+q-n).
+#' @param r_aa Growth rate of the benthic algal productivity (generally macroalgae). Default value is 2.
+#' @param kappa_alg Coefficient in abundance power law for (macro)algae. Default value is
+#'   0.005.
+#' @param lambda_alg Exponent of the abundance power law for (macro)algae Default value is (2+q-n).
 #' @param alpha The assimilation efficiency of the community. The default value
 #'   is 0.6
 #' @param ks Standard metabolism coefficient. Default value is 4.
@@ -304,9 +318,14 @@ set_trait_model <- function(no_sp = 10,
                             ### AAsp#### 
                             lambda_ben = 2+q-n,
                             kappa_ben = 0.005,
-                            r_bb = 4,
+                            r_bb = 2,
                             min_w_bb = 1e-10,  
-                            w_bb_cutoff = 1,
+                            w_bb_cutoff = 10,
+                            lambda_alg = 2+q-n,
+                            kappa_alg = 0.005,
+                            r_aa = 2,
+                            min_w_aa = 1e-10,  
+                            w_aa_cutoff = 100,
                             ### AAsp####
                             ...){
     if (!is.na(no_w_pp))
@@ -345,7 +364,8 @@ set_trait_model <- function(no_sp = 10,
         erepro = 1,
         ##AAsp##
         avail_PP = avail_PP,
-        avail_BB = avail_BB
+        avail_BB = avail_BB,
+        avail_AA = avail_AA
     )
     # Make the MizerParams
     trait_params <-
@@ -367,7 +387,12 @@ set_trait_model <- function(no_sp = 10,
             w_bb_cutoff = w_bb_cutoff,
             r_bb = r_bb,
             kappa_ben = kappa_ben,
-            lambda_ben = lambda_ben
+            lambda_ben = lambda_ben,
+            min_w_aa = min_w_aa,
+            w_aa_cutoff = w_aa_cutoff,
+            r_aa = r_aa,
+            kappa_alg = kappa_alg,
+            lambda_alg = lambda_alg
             ##AAsp####
         ) 
     # Sort out maximum recruitment - see A&P 2009 Get max flux at recruitment
@@ -1204,16 +1229,17 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
         proginc <- 1/ceiling(t_max/t_per)
     }
     # Force the recruitment to stay at the current level
-    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb) ##AA
+    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa) ##AA
     p@srr <- function(rdi, species_params) {rdd}
     
     n <- p@initial_n
     n_pp <- p@initial_n_pp
     n_bb <- p@initial_n_bb ##AA
-    old_rdi <- getRDI(p, n, n_pp, n_bb) #AA
+    n_aa <- p@initial_n_aa ##AA
+    old_rdi <- getRDI(p, n, n_pp, n_bb, n_aa) #AA
     for (ti in (1:ceiling(t_max/t_per))){
         sim <- project(p, t_max = t_per, t_save = t_per, effort = effort, 
-                       initial_n = n, initial_n_pp = n_pp, initial_n_bb = n_bb) ##AA
+                       initial_n = n, initial_n_pp = n_pp, initial_n_bb = n_bb, initial_n_aa = n_aa) ##AA
         # advance shiny progress bar
         if (hasArg(shiny_progress)) {
             shiny_progress$inc(amount = proginc)
@@ -1221,7 +1247,8 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
         n <- sim@n[dim(sim@n)[1],,]
         n_pp <- sim@n_pp[dim(sim@n_pp)[1],]
         n_bb <- sim@n_bb[dim(sim@n_bb)[1],] ##AA
-        new_rdi <- getRDI(p, n, n_pp, n_bb) ##AA
+        n_aa <- sim@n_aa[dim(sim@n_aa)[1],] ##AA
+        new_rdi <- getRDI(p, n, n_pp, n_bb, n_aa) ##AA
         deviation <- max(abs((new_rdi - old_rdi)/old_rdi)[!is.na(p@A)])
         if (deviation < tol) {
             break
@@ -1245,12 +1272,13 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
     p@initial_n <- sim@n[no_t, , ]
     p@initial_n_pp <- sim@n_pp[no_t, ]
     p@initial_n_bb <- sim@n_bb[no_t, ] ##AA
+    p@initial_n_aa <- sim@n_aa[no_t, ] ##AA
     
     # Retune the values of erepro so that we get the correct level of
     # recruitment
-    mumu <- getMort(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, effort = effort) ##AA
-    gg <- getEGrowth(p, p@initial_n, p@initial_n_pp, p@initial_n_bb)  ##AA
-    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb) ##AA
+    mumu <- getMort(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa, effort = effort) ##AA
+    gg <- getEGrowth(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa)  ##AA
+    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa) ##AA
     # TODO: vectorise this
     for (i in (1:no_sp)) {
         gg0 <- gg[i, p@w_min_idx[i]]

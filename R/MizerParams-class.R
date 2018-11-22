@@ -185,7 +185,16 @@ validMizerParams <- function(object) {
       msg <- "cc_bb must be the same length as w_full"
       errors <- c(errors, msg)
     }
-    ##AAsp##
+    # Check the algae spectrum vector slots
+    if (length(object@rr_aa) != length(object@w_full)) {
+      msg <- "rr_aa must be the same length as w_full"
+      errors <- c(errors, msg)
+    }
+    if (length(object@cc_aa) != length(object@w_full)) {
+      msg <- "cc_aa must be the same length as w_full"
+      errors <- c(errors, msg)
+    }
+    ##AAspEND
     
     
     # SRR
@@ -256,6 +265,11 @@ validMizerParams <- function(object) {
 #'   growth rate of the benthic spectrum. Current default is same as for plankton \eqn{r_0 w^{p-1}}
 #' @slot cc_bb A vector the same length as the w_full slot. The size specific
 #'   carrying capacity of the benthic spectrum. Current default \eqn{\kappa_bb w^{-\lambda_bb}}
+#' @slot rr_aa A vector the same length as the w_full slot. The size specific
+#'   growth rate of the algal spectrum. Current default is same as for plankton \eqn{r_0 w^{p-1}}
+#' @slot cc_aa A vector the same length as the w_full slot. The size specific
+#'   carrying capacity of the algal spectrum. Current default \eqn{\kappa_bb w^{-\lambda_bb}}
+#'   ##AAspEND
 #' @slot sc The community abundance of the scaling community
 #' @slot species_params A data.frame to hold the species specific parameters
 #'   (see the mizer vignette, Table 2, for details)
@@ -273,16 +287,21 @@ validMizerParams <- function(object) {
 #'  ##AAsp
 #' @slot initial_n_bb A vector the same length as the w_full slot that describes
 #'  the benthos abundance at each weight.
+#' @slot initial_n_aa A vector the same length as the w_full slot that describes
+#'  the algal abundance at each weight.
+#'  ##AAend
 #' @slot n Exponent of maximum intake rate.
 #' @slot p Exponent of metabolic cost.
 #' @slot lambda Exponent of resource spectrum.
 #' ##AAsp
 #' @slot lambda_ben Exponent of benthic resource spectrum.
+#' @slot lambda_alg Exponent of algal resource spectrum.
 #' @slot q Exponent for volumetric search rate.
 #' @slot f0 Initial feeding level.
 #' @slot kappa Magnitude of resource spectrum.
 #' ##AAsp
 #' @slot kappa_ben Magnitude of benthic resource spectrum.
+#' @slot kappa_alg Magnitude of algal resource spectrum.
 #' @slot A Abundance multipliers.
 #' @slot linecolour A named vector of colour values, named by species. Used 
 #'   to give consistent colours to species in plots.
@@ -341,7 +360,12 @@ setClass(
         cc_bb = "numeric",
         initial_n_bb = "numeric",
         lambda_ben = "numeric",
-        kappa_ben = "numeric"
+        kappa_ben = "numeric",
+        rr_aa = "numeric",
+        cc_aa = "numeric",
+        initial_n_aa = "numeric",
+        lambda_alg = "numeric",
+        kappa_alg = "numeric"
         ##AAsp##
     ),
     prototype = prototype(
@@ -374,6 +398,11 @@ setClass(
         initial_n_bb = NA_real_,
         lambda_ben = NA_real_,
         kappa_ben = NA_real_,
+        rr_aa = NA_real_,
+        cc_aa = NA_real_,
+        initial_n_aa = NA_real_,
+        lambda_alg = NA_real_,
+        kappa_alg = NA_real_,
         ##AAsp##
         A = NA_real_,
         linecolour = NA_character_,
@@ -399,7 +428,9 @@ setClass(
 #' @param max_w  Largest weight
 #' @param no_w   Number of weight brackets
 #' @param min_w_pp Smallest plankton weight
+#' #AAsp
 #' @param min_w_bb Smallest benthos weight
+#' @param min_w_aa Smallest algal weight
 #' @param no_w_pp  No longer used
 #' @param species_names Names of species
 #' @param gear_names Names of gears
@@ -408,7 +439,7 @@ setClass(
 #' @return An empty but valid MizerParams object
 #' 
 emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,  
-                        min_w_pp = 1e-10, no_w_pp = NA,  min_w_bb = 1e-10,
+                        min_w_pp = 1e-10, no_w_pp = NA,  min_w_bb = 1e-10, min_w_aa = 1e-10, ##AAsp
                         species_names=1:object, gear_names=species_names) {
     if (!is.na(no_w_pp))
         warning("New mizer code does not support the parameter no_w_pp")
@@ -494,11 +525,9 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
     names(linecolour) <- as.character(species_names)
     linecolour <- c(linecolour, "Total" = "black", "Plankton" = "green",
                     "Background" = "grey")
-    linetype <- rep(c("solid", "dashed", "dotted", "dotdash", "longdash", 
+    linetype <-rep(c("solid", "dashed", "dotted", "dotdash", "longdash", 
                      "twodash"), length.out = no_sp)
     names(linetype) <- as.character(species_names)
-    ##AAsp_DO#### 
-    #will need to add another line type for benthos
     linetype <- c(linetype, "Total" = "solid", "Plankton" = "solid",
                   "Background" = "solid")
     
@@ -514,6 +543,7 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
                ##AAsp_DO #### 
                ##? what is sc?
                rr_bb = vec1, cc_bb = vec1, initial_n_bb = vec1, 
+               rr_aa = vec1, cc_aa = vec1, initial_n_aa = vec1,
                ##AAsp##
                species_params = species_params,
                interaction = interaction, srr = srr, 
@@ -547,6 +577,7 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
 #' @param min_w_pp The smallest size of the plankton spectrum.
 #' ##AAsp##
 #' @param min_w_bb The smallest size of the benthos spectrum.
+#' @param min_w_aa The smallest size of the algal spectrum.
 #' ##AAsp##
 #' @param no_w_pp Obsolete argument that is no longer used because the number
 #'    of plankton size bins is determined because all size bins have to
@@ -554,7 +585,7 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
 #' @param n Scaling of the intake. Default value is 2/3.
 #' @param p Scaling of the standard metabolism. Default value is 0.7. 
 #' @param q Exponent of the search volume. Default value is 0.8. 
-#' @param r_pp Growth rate of the primary productivity. Default value is 10. 
+#' @param r_pp Growth rate of the primary productivity. Default value is 2. 
 #' @param kappa Carrying capacity of the resource spectrum. Default
 #'       value is 1e11.
 #' @param lambda Exponent of the resource spectrum. Default value is
@@ -562,13 +593,20 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
 #' @param w_pp_cutoff The cut off size of the plankton spectrum.
 #'       Default value is 10.
 #'  ##AAsp## 
-#' @param r_bb Growth rate of the benthos productivity. Default value is 10, as for plankton 
+#' @param r_bb Growth rate of the benthos productivity. Default value is 2, as for plankton 
 #' @param kappa_ben Carrying capacity of the benthic resource spectrum. Default
 #'       value is 1e11, as for plankton 
-#' @param lambda_ben Exponent of the resource spectrum. Default value is
+#' @param lambda_ben Exponent of the benthic resource spectrum. Default value is
 #'       (2+q-n).
 #' @param w_bb_cutoff The cut off size of the benthic spectrum.
 #'       Default value is 10, as for plankton.
+#' @param r_aa Growth rate of the benthos productivity. Default value is 2, as for plankton 
+#' @param kappa_alg Carrying capacity of the algal resource spectrum. Default
+#'       value is 1e11, as for plankton 
+#' @param lambda_alg Exponent of the algal resource spectrum. Default value is
+#'       (2+q-n).
+#' @param w_aa_cutoff The cut off size of the algal spectrum.
+#'       Default value is 100, so include large macroalgae (although feeding on them is unlikely to be size specific)
 #'  ##AAsp##     
 #' @param f0 Average feeding level. Used to calculated \code{h} and
 #'       \code{gamma} if those are not columns in the species data frame. Also
@@ -612,10 +650,11 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
 multispeciesParams <- function(object, interaction,
                     min_w = 0.001, max_w = max(object$w_inf) * 1.1, no_w = 100,
                     min_w_pp = 1e-10, no_w_pp = NA,
-                    n = 2/3, p = 0.7, q = 0.8, r_pp = 10,
+                    n = 2/3, p = 0.7, q = 0.8, r_pp = 2,
                     kappa = 1e11, lambda = (2 + q - n), w_pp_cutoff = 10,
                     ##AAsp####
-                    min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), w_bb_cutoff = 10, r_bb = 10,
+                    min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), w_bb_cutoff = 10, r_bb = 2,
+                    min_w_aa = 1e-10, kappa_alg = 1e11, lambda_alg = (2 + q - n), w_aa_cutoff = 100, r_aa = 2,
                     ##AAsp##
                     f0 = 0.6, z0pre = 0.6, z0exp = n - 1) {
     
@@ -743,25 +782,34 @@ multispeciesParams <- function(object, interaction,
     ##AAsp####
     # Sort out avail_PP column
     if (!("avail_PP" %in% colnames(object))) {
-      message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.5")
-      object$avail_PP <- 0.5
+      message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.34")
+      object$avail_PP <- 0.34
     }
     missing <- is.na(object$avail_PP)
     if (any(missing)) {
-      object$avail_PP[missing] <- 0.5
+      object$avail_PP[missing] <- 0.34
     }
     
     # Sort out avail_BB column
     if (!("avail_BB" %in% colnames(object))) {
-      message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0.5")
-      object$avail_BB <- 0.5
+      message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0.33")
+      object$avail_BB <- 0.33
     }
     missing <- is.na(object$avail_BB)
     if (any(missing)) {
-      object$avail_BB[missing] <- 0.5
+      object$avail_BB[missing] <- 0.33
+    }
+    
+    # Sort out avail_AA column
+    if (!("avail_AA" %in% colnames(object))) {
+      message("Note: \tNo avail_AA column in species data frame so setting availability of algal spectrum to 0.33")
+      object$avail_AA <- 0.33
+    }
+    missing <- is.na(object$avail_AA)
+    if (any(missing)) {
+      object$avail_AA[missing] <- 0.33
     }
     ##AAsp##
-    
     
     # Check essential columns: species (name), wInf, wMat, h, gamma,  ks, beta, sigma 
     check_species_params_dataframe(object)
@@ -770,7 +818,7 @@ multispeciesParams <- function(object, interaction,
     res <- emptyParams(no_sp, min_w = min_w, max_w = max_w, no_w = no_w,  
                        min_w_pp = min_w_pp, no_w_pp = NA, 
                       ##AAsp#####
-                       min_w_bb = min_w_bb, 
+                       min_w_bb = min_w_bb, min_w_aa = min_w_aa,
                       ##AAsp##
                        species_names = object$species, 
                        gear_names = unique(object$gear))
@@ -783,6 +831,8 @@ multispeciesParams <- function(object, interaction,
     ## AAsp####
     res@lambda_ben <- lambda_ben
     res@kappa_ben <- kappa_ben
+    res@lambda_alg <- lambda_alg
+    res@kappa_alg <- kappa_alg
     ## AAsp##
     
     # If not w_min column in species_params, set to w_min of community
@@ -909,7 +959,12 @@ multispeciesParams <- function(object, interaction,
     res@cc_bb[] <- kappa_ben *res@w_full^(-lambda_ben) # benthos carrying capacity
     res@cc_bb[res@w_full > w_bb_cutoff] <- 0  # set density of sizes < benthic cutoff size
     res@initial_n_bb <- res@cc_bb  # put this as initial density
-    ## AAsp##################
+    #algal spectum -- 
+    res@rr_aa[] <- r_aa * res@w_full^(n - 1) # weight specific algal growth rate
+    res@cc_aa[] <- kappa_alg *res@w_full^(-lambda_alg) # algal carrying capacity
+    res@cc_aa[res@w_full > w_aa_cutoff] <- 0  # set density of sizes < algal cutoff size
+    res@initial_n_aa <- res@cc_aa  # put this as initial density
+    ## AAspEND
     
     # Beverton Holt esque stock-recruitment relationship ----------------------
     # Can add more functional forms or user specifies own
@@ -957,8 +1012,7 @@ multispeciesParams <- function(object, interaction,
     # Remove catchabiliy from species data.frame, now stored in slot
     #params@species_params[,names(params@species_params) != "catchability"]
     res@species_params <- res@species_params[, -which(names(res@species_params) == "catchability")]
-    res@initial_n <- res@psi  ###AAsp_DO ####
-    #what is the point of the line above? 
+    res@initial_n <- res@psi  ###AAsp_DO ####    #what is the point of this line
     res@initial_n <- get_initial_n(res)
     res@A <- rep(1, no_sp)
     return(res)

@@ -44,7 +44,9 @@ NULL
 #'   ##AAsp##
 #' @param initial_n_bb The initial population of the benthic spectrum. At the moment it is
 #'  just follows the same code as for the plankton spectrum 
-#'  #' @param shiny_progress A shiny progress object used to update shiny progress bar.
+#' @param initial_n_aa The initial population of the algal spectrum. At the moment it is
+#'  just follows the same code as for the plankton spectrum 
+#'  @param shiny_progress A shiny progress object used to update shiny progress bar.
 #'   Default NULL.
 #' @param ... Currently unused.
 #' 
@@ -105,6 +107,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
                     initial_n_pp = params@initial_n_pp, 
                     ##AAsp####
                     initial_n_bb = params@initial_n_bb,
+                    initial_n_aa = params@initial_n_aa,
                     ##AAsp##
                     shiny_progress = NULL, ...) {
     validObject(params)
@@ -184,6 +187,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     sim@n_pp[1,] <- initial_n_pp
     ##AAsp####
     sim@n_bb[1,] <- initial_n_bb
+    sim@n_aa[1,] <- initial_n_aa
     ##AAsp##
     
     # Handy things
@@ -210,6 +214,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     n_pp <- sim@n_pp[1, ]
     ##AAsp####
     n_bb <- sim@n_bb[1, ]
+    n_aa <- sim@n_aa[1, ]
     ##AAsp##
     
     t_steps <- dim(effort_dt)[1] - 1
@@ -225,40 +230,42 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     for (i_time in 1:t_steps) {
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
-        avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp, n_bb = n_bb) ##AAsp##
+        avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa) ##AAsp##
         # Calculate amount f_i(w) of food consumed
-        feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, ##AAsp##
+        feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, ##AAsp##
                                          avail_energy = avail_energy)
         # Calculate the predation rate
-        pred_rate <- getPredRate(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, ##AAsp##
+        pred_rate <- getPredRate(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, ##AAsp##
                                  feeding_level = feeding_level)
         # Calculate predation mortality on fish \mu_{p,i}(w)
         m2 <- getPredMort(sim@params, pred_rate = pred_rate)
         # Calculate mortality on the plankton spectrum
-        m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb,
+        m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, ##AAsp##
                                          pred_rate = pred_rate)
         ##AAsp####
         #Calculate mortality of the benthis spectrum 
-        m2_benthos <- getBenthosMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb,
+        m2_benthos <- getBenthosMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, 
                                          pred_rate = pred_rate)
+        m2_algae <- getAlgalMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, 
+                                     pred_rate = pred_rate)
         
         # Calculate the resources available for reproduction and growth
-        e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, ##AAsp##
+        e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa,  ##AAsp##
                                 feeding_level = feeding_level)
         #Moved total mortality calculation after the e calculation betcause we need e for stravation
         # Calculate total mortality \mu_i(w)
-        z <- getMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, ##AAsp##
+        z <- getMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, ##AAsp##
                      effort = effort_dt[i_time,], e = e, m2 = m2)
         # Calculate the resources for reproduction
-        e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, e = e)  ##AAsp##
+        e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, e = e)  ##AAsp##
         # Calculate the growth rate g_i(w)
-        e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, n_bb = n_bb,  ##AAsp##
+        e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa,  ##AAsp##
                                e_repro = e_repro, e = e)
         # R_{p,i}
-        rdi <- getRDI(sim@params, n = n, n_pp = n_pp, n_bb = n_bb,   ##AAsp##
+        rdi <- getRDI(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa,   ##AAsp##
                       e_repro = e_repro, sex_ratio = sex_ratio)
         # R_i
-        rdd <- getRDD(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, rdi = rdi)  ##AAsp##
+        rdd <- getRDD(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, rdi = rdi)  ##AAsp##
         
         # Iterate species one time step forward:
         # See Ken's PDF
@@ -291,6 +298,11 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # currently it follows exactly the same rules as plankton but has it's own parameters
         tmp <- (sim@params@rr_bb * sim@params@cc_bb / (sim@params@rr_bb + m2_benthos))
         n_bb <- tmp - (tmp - n_bb) * exp(-(sim@params@rr_bb + m2_benthos) * dt)
+        
+        # Dynamics of the algal spectrum uses a semi-chemostat model 
+        # currently it follows exactly the same rules as plankton but has it's own parameters
+        tmp <- (sim@params@rr_aa * sim@params@cc_aa / (sim@params@rr_aa + m2_algae))
+        n_aa <- tmp - (tmp - n_aa) * exp(-(sim@params@rr_aa + m2_algae) * dt)
         ##AAsp##
         
         # Store results only every t_step steps.
@@ -306,6 +318,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
             sim@n_pp[which(store), ] <- n_pp
             ##AAsp######
             sim@n_bb[which(store), ] <- n_bb
+            sim@n_aa[which(store), ] <- n_aa
             ##AAsp#
         }
     }
