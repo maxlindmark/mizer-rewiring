@@ -953,6 +953,7 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
 
 ### temperature functions ###
 
+<<<<<<< HEAD
 # expFun calculate the temperature scalar by size depending on temperature, activation energy (var1) and mass corrected temperature scaling (var2) using an exponential method
 # var1 is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
 # var2 is mass corrected temperature scaling, when var2 = 0 you get "independent from size" type
@@ -1008,6 +1009,32 @@ x <- 2 # temperature vector pos
 temperatureScalar <- exp(log((exp(-var1/(8.617332e-5*var3)) * w^(var2*var3))^(-1))) * exp(-var1/(8.617332e-5*temperature[x])) * w^(var2*temperature[x])
 
 ### work in progress ###
+=======
+# exp_indepFun <- function(object, temperature, var) # var is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
+# {
+#   temperatureScalar <- exp(object@species_params$thing) * exp(-var/(8.617332e-5*temperature))
+#   return(temperatureScalar)
+# }
+
+# var1 is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
+# var2 is ..., when var2 = 0 you get independent from size type
+expFun <- function(object, temperature, var1, var2) 
+{
+  temperatureScalar <- exp(object@species_params$thing) * exp(-var1/(8.617332e-5*temperature) + var2*object@w)
+  return(temperatureScalar)
+  
+  
+  
+}
+
+temperature <- c(5,6,7,8,9)
+w <- c(10,15,24,67,100,150)
+var1 <- 3
+var2 <- 4
+  
+temperatureScalar <- exp(2) * exp(-var1/(8.617332e-5*temperature[1]) + var2*w)
+
+>>>>>>> e994154580b6a9c5a955e6b5aeb3632a6c92685c
 
 # get scalar that influence parameter and is temperature dependent
 getTempScl <- function(object, temperature, type, rate )
