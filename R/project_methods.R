@@ -941,3 +941,54 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
     names(time_elements) <- dimnames(sim@effort)$time
     return(time_elements)
 }
+
+### temperature functions ###
+
+# exp_indepFun <- function(object, temperature, var) # var is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
+# {
+#   temperatureScalar <- exp(object@species_params$thing) * exp(-var/(8.617332e-5*temperature))
+#   return(temperatureScalar)
+# }
+
+# var1 is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
+# var2 is ..., when var2 = 0 you get independent from size type
+expFun <- function(object, temperature, var1, var2) 
+{
+  temperatureScalar <- exp(object@species_params$thing) * exp(-var1/(8.617332e-5*temperature) + var2*object@w)
+  return(temperatureScalar)
+  
+  
+  
+}
+
+temperature <- c(5,6,7,8,9)
+w <- c(10,15,24,67,100,150)
+var1 <- 3
+var2 <- 4
+  
+temperatureScalar <- exp(2) * exp(-var1/(8.617332e-5*temperature[1]) + var2*w)
+
+
+# get scalar that influence parameter and is temperature dependent
+getTempScl <- function(object, temperature, type, rate )
+{
+  switch()
+  
+  if(object@species_params$int_form == "exp_indep") # what is the type of temperature dependence of intake?
+  {
+
+
+    
+    
+    genericFunction <- exp_indepF
+    
+    
+  }
+  
+  
+  
+  
+}
+
+
+
