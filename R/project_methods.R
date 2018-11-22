@@ -954,20 +954,25 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
 ### temperature functions ###
 
 # expFun calculate the temperature scalar by size depending on temperature, activation energy (var1) and mass corrected temperature scaling (var2) using an exponential method
-# var1 is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
-# var2 is mass corrected temperature scaling, when var2 = 0 you get "independent from size" type
-# var3 is the reference temperature (at which the temperature scalar = 1)
+# Ea is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
+# c_c is mass-correction of the temperature scalar. When var2 = 0 rates scale with temperatures equally for all size bins
+# T_ref is the reference temperature (at which the temperature scalar = 1)
 # temperature is integer
 # object is mizer object with all necessary parameters (so we might get var1 to 3 in object directly)
-expFun <- function(object, temperature, var1, var2, var3) 
+expFun <- function(object, temperature, Ea, var2, var3) 
 {
-  temperatureScalar <- exp(log((exp(-var1/(c*var3)) * w^(var2*var3))^(-1))) * exp(-var1/(8.617332e-5*temperature)) * object@w^(var2*temperature)
-  return(temperatureScalar)
+  temperatureScalar <- exp(-Ea/8.617332e-5*((1/temperature) - (1/T_ref))) * object@w^(c_c*(temperature-T_ref))
+    return(temperatureScalar)
 }
-# var1 is the activation energy
-# var2 is the deactivation energy
-# var3 is the reference temperature (at which the temperature scalar = 1)
+
+
+# Ea is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
+# c_c is mass-correction of the temperature scalar. When var2 = 0 rates scale with temperatures equally for all size bins
+# T_ref is the reference temperature (at which the temperature scalar = 1)
 # var4 is the temperature at which the rate is highest 
+
+
+#----- continue here ***************************************
 
 optFun <- function(object, temperature, var1, var2, var3) 
 {
