@@ -160,6 +160,22 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
     effort_dt <- t(effort_dt)
     
+    # temperature shenanigans happening here
+    
+    metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature)), dimnames = list(params@species_params$species,params@w,temperature))
+    
+for(iSpecies in as.numeric(params@species_params$species))
+    {
+      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature, t_ref = t_ref, 
+                   Ea = params@species_params$ea_met[iSpecies], Ed = params@species_params$ed_met[iSpecies],
+                   c_a = params@species_params$ca_met[iSpecies], c_d = params@species_params$cd_met[iSpecies], 
+                   tmax = params@species_params$tmax_met[iSpecies], w = params@w)
+      
+      
+    }
+
+    
+    
     # Make the MizerSim object with the right size
     # We only save every t_save steps
     # Divisibility test needs to be careful about machine rounding errors,
