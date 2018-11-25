@@ -335,7 +335,28 @@ set_trait_model <- function(no_sp = 10,
         sel_func = "knife_edge",
         knife_edge_size = knife_edge_size,
         gear = gear_names,
-        erepro = 1
+        erepro = 1,
+        ### temperature Ea, c_a, T_ref, c_d, t_d * metabolism, maturation, mortality, intake
+        ea_met = 0,
+        ed_met = 0,
+        ca_met = 0,
+        cd_met = 0,
+        tmax_met = 0,
+        ea_mat = 0,
+        ed_mat = 0,
+        ca_mat = 0,
+        cd_mat = 0,
+        tmax_mat = 0,
+        ea_mor = 0,
+        ed_mor = 0,
+        ca_mor = 0,
+        cd_mor = 0,
+        tmax_mor = 0,
+        ea_int = 0,
+        ed_int = 0,
+        ca_int = 0,
+        cd_int = 0,
+        tmax_int = 0
     )
     # Make the MizerParams
     trait_params <-
