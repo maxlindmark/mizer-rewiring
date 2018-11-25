@@ -962,108 +962,21 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
 # object is mizer object with all necessary parameters (so we might get var1 to 3 in object directly)
 # temperature is integer
 
+# add parameters: Ea, Ed, c_a, t_ref, c_d, t_d * metabolism, maturation, mortality, intake
 
-expFun <- function(object, temperature, Ea, c_a, T_ref, c_d, t_d) 
+tempFun <- function(temperature, t_ref, Ea, Ed, c_a, c_d, tmax, w) 
 {
-  temperatureScalar <- (object@w^(c_a*(temperature-t_ref)))*exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))*(1/(object@w^c_d*(temperature-t_d))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d))))
+  # tempFun returns a matrix with w (size) as columns and temperature as rows
+  
+  # t_d is the beginning of the deactivation curve
+  t_d <- Ed * tmax / (Ed - tmax * 8.617332e-5 * log(Ed/Ea -1))
+
+  # equation
+  # (w^(c_a*(temperature-t_ref)))  *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))
+  # *(1/(w^(c_d*(temperature-t_d)))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d))))
+  
+  temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-t_ref))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref))) * (1/(sapply(w,FUN = function(x){x^(c_d*(temperature-t_d))}))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d)))))
+  
   return(temperatureScalar)
 }
-
-
-#----- continue here ***************************************
-
-# Ea is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
-# c_c is mass-correction of the temperature scalar. When var2 = 0 rates scale with temperatures equally for all size bins
-# T_ref is the reference temperature (at which the temperature scalar = 1)
-# var4 is the temperature at which the rate is highest 
-
-
-
-
-optFun <- function(object, temperature, var1, var2, var3) 
-{
-  Th <- var2/(var2/var4-8.617332e-5*log(var2/var1-1)) # intermediate step / don't know what Th stands for
-  temperatureScalar <- thing + var1*(1/(8.617332e-5*var3) - 1/(8.617332e-5*temperature)) - log(1 + exp(var2*(1/(8.617332e-5*Th) - 1/(8.617332e-5*temperature))))
-  return(temperatureScalar)
-}
-
-# test zone
-var1 <- 0.62
-var2 <- 6.8
-var3 <- 273
-var4 <- 293
-temperature = 283
-
-var4 <- 273+ seq(1,30)
-
-
-
-
-
-temperatureScalar <- (Ea + Ea_c*object@w)*(1/(k*temperature) - 1/(k*temp_K)) - log(1 + exp((Eh + Ea_h*object@w)*(1/(k*Th) - 1/(k*temp_K)))) + thing
-
-
-# test zone
-thing <- log((exp(-var1/(8.617332e-5*var3)) * w[1]^(var2*var3))^(-1))
-
-# to get scalar predictions for all temperatures
-tempMatrix <- sweep(temperature,1,FUN = expFun(object = object, var1 = var1, var2 = var2))
-
-temperature <- c(275,276,277,278,279)
-w <- c(10,15,24,67,100,150)
-var1 <- 0.65
-var2 <- 0.01
-var3 <- 275
-x <- 2 # temperature vector pos
-
-temperatureScalar <- exp(log((exp(-var1/(8.617332e-5*var3)) * w^(var2*var3))^(-1))) * exp(-var1/(8.617332e-5*temperature[x])) * w^(var2*temperature[x])
-
-### work in progress ###
-
-# exp_indepFun <- function(object, temperature, var) # var is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
-# {
-#   temperatureScalar <- exp(object@species_params$thing) * exp(-var/(8.617332e-5*temperature))
-#   return(temperatureScalar)
-# }
-
-# var1 is activation energy of the rate we want to look at between intake/mortality/metabolism/maturation
-# var2 is ..., when var2 = 0 you get independent from size type
-expFun <- function(object, temperature, var1, var2) 
-{
-
-  temperatureScalar <- (object@w^(c_a*(temp-t_ref)))*exp((-Ea/8.617332e-5)*((1/temp) - (1/t_ref)))*(1/(object@w^c_d*(temp-t_d))*exp((-Ed/8.617332e-5)*((1/temp) - (1/t_d))))
-  return(temperatureScalar)
-  
-  
-}
-
-temperature <- c(5,6,7,8,9)
-w <- c(10,15,24,67,100,150)
-var1 <- 3
-var2 <- 4
-  
-temperatureScalar <- exp(2) * exp(-var1/(8.617332e-5*temperature[1]) + var2*w)
-
-# get scalar that influence parameter and is temperature dependent
-getTempScl <- function(object, temperature, type, rate )
-{
-  switch()
-  
-  if(object@species_params$int_form == "exp_indep") # what is the type of temperature dependence of intake?
-  {
-
-
-    
-    
-    genericFunction <- exp_indepF
-    
-    
-  }
-  
-  
-  
-  
-}
-
-
 
