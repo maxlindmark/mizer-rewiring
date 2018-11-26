@@ -99,9 +99,15 @@ NULL
 #' }
 #' 
 project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
+                    temperature = 10, # what do we do with the t_ref?
                     initial_n = params@initial_n,
                     initial_n_pp = params@initial_n_pp, 
                     shiny_progress = NULL, ...) {
+  ### TODO1#### 
+  # decide how to include t_ref in the function
+  
+  
+  
     validObject(params)
     
     # Do we need to create an effort array?
@@ -161,29 +167,51 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
     effort_dt <- t(effort_dt)
     
-    ##TODO#### 
-    #do we need to create a temperature vector? Do the same as with effort array but with one less dimension
     ## create temperature_dt
     
+    # we get a vector of temperature in celcius
+    # userTemp <- c(20,19.5,19,20,21) # 5 years
+    # names(userTemp) <- seq(1,5)
+    
+    time_temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
+    
+    x_axis <- seq(length.out=100,from =1)   # need to not hard code the 100
+    myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
+
+    temperature_dt <- data.frame("temperature" = predict(loess(y~x, myData, span = 0.1))) # temperature vector following dt
+    temp <- array(predict(loess(y~x, myData, span = 0.1)), dim = length(x_axis)) #, dimnames = list("x_axis")) # need to make the data.frame as an array
+
     # temperature shenanigans happening here
     
-    metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature)), dimnames = list(params@species_params$species,params@w,temperature)) 
+    metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
+    matTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
+    morTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
+    intTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
+    
     
 for(iSpecies in as.numeric(params@species_params$species))
     {
-      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature, t_ref = t_ref, 
-                   Ea = params@species_params$ea_met[iSpecies], Ed = params@species_params$ed_met[iSpecies],
-                   c_a = params@species_params$ca_met[iSpecies], c_d = params@species_params$cd_met[iSpecies], 
-                   tmax = params@species_params$tmax_met[iSpecies], w = params@w)
-      
-      
+  metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+                                        Ea = params@species_params$ea_met[iSpecies], Ed = params@species_params$ed_met[iSpecies],
+                                        c_a = params@species_params$ca_met[iSpecies], c_d = params@species_params$cd_met[iSpecies], 
+                                        tmax = params@species_params$tmax_met[iSpecies], w = params@w)
+  
+  matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+                                        Ea = params@species_params$ea_mat[iSpecies], Ed = params@species_params$ed_mat[iSpecies],
+                                        c_a = params@species_params$ca_mat[iSpecies], c_d = params@species_params$cd_mat[iSpecies], 
+                                        tmax = params@species_params$tmax_mat[iSpecies], w = params@w)
+  
+  morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+                                        Ea = params@species_params$ea_mor[iSpecies], Ed = params@species_params$ed_mor[iSpecies],
+                                        c_a = params@species_params$ca_mor[iSpecies], c_d = params@species_params$cd_mor[iSpecies], 
+                                        tmax = params@species_params$tmax_mor[iSpecies], w = params@w)
+  
+  intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+                                        Ea = params@species_params$ea_int[iSpecies], Ed = params@species_params$ed_int[iSpecies],
+                                        c_a = params@species_params$ca_int[iSpecies], c_d = params@species_params$cd_int[iSpecies], 
+                                        tmax = params@species_params$tmax_int[iSpecies], w = params@w)
     }
 
-    ###TODO#### 
-    # now we do the same for the intake scalar, maturation scalar and mortality scalar 
-    
-    
-    
     
     # Make the MizerSim object with the right size
     # We only save every t_save steps
