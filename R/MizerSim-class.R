@@ -120,7 +120,12 @@ setClass(
         params = "MizerParams",
         n = "array",
         effort = "array",
-        n_pp = "array"
+        temperature = "data.frame",
+        n_pp = "array",
+        metTempScalar = "array",
+        matTempScalar = "array",
+        morTempScalar = "array",
+        intTempScalar = "array"
     ),
     prototype = prototype(
         params = new("MizerParams"),
