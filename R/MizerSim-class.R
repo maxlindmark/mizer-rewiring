@@ -182,6 +182,8 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
     array_effort <- array(NA, dim = c(t_dim, no_gears), 
                           dimnames = list(time = t_dimnames, 
                                           gear = gear_names))
+    ###TODO####
+    ## create array_scalars? here
     
     no_w_full <- length(params@w_full)
     w_full_names <- names(params@rr_pp)

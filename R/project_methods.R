@@ -969,13 +969,13 @@ tempFun <- function(temperature, t_ref, Ea, Ed, c_a, c_d, tmax, w)
   # tempFun returns a matrix with w (size) as columns and temperature as rows
   
   # t_d is the beginning of the deactivation curve
-  t_d <- Ed * tmax / (Ed - tmax * 8.617332e-5 * log(Ed/Ea -1))
+#  t_d <- Ed * tmax / (Ed - tmax * 8.617332e-5 * log(Ed/Ea -1))
 
   # equation
   # (w^(c_a*(temperature-t_ref)))  *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))
   # *(1/(w^(c_d*(temperature-t_d)))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d))))
   
-  temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-t_ref))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref))) * (1/(sapply(w,FUN = function(x){x^(c_d*(temperature-t_d))}))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d)))))
+  temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-t_ref))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref))) #* (1/(sapply(w,FUN = function(x){x^(c_d*(temperature-t_d))}))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d)))))
   
   return(temperatureScalar)
 }

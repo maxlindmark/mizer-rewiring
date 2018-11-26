@@ -97,6 +97,7 @@ NULL
 #' effort_array[,"Otter"] <- seq(from = 1, to = 0.5, length = length(times))
 #' sim <- project(params, effort = effort_array)
 #' }
+#' 
 project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
                     initial_n = params@initial_n,
                     initial_n_pp = params@initial_n_pp, 
@@ -160,9 +161,13 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
     effort_dt <- t(effort_dt)
     
+    ##TODO#### 
+    #do we need to create a temperature vector? Do the same as with effort array but with one less dimension
+    ## create temperature_dt
+    
     # temperature shenanigans happening here
     
-    metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature)), dimnames = list(params@species_params$species,params@w,temperature))
+    metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature)), dimnames = list(params@species_params$species,params@w,temperature)) 
     
 for(iSpecies in as.numeric(params@species_params$species))
     {
@@ -174,6 +179,10 @@ for(iSpecies in as.numeric(params@species_params$species))
       
     }
 
+    ###TODO#### 
+    # now we do the same for the intake scalar, maturation scalar and mortality scalar 
+    
+    
     
     
     # Make the MizerSim object with the right size
@@ -188,6 +197,8 @@ for(iSpecies in as.numeric(params@species_params$species))
     sim <- MizerSim(params, t_dimnames = t_dimnames) 
     # Fill up the effort array
     sim@effort[] <- effort_dt[t_dimnames_index,]
+    ###TODO####
+    ## attach metScalar and other scalars to the sim object?
     
     # Set initial population
     sim@n[1,,] <- initial_n 
@@ -228,6 +239,8 @@ for(iSpecies in as.numeric(params@species_params$species))
     for (i_time in 1:t_steps) {
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
+       ###TODO#### 
+       ## sim@params will not have informatoin about sim@metscalar, so I guess all scalars will have to be passed to these functions
         avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp)
         # Calculate amount f_i(w) of food consumed
         feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp,
@@ -281,6 +294,10 @@ for(iSpecies in as.numeric(params@species_params$species))
         
         # Dynamics of plankton spectrum uses a semi-chemostat model (de Roos - ask Ken)
         # We use the exact solution under the assumption of constant mortality during timestep
+        ###TODO#### 
+        # now we need to scale r_pp (not rr_pp!) with the temperature response. 
+        # this could be done at the start again where we create rr_pp object. this means it will have an extra time dimension 
+        # or we calcualte rr_pp scalar here at every time step, which might be simpler 
         tmp <- (sim@params@rr_pp * sim@params@cc_pp / (sim@params@rr_pp + m2_background))
         n_pp <- tmp - (tmp - n_pp) * exp(-(sim@params@rr_pp + m2_background) * dt)
         
