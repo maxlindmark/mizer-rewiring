@@ -176,8 +176,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     x_axis <- seq(length.out=100,from =1)   # need to not hard code the 100
     myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
 
-    temperature_dt <- data.frame("temperature" = predict(loess(y~x, myData, span = 0.1))) # temperature vector following dt
-    temp <- array(predict(loess(y~x, myData, span = 0.1)), dim = length(x_axis)) #, dimnames = list("x_axis")) # need to make the data.frame as an array
+    temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
 
     # temperature shenanigans happening here
     
