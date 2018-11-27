@@ -1093,3 +1093,57 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
     names(time_elements) <- dimnames(sim@effort)$time
     return(time_elements)
 }
+
+
+#' Get diet composition
+#'
+#' Returns diet composition by predator/size/prey/size for the selected number of years
+#' at the end of the model simulation. 
+#' The information is useful to calibrate model performance 
+#' @param object An \code{MizerParams} object
+#' @param n A matrix of species abundance (species x size)
+#' @param n_pp A vector of the plankton abundance by size
+#' @param n_bb A vector of the benthos abundance by size
+#' @param n_aa A vector of the algal abundance by size.
+#' @param diet_comp_all An empty array to write diet comparison results in
+#' @param diet_setp Indicates the number of steps at the end of simulation to get diets for
+#'   
+#' @return A four dimensional array of predator x size x prey x size 
+
+getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all, diet_steps=diet_steps){ 
+  
+  #Biomass of resource as prey; scaled to reflect pred size kernel (but not feedinglevel); might have to change if we start using interaction with resource spectrum like Hartvig et al. 2011
+  #Note that we multiply the amount available by the availability parameter in the species parameter file 
+  b_background <- (sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_pp, "*")) * object@species_params$avail_PP
+  b_benthos <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_bb, "*") * object@species_params$avail_BB
+  b_algae <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_aa, "*") * object@species_params$avail_AA
+
+  #Biomass by prey species;
+  n_total_in_size_bins<- sweep(n, 2, object@dw , "*")
+  b_tot_prey <- sweep(n_total_in_size_bins, 2, object@w , "*")
+  
+  # Hany indices 
+  no_w<- dim(n)[2]
+  no_sp<- dim(n)[1]
+  
+  # Index of predator size classes 
+  idx_sp<- object@w_full %in% object@w
+  
+  #system.time( #0.611 sec on my machine 
+  
+  for(i in 1:no_w){
+    for(j in 1:no_sp){    
+      diet_comp_all[j,i,1:no_sp,idx_sp]<- sweep(sweep( b_tot_prey, c(1), object@interaction[j, 1:no_sp], "*"), c(2), object@pred_kernel[j,i,idx_sp], "*")
+    }
+  }
+  
+  #background
+  diet_comp_all[,,no_sp+1,]<- b_background
+  diet_comp_all[,,no_sp+2,]<- b_benthos
+  diet_comp_all[,,no_sp+3,]<- b_algae
+
+  return(diet_comp_all)
+  #Save in sim object; divide by the number of time steps, and add time up to get average across time 
+  
+} 
+

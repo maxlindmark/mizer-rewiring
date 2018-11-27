@@ -256,6 +256,7 @@ validMizerParams <- function(object) {
 #' @slot ft_pred_kernel_p An array (species x log of predator/prey size ratio) that holds 
 #'   the Fourier transform of the feeding kernel in a form appropriate for
 #'   evaluating the predation mortality integral
+#' @slot pred_kernel A different predation kernal (without FFT) to get diet composition    
 #' @slot rr_pp A vector the same length as the w_full slot. The size specific
 #'   growth rate of the plankton spectrum. Default \eqn{r_0 w^{p-1}}
 #' @slot cc_pp A vector the same length as the w_full slot. The size specific
@@ -336,6 +337,7 @@ setClass(
         metab = "array",
         ft_pred_kernel_e = "array",
         ft_pred_kernel_p = "array",
+        pred_kernel = "array",
         mu_b = "array",
         rr_pp = "numeric",
         cc_pp = "numeric", # was NinPP, carrying capacity of plankton
@@ -387,6 +389,7 @@ setClass(
         metab = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
         ft_pred_kernel_e = array(NA,dim = c(1,1), dimnames = list(sp = NULL,k = NULL)),
         ft_pred_kernel_p = array(NA,dim = c(1,1), dimnames = list(sp = NULL,k = NULL)),
+        pred_kernel = array(NA,dim=c(1,1,1), dimnames = list(sp=NULL,w_pred=NULL,w_prey=NULL)), ##AA
         mu_b = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
         rr_pp = NA_real_,
         cc_pp = NA_real_,
@@ -478,6 +481,8 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
     mat2 <- array(NA, dim = c(no_sp, no_w, no_w_full), 
                   dimnames = list(sp = species_names, w_pred = signif(w,3), 
                                   w_prey = signif(w_full,3)))
+#    mat3 <- array(NA, dim=c(object,no_w,no_w_full), dimnames = list(sp=species_names,w_pred=signif(w,3), w_prey=signif(w_full,3)))
+    
     
     ft_pred_kernel_e <- array(NA, dim = c(no_sp, no_w_full), 
                               dimnames = list(sp = species_names, k = 1:no_w_full))
@@ -531,6 +536,9 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
     linetype <- c(linetype, "Total" = "solid", "Plankton" = "solid",
                   "Background" = "solid")
     
+mat2 <- array(NA, dim=c(object,no_w,no_w_full), dimnames = list(sp=species_names,w_pred=signif(w,3), w_prey=signif(w_full,3)))
+    
+    
     # Make the new object
     # Should Z0, rrPP and ccPP have names (species names etc)?
     res <- new("MizerParams",
@@ -538,6 +546,7 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
                psi = mat1, initial_n = mat1, intake_max = mat1, search_vol = mat1,
                metab = mat1, mu_b = mat1, ft_pred_kernel_e = ft_pred_kernel_e, 
                ft_pred_kernel_p = ft_pred_kernel_p,
+               pred_kernel=mat2, ##AAAA
                selectivity = selectivity, catchability = catchability,
                rr_pp = vec1, cc_pp = vec1, sc = w, initial_n_pp = vec1, 
                ##AAsp_DO #### 
@@ -782,32 +791,32 @@ multispeciesParams <- function(object, interaction,
     ##AAsp####
     # Sort out avail_PP column
     if (!("avail_PP" %in% colnames(object))) {
-      message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.34")
-      object$avail_PP <- 0.34
+      message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.5")
+      object$avail_PP <- 0.5
     }
     missing <- is.na(object$avail_PP)
     if (any(missing)) {
-      object$avail_PP[missing] <- 0.34
+      object$avail_PP[missing] <- 0.5
     }
     
     # Sort out avail_BB column
     if (!("avail_BB" %in% colnames(object))) {
-      message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0.33")
-      object$avail_BB <- 0.33
+      message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0.5")
+      object$avail_BB <- 0.5
     }
     missing <- is.na(object$avail_BB)
     if (any(missing)) {
-      object$avail_BB[missing] <- 0.33
+      object$avail_BB[missing] <- 0.5
     }
     
     # Sort out avail_AA column
     if (!("avail_AA" %in% colnames(object))) {
-      message("Note: \tNo avail_AA column in species data frame so setting availability of algal spectrum to 0.33")
-      object$avail_AA <- 0.33
+      message("Note: \tNo avail_AA column in species data frame so setting availability of algal spectrum to 0.0")
+      object$avail_AA <- 0.0
     }
     missing <- is.na(object$avail_AA)
     if (any(missing)) {
-      object$avail_AA[missing] <- 0.33
+      object$avail_AA[missing] <- 0.0
     }
     ##AAsp##
     
@@ -936,6 +945,11 @@ multispeciesParams <- function(object, interaction,
     res@ft_pred_kernel_p <- matrix(0, nrow = no_sp, ncol = no_P)
     dimnames(res@ft_pred_kernel_p) <- list(sp = rownames(res@metab),
                                            k = (1:no_P))
+    # Add in the original predation kernel array so we can calculate diet composition in a straight forward manner.
+    # Could maybe improve this. Pretty ugly at the moment
+    res@pred_kernel[] <- object$beta
+    res@pred_kernel <- exp(-0.5*sweep(log(sweep(sweep(res@pred_kernel,3,res@w_full,"*")^-1,2,res@w,"*")),1,object$sigma,"/")^2)
+    res@pred_kernel <- sweep(res@pred_kernel,c(2,3),combn(res@w_full,1,function(x,w)x<w,w=res@w),"*") # find out the untrues and then multiply
     
     for (j in 1:no_sp) {
         phi <- rep(0, no_P)

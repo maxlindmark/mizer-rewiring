@@ -109,7 +109,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
                     initial_n_bb = params@initial_n_bb,
                     initial_n_aa = params@initial_n_aa,
                     ##AAsp##
-                    shiny_progress = NULL, ...) {
+                    shiny_progress = NULL, 
+                    diet_steps=10, ...) {  #default number of years (steps?) to calcualte diet for 
+  
     validObject(params)
     
     # Do we need to create an effort array?
@@ -193,6 +195,8 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     # Handy things
     no_sp <- nrow(sim@params@species_params) # number of species
     no_w <- length(sim@params@w) # number of fish size bins
+    no_w_full<- length(sim@params@w_full) # full size spectrum (including background spectra)
+    
     idx <- 2:no_w
     # Hacky shortcut to access the correct element of a 2D array using 1D notation
     # This references the egg size bracket for all species, so for example
@@ -201,6 +205,13 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     
     # sex ratio - DO SOMETHING LATER WITH THIS
     sex_ratio <- 0.5
+    
+    #create a matrix for diet comparison. For prey it has the number of columns set at no_sp+3 because we have 3 background spectra
+    sim@diet_comp<-array(0, c(no_sp, no_w, no_sp + 1, no_w_full), 
+                         dimnames=list( predator=as.character(params@species_params$species), pred_size = params@w, 
+                                        prey = c(as.character(params@species_params$species), "background"),
+                                        prey_size = params@w_full))
+    
     
     # Matrices for solver
     A <- matrix(0, nrow = no_sp, ncol = no_w)
@@ -227,6 +238,13 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         shiny_progress$set(message = "Running simulation", value = 0)
         proginc <- 1/length(t_dimnames_index)
     }
+    
+
+    # If storing diet compisiton, make diet_comp_all array ahead of main loop 
+    if (diet_steps>0){
+      diet_comp_all<- array(0, dim(sim@diet_comp))
+    }
+
     for (i_time in 1:t_steps) {
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
@@ -267,6 +285,14 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # R_i
         rdd <- getRDD(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, rdi = rdi)  ##AAsp##
         
+        # check if diet output is needed and if so call the diet comparison function 
+        diet_store <- tail(t_dimnames_index, diet_steps) %in% (i_time + 1)
+        
+        if (any(diet_store)) {
+          diet_comp_all[]<- getDietComp(sim@params, n=n,  n_pp=n_pp, n_bb = n_bb, n_aa = n_aa, diet_comp_all=diet_comp_all, diet_steps=diet_steps)
+          sim@diet_comp[]<-(diet_comp_all/diet_steps) + sim@diet_comp
+        }
+
         # Iterate species one time step forward:
         # See Ken's PDF
         # A_{ij} = - g_i(w_{j-1}) / dw_j dt

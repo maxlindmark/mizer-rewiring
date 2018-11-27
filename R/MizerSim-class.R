@@ -131,7 +131,7 @@ setClass(
         ##AAsp####
         n_bb = "array",
         n_aa = "array",
-        #diet_comp="array"
+        diet_comp="array"
     ),
     prototype = prototype(
         params = new("MizerParams"),
@@ -151,9 +151,9 @@ setClass(
         n_aa = array(
           NA,dim = c(1,1), dimnames = list(time = NULL, w = NULL)
         ),
-        #diet_comp = array(
-        #  NA, dim = c(1,1,1,1), dimnames = list( predator= NULL, pred_size = NULL, prey =NULL, prey_size=NULL) 
-        #)
+        diet_comp = array(
+          NA, dim = c(1,1,1,1), dimnames = list( predator= NULL, pred_size = NULL, prey =NULL, prey_size=NULL) 
+        )
         ##AAsp##
     ),
     validity = valid_MizerSim
@@ -228,7 +228,7 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
                n_aa = array_n_aa,
                ##AAsp##
                params = params,
-               #diet_comp=as.array(1,dim = c(1,1,1,1)) #place holder for diet comp array; constructed depending on whether diet comp is requested
+               diet_comp=as.array(1,dim = c(1,1,1,1)) #place holder for diet comp array; constructed depending on whether diet comp is requested
                )
     return(sim)
 }
