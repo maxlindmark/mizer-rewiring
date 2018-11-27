@@ -302,9 +302,9 @@ set_trait_model <- function(no_sp = 10,
                             knife_edge_size = 1000,
                             gear_names = "knife_edge_gear",
                             ea_met = 0.63,
-                            ca_met = 10*ea_met,
+                            ca_met = 0.005,
                             ea_int = 0.63,
-                            ca_int = 10*ea_int,
+                            ca_int = 0.005,
                             ...){
     if (!is.na(no_w_pp))
         warning("New mizer code does not support the parameter no_w_pp")

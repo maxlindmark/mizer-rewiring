@@ -203,7 +203,7 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
                           dimnames = list(time = t_dimnames, 
                                           gear = gear_names))
 # temperature scalars
-    matrix_temperature <- matrix(NA, dim = c(t_dim, 1), 
+    matrix_temperature <- matrix(NA, nrow = t_dim, 
                           dimnames = list(time = t_dimnames, 
                                           "temperature"))
     
