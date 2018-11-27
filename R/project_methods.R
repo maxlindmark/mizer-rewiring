@@ -964,18 +964,31 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
 
 # add parameters: Ea, Ed, c_a, t_ref, c_d, t_d * metabolism, maturation, mortality, intake
 
-tempFun <- function(temperature, t_ref, Ea, Ed = 0, c_a, c_d = 0, tmax, w) # default are 0 for now as deactivation is buggy
+# tempFun <- function(temperature, t_ref, Ea, Ed = 0, c_a, c_d = 0, tmax, w) # default are 0 for now as deactivation is buggy
+# {
+#   # tempFun returns a matrix with w (size) as columns and temperature as rows
+#   
+#   # t_d is the beginning of the deactivation curve
+#   if (Ed == 0) t_d <- temperature else t_d <- Ed * tmax / (Ed - tmax * 8.617332e-5 * log(Ed/Ea -1)) # so it does not crash as Ed > Ea to work
+#   
+#   # equation
+#   # (w^(c_a*(temperature-t_ref)))  *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))
+#   # *(1/(w^(c_d*(temperature-t_d)))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d))))
+#   
+#   temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-t_ref))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref))) * (1/(sapply(w,FUN = function(x){x^(c_d*(temperature-t_d))}))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d)))))
+#                          
+#                          return(temperatureScalar)
+# }
+
+tempFun <- function(temperature, t_ref, Ea, c_a, w) # default are 0 for now as deactivation is buggy
 {
   # tempFun returns a matrix with w (size) as columns and temperature as rows
-  
-  # t_d is the beginning of the deactivation curve
-  if (Ed == 0) t_d <- temperature else t_d <- Ed * tmax / (Ed - tmax * 8.617332e-5 * log(Ed/Ea -1)) # so it does not crash as Ed > Ea to work
-  
+
   # equation
   # (w^(c_a*(temperature-t_ref)))  *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))
   # *(1/(w^(c_d*(temperature-t_d)))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d))))
-  
-  temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-t_ref))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref))) * (1/(sapply(w,FUN = function(x){x^(c_d*(temperature-t_d))}))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d)))))
-                         
+
+  temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-t_ref))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))) 
+
                          return(temperatureScalar)
 }
