@@ -135,8 +135,23 @@ setClass(
         effort = array(
             NA,dim = c(1,1), dimnames = list(time = NULL, gear = NULL)
         ),
+        temperature = matrix(
+          NA, dim = c(1,1), dimnames = list(time = NULL, temperature = NULL)
+        ),
         n_pp = array(
             NA,dim = c(1,1), dimnames = list(time = NULL, w = NULL)
+        ),
+        metTempScalar = array(
+          NA, dim = c(1,1,1), dimnames = list(sp = NULL, w = NULL, temperature = NULL)
+        ),
+        matTempScalar = array(
+          NA, dim = c(1,1,1), dimnames = list(sp = NULL, w = NULL, temperature = NULL)
+        ),
+        morTempScalar = array(
+          NA, dim = c(1,1,1), dimnames = list(sp = NULL, w = NULL, temperature = NULL)
+        ),
+        intTempScalar = array(
+          NA, dim = c(1,1,1), dimnames = list(sp = NULL, w = NULL, temperature = NULL)
         )
     ),
     validity = valid_MizerSim
@@ -187,8 +202,21 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
     array_effort <- array(NA, dim = c(t_dim, no_gears), 
                           dimnames = list(time = t_dimnames, 
                                           gear = gear_names))
-    ###TODO####
-    ## create array_scalars? here
+# temperature scalars
+    matrix_temperature <- matrix(NA, dim = c(t_dim, 1), 
+                          dimnames = list(time = t_dimnames, 
+                                          "temperature"))
+    
+    array_metTempScalar = array(NA, dim = c(dim(params@species_params)[1],length(params@w),t_dim), dimnames = list(sp = params@species_params$species, w = params@w, temperature = t_dimnames))
+    array_matTempScalar = array(NA, dim = c(dim(params@species_params)[1],length(params@w),t_dim), dimnames = list(sp = params@species_params$species, w = params@w, temperature = t_dimnames))
+    array_morTempScalar = array(NA, dim = c(dim(params@species_params)[1],length(params@w),t_dim), dimnames = list(sp = params@species_params$species, w = params@w, temperature = t_dimnames))
+    array_intTempScalar = array(NA, dim = c(dim(params@species_params)[1],length(params@w),t_dim), dimnames = list(sp = params@species_params$species, w = params@w, temperature = t_dimnames))
+    
+    
+    
+    
+    
+    
     
     no_w_full <- length(params@w_full)
     w_full_names <- names(params@rr_pp)
@@ -199,8 +227,13 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
     sim <- new('MizerSim',
                n = array_n, 
                effort = array_effort,
+               temperature = matrix_temperature,
                n_pp = array_n_pp,
-               params = params)
+               params = params,
+               metTempScalar = array_metTempScalar,
+               matTempScalar = array_matTempScalar,
+               morTempScalar = array_morTempScalar,
+               intTempScalar = array_intTempScalar)
     return(sim)
 }
 
