@@ -165,6 +165,8 @@ getFeedingLevel <- function(object, n, n_pp, avail_energy,
         encount <- object@search_vol * avail_energy
         # calculate feeding level
         f <- encount / (encount + object@intake_max)
+        ###TODO####
+        # scale encounter and intake_max 
         return(f)
     } else {
         if (missing(time_range)) {
@@ -245,6 +247,8 @@ getPredRate <- function(object, n,  n_pp,
     # We fill the middle of each row of Q with the proper values
     Q[, idx_sp] <- sweep( (1 - feeding_level) * object@search_vol * n, 2,
                          object@w, "*")
+    ###TODO####
+    ##scale search folume here as well to make sure increased intake is reflected in the predation rate 
 
     # We do our spectral integration in parallel over the different species
     pred_rate <- Re(t(mvfft(t(object@ft_pred_kernel_p) *
