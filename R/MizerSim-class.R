@@ -120,7 +120,7 @@ setClass(
         params = "MizerParams",
         n = "array",
         effort = "array",
-        temperature = "data.frame",
+        temperature = "matrix",
         n_pp = "array",
         metTempScalar = "array",
         matTempScalar = "array",
@@ -136,7 +136,7 @@ setClass(
             NA,dim = c(1,1), dimnames = list(time = NULL, gear = NULL)
         ),
         temperature = matrix(
-          NA, dim = c(1,1), dimnames = list(time = NULL, temperature = NULL)
+          NA, dimnames = list(time = NULL, temperature = NULL)
         ),
         n_pp = array(
             NA,dim = c(1,1), dimnames = list(time = NULL, w = NULL)
