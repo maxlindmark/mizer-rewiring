@@ -147,7 +147,7 @@ getPhiPrey <- getAvailEnergy
 #' # Get the feeding level for time 15 - 20
 #' fl <- getFeedingLevel(sim, time_range = c(15,20))
 #' }
-getFeedingLevel <- function(object, n, n_pp, avail_energy,
+getFeedingLevel <- function(object, n, n_pp, avail_energy, intakeScalar,
                             time_range, drop=FALSE){
     if (is(object, "MizerParams")) {
         if (missing(avail_energy)) {
@@ -161,12 +161,11 @@ getFeedingLevel <- function(object, n, n_pp, avail_energy,
                  nrow(object@species_params), ") x no. size bins (",
                  length(object@w), ")")
         }
+
         # encountered food = available food * search volume
-        encount <- object@search_vol * avail_energy
+        encount <- object@search_vol * intakeScalar * avail_energy # scale with temperature
         # calculate feeding level
-        f <- encount / (encount + object@intake_max)
-        ###TODO####
-        # scale encounter and intake_max 
+        f <- encount / (encount + object@intake_max * intakeScalar) # scale with temperature (again)
         return(f)
     } else {
         if (missing(time_range)) {
@@ -178,7 +177,7 @@ getFeedingLevel <- function(object, n, n_pp, avail_energy,
             # species which makes using drop impossible
             n <- array(object@n[x, , ], dim = dim(object@n)[2:3])
             dimnames(n) <- dimnames(object@n)[2:3]
-            feed <- getFeedingLevel(object@params, n = n, n_pp = object@n_pp[x, ])
+            feed <- getFeedingLevel(object@params, n = n, n_pp = object@n_pp[x, ], intakeScalar = intakeScalar)
             return(feed)
             }, .drop = drop)
         return(feed_time)
@@ -220,8 +219,8 @@ getFeedingLevel <- function(object, n, n_pp, avail_energy,
 #' getPredRate(params,n,n_pp)
 #' }
 
-getPredRate <- function(object, n,  n_pp,
-                        feeding_level = getFeedingLevel(object, n = n, n_pp = n_pp)
+getPredRate <- function(object, n,  n_pp, intakeScalar,
+                        feeding_level = getFeedingLevel(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)
                         ) {
 
     no_sp <- dim(object@interaction)[1]
@@ -245,7 +244,7 @@ getPredRate <- function(object, n,  n_pp,
 
     Q <- matrix(0, nrow = no_sp, ncol = no_P)
     # We fill the middle of each row of Q with the proper values
-    Q[, idx_sp] <- sweep( (1 - feeding_level) * object@search_vol * n, 2,
+    Q[, idx_sp] <- sweep( (1 - feeding_level) * object@search_vol * intakeScalar * n, 2, # scale with temperature
                          object@w, "*")
     ###TODO####
     ##scale search folume here as well to make sure increased intake is reflected in the predation rate 
@@ -307,12 +306,12 @@ getPredRate <- function(object, n,  n_pp,
 #' # Get predation mortality over the time 15 - 20
 #' getPredMort(sim, time_range = c(15,20))
 #' }
-getPredMort <- function(object, n, n_pp, pred_rate, time_range, drop = TRUE) {
+getPredMort <- function(object, n, n_pp, pred_rate, intakeScalar, time_range, drop = TRUE) {
     if (is(object, "MizerParams")) {
         if (missing(pred_rate)) {
-            feeding_level <- getFeedingLevel(object, n = n, n_pp = n_pp)
+            feeding_level <- getFeedingLevel(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)
 
-            pred_rate <- getPredRate(object = object, n = n,
+            pred_rate <- getPredRate(object = object, n = n, intakeScalar = intakeScalar,
                                      n_pp = n_pp, feeding_level = feeding_level)
         }
         idx_sp <- (length(object@w_full) - length(object@w) + 1):length(object@w_full)
@@ -327,7 +326,7 @@ getPredMort <- function(object, n, n_pp, pred_rate, time_range, drop = TRUE) {
         m2_time <- aaply(which(time_elements), 1, function(x) {
             n <- array(object@n[x, , ], dim = dim(object@n)[2:3])
             dimnames(n) <- dimnames(object@n)[2:3]
-            m2 <- getPredMort(object@params, n = n, n_pp = object@n_pp[x, ])
+            m2 <- getPredMort(object@params, n = n, n_pp = object@n_pp[x, ], intakeScalar = intakeScalar)
             return(m2)
         }, .drop = drop)
         return(m2_time)
@@ -371,8 +370,8 @@ getM2 <- getPredMort
 #' getPlanktonMort(params,n,n_pp)
 #' }
 getPlanktonMort <- 
-    function(object, n, n_pp,
-             pred_rate = getPredRate(object, n = n, n_pp = n_pp)) {
+    function(object, n, n_pp, intakeScalar = intakeScalar,
+             pred_rate = getPredRate(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)) {
 
     if ( (!all(dim(pred_rate) ==
                c(nrow(object@species_params), length(object@w_full)))) |
@@ -607,8 +606,8 @@ getFMort <- function(object, effort, time_range, drop=TRUE){
 #' # Get the total mortality at a particular time step
 #' getMort(params,sim@@n[21,,],sim@@n_pp[21,],effort=0.5)
 #' }
-getMort <- function(object, n, n_pp, effort, e,
-                 m2 = getPredMort(object, n = n, n_pp = n_pp)){
+getMort <- function(object, n, n_pp, effort, e, intakeScalar,
+                 m2 = getPredMort(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)){
     if (!all(dim(m2) == c(nrow(object@species_params), length(object@w)))) {
         stop("m2 argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
@@ -649,9 +648,9 @@ getZ <- getMort
 #' # Get the energy at a particular time step
 #' getEReproAndGrowth(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getEReproAndGrowth <- function(object, metabolismArray , n, n_pp,
-                               feeding_level = getFeedingLevel(object, n = n,
-                                                               n_pp = n_pp)) {
+getEReproAndGrowth <- function(object, metabolismArray , n, n_pp, intakeScalar,
+                               feeding_level = getFeedingLevel(object, n = n, 
+                                                               n_pp = n_pp, intakeScalar = intakeScalar)) {
   if (!all(dim(feeding_level) == c(nrow(object@species_params), length(object@w)))) {
     stop("feeding_level argument must have dimensions: no. species (",
          nrow(object@species_params), ") x no. size bins (",
@@ -660,17 +659,17 @@ getEReproAndGrowth <- function(object, metabolismArray , n, n_pp,
 
   
   # assimilated intake
-  e <- sweep(feeding_level * object@intake_max, 1,
+  e <- sweep(feeding_level * object@intake_max * intakeScalar, 1,
              object@species_params$alpha, "*", check.margin = FALSE)
   
   # if(object@species_param$metabolismTemp != "none") temperatureScalar <- expFun(object = object,temperature = temperature) 
   # else temperatureScalar = 1
   
-  temperatureScalar <- metabolismArray[,temperature,] # metabolismarray is the slice of the 3*3 array at the right time
+  # temperatureScalar <- metabolismArray[,temperature,] # metabolismarray is the slice of the 3*3 array at the right time
   
   
   # Subtract metabolism
-  e <- e - (object@metab * temperatureScalar)
+  e <- e - (object@metab) # * temperatureScalar)
   # in order to apply starvation mortality we need to return the actual positive or negative e here
   #e[e < 0] <- 0 # Do not allow negative growth
   return(e)
@@ -691,8 +690,8 @@ getEReproAndGrowth <- function(object, metabolismArray , n, n_pp,
 #'   internally using the \code{getEReproAndGrowth()} method. 
 #'
 #' @return A two dimensional array of instantaneous starvation mortality (species x size). 
-getSMort <- function(object, n, n_pp, 
-                     e = getEReproAndGrowth(object, n = n, n_pp = n_pp)){
+getSMort <- function(object, n, n_pp, intakeScalar,
+                     e = getEReproAndGrowth(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)){
             if (!all(dim(e) == c(nrow(object@species_params), length(object@w)))) {
               stop("e argument must have dimensions: no. species (",
                    nrow(object@species_params), ") x no. size bins (",
@@ -785,8 +784,8 @@ getSenMort <- function(object, n){
 #' # Get the energy at a particular time step
 #' getERepro(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getERepro <- function(object, n, n_pp,
-                         e = getEReproAndGrowth(object, n = n, n_pp = n_pp)) {
+getERepro <- function(object, n, n_pp, intakeScalar,
+                         e = getEReproAndGrowth(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)) {
     if (!all(dim(e) == c(nrow(object@species_params), length(object@w)))) {
         stop("e argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
@@ -836,9 +835,9 @@ getESpawning <- getERepro
 #' # Get the energy at a particular time step
 #' getEGrowth(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getEGrowth <- function(object, n, n_pp,
-                       e_repro = getERepro(object, n = n, n_pp = n_pp),
-                       e=getEReproAndGrowth(object, n = n, n_pp = n_pp)) {
+getEGrowth <- function(object, n, n_pp, intakeScalar,
+                       e_repro = getERepro(object, n = n, n_pp = n_pp,intakeScalar = intakeScalar),
+                       e=getEReproAndGrowth(object, n = n, n_pp = n_pp,intakeScalar = intakeScalar)) {
     if (!all(dim(e_repro) == c(nrow(object@species_params), length(object@w)))) {
         stop("e_repro argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
@@ -886,8 +885,8 @@ getEGrowth <- function(object, n, n_pp,
 #' # Get the recruitment at a particular time step
 #' getRDI(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getRDI <- function(object, n, n_pp,
-                   e_repro = getERepro(object, n = n, n_pp = n_pp),
+getRDI <- function(object, n, n_pp, intakeScalar,
+                   e_repro = getERepro(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar),
                    sex_ratio = 0.5) {
     if (!all(dim(e_repro) == c(nrow(object@species_params), length(object@w)))) {
         stop("e_repro argument must have dimensions: no. species (",
@@ -928,8 +927,8 @@ getRDI <- function(object, n, n_pp,
 #' # Get the energy at a particular time step
 #' getRDD(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getRDD <- function(object, n, n_pp, sex_ratio = 0.5,
-                   rdi = getRDI(object, n = n, n_pp = n_pp, sex_ratio = sex_ratio)) {
+getRDD <- function(object, n, n_pp, sex_ratio = 0.5, intakeScalar,
+                   rdi = getRDI(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar, sex_ratio = sex_ratio)) {
     rdd <- object@srr(rdi = rdi, species_params = object@species_params)
     return(rdd)
 }
@@ -991,6 +990,8 @@ tempFun <- function(temperature, t_ref, Ea, c_a, w) # default are 0 for now as d
   # equation
   # (w^(c_a*(temperature-t_ref)))  *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))
   # *(1/(w^(c_d*(temperature-t_d)))*exp((-Ed/8.617332e-5)*((1/temperature) - (1/t_d))))
+  
+  temperature <- temperature + 273 # converting to Kelvin from Celcius
 
   temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-t_ref))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))) 
 
