@@ -213,19 +213,19 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     
     for(iSpecies in as.numeric(params@species_params$species))
     {
-      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = t_ref, 
                                             Ea = params@species_params$ea_met[iSpecies], 
                                             c_a = params@species_params$ca_met[iSpecies], w = params@w)
       
-      matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+      matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = t_ref, 
                                             Ea = params@species_params$ea_mat[iSpecies], 
                                             c_a = params@species_params$ca_mat[iSpecies],  w = params@w)
       
-      morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+      morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = t_ref, 
                                             Ea = params@species_params$ea_mor[iSpecies], 
                                             c_a = params@species_params$ca_mor[iSpecies],  w = params@w)
       
-      intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+      intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = t_ref, 
                                             Ea = params@species_params$ea_int[iSpecies], 
                                             c_a = params@species_params$ca_int[iSpecies],  w = params@w)
     }
@@ -296,15 +296,15 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
        ## sim@params will not have informatoin about sim@metscalar, so I guess all scalars will have to be passed to these functions
         avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp)
         # Calculate amount f_i(w) of food consumed
-        feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp,
+        feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                          avail_energy = avail_energy)
         # Calculate the predation rate
-        pred_rate <- getPredRate(sim@params, n = n, n_pp = n_pp,
+        pred_rate <- getPredRate(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                  feeding_level = feeding_level)
         # Calculate predation mortality on fish \mu_{p,i}(w)
-        m2 <- getPredMort(sim@params, pred_rate = pred_rate)
+        m2 <- getPredMort(sim@params, pred_rate = pred_rate, intakeScalar = sim@intTempScalar[,,i_time])
         # Calculate mortality on the plankton spectrum
-        m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp,
+        m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                          pred_rate = pred_rate)
         # Calculate the resources available for reproduction and growth
         e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, 
