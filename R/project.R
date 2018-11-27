@@ -105,9 +105,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
                     shiny_progress = NULL, ...) {
   ### TODO1#### 
   # decide how to include t_ref in the function
-  
-  
-  
+
     validObject(params)
     
     # Do we need to create an effort array?
