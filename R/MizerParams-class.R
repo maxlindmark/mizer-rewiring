@@ -311,7 +311,8 @@ setClass(
         kappa = "numeric",
         A = "numeric",
         linecolour = "character",
-        linetype = "character"
+        linetype = "character",
+        t_ref = "numeric"
     ),
     prototype = prototype(
         w = NA_real_,
@@ -325,6 +326,7 @@ setClass(
         q = NA_real_,
         f0 = NA_real_,
         kappa = NA_real_,
+        t_ref = NA_real_,
         psi = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
         initial_n = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
         intake_max = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
@@ -556,6 +558,7 @@ multispeciesParams <- function(object, interaction,
                     min_w_pp = 1e-10, no_w_pp = NA,
                     n = 2/3, p = 0.7, q = 0.8, r_pp = 10,
                     kappa = 1e11, lambda = (2 + q - n), w_pp_cutoff = 10,
+                    t_ref = 10,
                     f0 = 0.6, z0pre = 0.6, z0exp = n - 1) {
     
     row.names(object) <- object$species
@@ -848,46 +851,46 @@ multispeciesParams <- function(object, interaction,
 
 ## Next we sort out Tmax for intake and metabolism - this the temperature where the rate is highest. Since unimodal responses don't make sense for maturity and metabolism, we set this value to xx by default 
 ### TODO#### - set ref temperature in the params file. Should default tmax be set at tref?
-    
-    # Sort out maximum temp (tmax) column for two rates: metabolism
-    if (!("tmax_met" %in% colnames(object))) {
-      message("Note: \tNo tmax_met column in species data frame so setting Tmax for metabolism tp reference temperature")
-      object$tmax_met <- object@tref
-    }
-    missing <- is.na(object$tmax_met)
-    if (any(missing)) {
-      object$tmax_met[missing] <- object@tref
-    }
-    ## Give warning if maximum temperatures are set at or below 0C
-    tmaxlow <- which(object$tmax_met <= 0)
-    if (length(tmaxlow > 0)) {
-      message("Note: \tSome of the maximum metabolism temperatures are set at or below freezing point. Are you sure?")
-    }
-
-    # Sort out maximum temp (tmax) column for two rates: intake
-    if (!("tmax_int" %in% colnames(object))) {
-      message("Note: \tNo tmax_int column in species data frame so setting Tmax for intake tp reference temperature")
-      object$tmax_int <- object@tref
-    }
-    missing <- is.na(object$tmax_int)
-    if (any(missing)) {
-      object$tmax_int[missing] <- object@tref
-    }    
-    ## Give warning if maximum temperatures are set at or below 0C    
-    tmaxlow <- which(object$tmax_int <= 0)
-    if (length(tmaxlow > 0)) {
-      message("Note: \tSome of the maximum intake temperatures are set at or below freezing point. Are you sure?")
-    }
-## Finally quit the run if maximum temperature for rates are set at -273 as this is an absolute freezing point and it will make nonsensical temperature scaling results
-    tmaxlow <- which(object$tmax_met <= -273)
-    tmaxlow2 <- which(object$tmax_int <= -273)
-    if (length(tmaxlow) > 0 | length(tmaxlow2) > 0) {
-      stop("Note: \tSome of your maximum intake rates are set at or below absolute zero. This does not make sense")
-    }
-    
-### for maturation and mortality unimodal response does not make sense, so we set tmax at reference temperature 
-  object$tmax_mat <- object@tref
-  object$tamx_mor <- object@tref
+#     
+#     # Sort out maximum temp (tmax) column for two rates: metabolism
+#     if (!("tmax_met" %in% colnames(object))) {
+#       message("Note: \tNo tmax_met column in species data frame so setting Tmax for metabolism tp reference temperature")
+#       object$tmax_met <- object@tref
+#     }
+#     missing <- is.na(object$tmax_met)
+#     if (any(missing)) {
+#       object$tmax_met[missing] <- object@tref
+#     }
+#     ## Give warning if maximum temperatures are set at or below 0C
+#     tmaxlow <- which(object$tmax_met <= 0)
+#     if (length(tmaxlow > 0)) {
+#       message("Note: \tSome of the maximum metabolism temperatures are set at or below freezing point. Are you sure?")
+#     }
+# 
+#     # Sort out maximum temp (tmax) column for two rates: intake
+#     if (!("tmax_int" %in% colnames(object))) {
+#       message("Note: \tNo tmax_int column in species data frame so setting Tmax for intake tp reference temperature")
+#       object$tmax_int <- object@tref
+#     }
+#     missing <- is.na(object$tmax_int)
+#     if (any(missing)) {
+#       object$tmax_int[missing] <- object@tref
+#     }    
+#     ## Give warning if maximum temperatures are set at or below 0C    
+#     tmaxlow <- which(object$tmax_int <= 0)
+#     if (length(tmaxlow > 0)) {
+#       message("Note: \tSome of the maximum intake temperatures are set at or below freezing point. Are you sure?")
+#     }
+# ## Finally quit the run if maximum temperature for rates are set at -273 as this is an absolute freezing point and it will make nonsensical temperature scaling results
+#     tmaxlow <- which(object$tmax_met <= -273)
+#     tmaxlow2 <- which(object$tmax_int <= -273)
+#     if (length(tmaxlow) > 0 | length(tmaxlow2) > 0) {
+#       stop("Note: \tSome of your maximum intake rates are set at or below absolute zero. This does not make sense")
+#     }
+#     
+# ### for maturation and mortality unimodal response does not make sense, so we set tmax at reference temperature 
+#   object$tmax_mat <- object@tref
+#   object$tamx_mor <- object@tref
   
 ###AAtemp_modif_end  
 
@@ -906,6 +909,7 @@ multispeciesParams <- function(object, interaction,
     res@q <- q
     res@f0 <- f0
     res@kappa <- kappa
+    res@t_ref <- t_ref
     
     # If not w_min column in species_params, set to w_min of community
     if (!("w_min" %in% colnames(object)))

@@ -186,27 +186,46 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     intTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     
     
-for(iSpecies in as.numeric(params@species_params$species))
+# for(iSpecies in as.numeric(params@species_params$species))
+#     {
+#   metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+#                                         Ea = params@species_params$ea_met[iSpecies], Ed = params@species_params$ed_met[iSpecies],
+#                                         c_a = params@species_params$ca_met[iSpecies], c_d = params@species_params$cd_met[iSpecies], 
+#                                         tmax = params@species_params$tmax_met[iSpecies], w = params@w)
+#   
+#   matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+#                                         Ea = params@species_params$ea_mat[iSpecies], Ed = params@species_params$ed_mat[iSpecies],
+#                                         c_a = params@species_params$ca_mat[iSpecies], c_d = params@species_params$cd_mat[iSpecies], 
+#                                         tmax = params@species_params$tmax_mat[iSpecies], w = params@w)
+#   
+#   morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+#                                         Ea = params@species_params$ea_mor[iSpecies], Ed = params@species_params$ed_mor[iSpecies],
+#                                         c_a = params@species_params$ca_mor[iSpecies], c_d = params@species_params$cd_mor[iSpecies], 
+#                                         tmax = params@species_params$tmax_mor[iSpecies], w = params@w)
+#   
+#   intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+#                                         Ea = params@species_params$ea_int[iSpecies], Ed = params@species_params$ed_int[iSpecies],
+#                                         c_a = params@species_params$ca_int[iSpecies], c_d = params@species_params$cd_int[iSpecies], 
+#                                         tmax = params@species_params$tmax_int[iSpecies], w = params@w)
+#     }
+    
+    for(iSpecies in as.numeric(params@species_params$species))
     {
-  metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
-                                        Ea = params@species_params$ea_met[iSpecies], Ed = params@species_params$ed_met[iSpecies],
-                                        c_a = params@species_params$ca_met[iSpecies], c_d = params@species_params$cd_met[iSpecies], 
-                                        tmax = params@species_params$tmax_met[iSpecies], w = params@w)
-  
-  matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
-                                        Ea = params@species_params$ea_mat[iSpecies], Ed = params@species_params$ed_mat[iSpecies],
-                                        c_a = params@species_params$ca_mat[iSpecies], c_d = params@species_params$cd_mat[iSpecies], 
-                                        tmax = params@species_params$tmax_mat[iSpecies], w = params@w)
-  
-  morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
-                                        Ea = params@species_params$ea_mor[iSpecies], Ed = params@species_params$ed_mor[iSpecies],
-                                        c_a = params@species_params$ca_mor[iSpecies], c_d = params@species_params$cd_mor[iSpecies], 
-                                        tmax = params@species_params$tmax_mor[iSpecies], w = params@w)
-  
-  intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
-                                        Ea = params@species_params$ea_int[iSpecies], Ed = params@species_params$ed_int[iSpecies],
-                                        c_a = params@species_params$ca_int[iSpecies], c_d = params@species_params$cd_int[iSpecies], 
-                                        tmax = params@species_params$tmax_int[iSpecies], w = params@w)
+      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+                                            Ea = params@species_params$ea_met[iSpecies], 
+                                            c_a = params@species_params$ca_met[iSpecies], w = params@w)
+      
+      matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+                                            Ea = params@species_params$ea_mat[iSpecies], 
+                                            c_a = params@species_params$ca_mat[iSpecies],  w = params@w)
+      
+      morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+                                            Ea = params@species_params$ea_mor[iSpecies], 
+                                            c_a = params@species_params$ca_mor[iSpecies],  w = params@w)
+      
+      intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+                                            Ea = params@species_params$ea_int[iSpecies], 
+                                            c_a = params@species_params$ca_int[iSpecies],  w = params@w)
     }
 
     
@@ -224,6 +243,13 @@ for(iSpecies in as.numeric(params@species_params$species))
     sim@effort[] <- effort_dt[t_dimnames_index,]
     ###TODO####
     ## attach metScalar and other scalars to the sim object?
+    sim@temperature <- temperature_dt
+    
+    sim@metTempScalar = metTempScalar
+    sim@matTempScalar = matTempScalar
+    sim@morTempScalar = morTempScalar
+    sim@intTempScalar = intTempScalar
+
     
     # Set initial population
     sim@n[1,,] <- initial_n 
