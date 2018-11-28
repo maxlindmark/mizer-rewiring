@@ -691,6 +691,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$ea_met)
     if (any(missing)) {
+      message("Note: \tNo value for ea_met provided so setting activation energy (ea) for metabolism to 0.63")
       object$ea_met[missing] <- 0.63
     }
     
@@ -701,6 +702,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$ea_int)
     if (any(missing)) {
+      message("Note: \tNo value for ea_int provided so setting activation energy (ea) for intake to 0.63")
       object$ea_int[missing] <- 0.63
     }
     
@@ -711,6 +713,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$ea_mat)
     if (any(missing)) {
+      message("Note: \tNo value for ea_mat provided so setting activation energy (ea) for maturity to 0.63")
       object$ea_mat[missing] <- 0.63
     }   
     
@@ -721,6 +724,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$ea_mor)
     if (any(missing)) {
+      message("Note: \tNo value for ea_mor provided so setting activation energy (ea) for mortality to 0.63")
       object$ea_mor[missing] <- 0.63
     }  
     
@@ -778,6 +782,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$ca_met)
     if (any(missing)) {
+      message("Note: \tNo value for ca_met provided so setting size specific scalar to 0, giving size independent temp scaling of metabolism")
       object$ca_met[missing] <- 0
     }
     
@@ -788,7 +793,8 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$ca_int)
     if (any(missing)) {
-      object$ca_int[missing] <- 0
+      message("Note: \tNo value for ca_int provided so setting size specific scalar to 0, giving size independent temp scaling of intake")
+            object$ca_int[missing] <- 0
     }
     
 # For maturity size dependent activation does not make sense. Just set it to zero 
@@ -808,6 +814,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$ca_mor)
     if (any(missing)) {
+      message("Note: \tNo value for ca_mor provided so setting size specific scalar to 0, giving size independent temp scaling of mortality")
       object$ca_mor[missing] <- 0
     }
 
