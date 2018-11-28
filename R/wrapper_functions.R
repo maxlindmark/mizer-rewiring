@@ -301,10 +301,14 @@ set_trait_model <- function(no_sp = 10,
                             gamma = NA,
                             knife_edge_size = 1000,
                             gear_names = "knife_edge_gear",
-                            ea_met = 0.63,
-                            ca_met = 0.005,
-                            ea_int = 0.63,
-                            ca_int = 0.005,
+                            ea_met = NA,
+                            ca_met = NA,
+                            ea_int = NA,
+                            ca_int = NA,
+                            ea_mat = NA,
+                            ca_mat = NA,
+                            ea_mor = NA,
+                            ca_mor = NA,
                             ...){
     if (!is.na(no_w_pp))
         warning("New mizer code does not support the parameter no_w_pp")
@@ -348,13 +352,13 @@ set_trait_model <- function(no_sp = 10,
         # tmax_met = tmax_met,
         ea_int = ea_int,
         # ed_int = ed_int,
-        ca_int = ca_int #,
+        ca_int = ca_int,
         # cd_int = 0,
         # tmax_int = 0,
-        # ea_mat = 0,
-        # ca_mat = 0,
-        # ea_mor = 0,
-        # ca_mor = 0
+        ea_mat = ea_mat,
+        ca_mat = ca_mat,
+        ea_mor = ea_mor,
+        ca_mor = ca_mor
     )
     # Make the MizerParams
     trait_params <-

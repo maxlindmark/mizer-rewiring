@@ -603,14 +603,14 @@ getFMort <- function(object, effort, time_range, drop=TRUE){
 #' # Get the total mortality at a particular time step
 #' getMort(params,sim@@n[21,,],sim@@n_pp[21,],effort=0.5)
 #' }
-getMort <- function(object, n, n_pp, effort, e, intakeScalar, metScalar,
+getMort <- function(object, n, n_pp, effort, e, intakeScalar, metScalar, morScalar,
                  m2 = getPredMort(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)){
     if (!all(dim(m2) == c(nrow(object@species_params), length(object@w)))) {
         stop("m2 argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
              length(object@w), ")")
     }
-    return(m2 + object@mu_b + getFMort(object, effort = effort) + getSMort(object, n=n, n_pp=n_pp, e = e, metScalar = metScalar)) 
+    return(m2 + object@mu_b*morScalar + getFMort(object, effort = effort) + getSMort(object, n=n, n_pp=n_pp, e = e, metScalar = metScalar)) 
 }
 
 #' Alias for getMort

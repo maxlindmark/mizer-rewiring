@@ -318,7 +318,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
                                 feeding_level = feeding_level)
         #Moved total mortality calculation after the e calculation betcause we need e for stravation
         # Calculate total mortality \mu_i(w)
-        z <- getMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time],
+        z <- getMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time], morScalar = sim@morTempScalar[,,i_time],
                      effort = effort_dt[i_time,], e = e, m2 = m2)
         # Calculate the resources for reproduction
         e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, e = e,intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time])
