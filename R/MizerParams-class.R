@@ -726,25 +726,25 @@ multispeciesParams <- function(object, interaction,
     
     ####
     ## now deactivation energies
-    # Sort out deactivation energy (ea) column for four rates: metabolism
-    if (!("ed_met" %in% colnames(object))) {
-      message("Note: \tNo ed_met column in species data frame so setting metabolism deactivation energy x10 the activation rate")
-      object$ed_met <- object$ea_met *10
-    }
-    missing <- is.na(object$ed_met)
-    if (any(missing)) {
-      object$ed_met[missing] <- object$ea_met *10
-    }
+    # Sort out deactivation energy (ed) column for four rates: metabolism
+#    if (!("ed_met" %in% colnames(object))) {
+#      message("Note: \tNo ed_met column in species data frame so setting metabolism deactivation energy x10 the activation rate")
+#      object$ed_met <- object$ea_met *10
+#    }
+#    missing <- is.na(object$ed_met)
+#    if (any(missing)) {
+#      object$ed_met[missing] <- object$ea_met *10
+#    }
   
     # Sort out deactivation energy (ea) column for four rates: intake
-    if (!("ed_int" %in% colnames(object))) {
-      message("Note: \tNo ed_int column in species data frame so setting intake deactivation energy x10 the activation rate")
-      object$ed_int <- object$ea_int *10
-    }
-    missing <- is.na(object$ed_int)
-    if (any(missing)) {
-      object$ed_int[missing] <- object$ea_int *10
-    }
+#    if (!("ed_int" %in% colnames(object))) {
+#      message("Note: \tNo ed_int column in species data frame so setting intake deactivation energy x10 the activation rate")
+#      object$ed_int <- object$ea_int *10
+#    }
+#    missing <- is.na(object$ed_int)
+#    if (any(missing)) {
+#      object$ed_int[missing] <- object$ea_int *10
+#    }
     
 ##Unimodal responses make sense for intake and metabolism, but not for maturity or mortatlity 
 # So perhaps we should not even give the option in the species parameter file and then in the code just use zeros for these values to enable the use of the universal equation
@@ -753,7 +753,7 @@ multispeciesParams <- function(object, interaction,
 # For maturity temperature deactivation does not make sense, so we set it to zero here without any warnings 
 #    if (!("ed_mat" %in% colnames(object))) {
 #    message("Note: \tNo ed_mat column provided, setting deactivation energy for maturation to 0, giving exponential increase only")
-      object$ed_mat <- 0
+#      object$ed_mat <- 0
 #    }
 #    missing <- is.na(object$ed_mat)
 #    if (any(missing)) {
@@ -763,7 +763,7 @@ multispeciesParams <- function(object, interaction,
 # For mortality temperature deactivation does not make sense, so we set it to zero 
 #    if (!("ed_mor" %in% colnames(object))) {
 #      message("Note: \tNo ed_mor column provided, setting deactivation energy for mortality to 0, giving exponential increase only")
-      object$ed_mor <- 0
+#      object$ed_mor <- 0
 #    }
 #    missing <- is.na(object$ed_mor)
 #    if (any(missing)) {
@@ -813,41 +813,41 @@ multispeciesParams <- function(object, interaction,
 
  ##Now deactivation rate size scalar cd for metabolism and intake
     # Sort out size scalars (ca) column for four rates: metabolism
-    if (!("cd_met" %in% colnames(object))) {
-      message("Note: \tNo cd_met column in species data frame so setting it to 0, giving size independent deactivation of metabolism")
-      object$cd_met <- 0
-    }
-    missing <- is.na(object$cd_met)
-    if (any(missing)) {
-      object$cd_met[missing] <- 0
-    }
+#    if (!("cd_met" %in% colnames(object))) {
+#      message("Note: \tNo cd_met column in species data frame so setting it to 0, giving size independent deactivation of metabolism")
+#      object$cd_met <- 0
+#    }
+#    missing <- is.na(object$cd_met)
+#    if (any(missing)) {
+#      object$cd_met[missing] <- 0
+#    }
 
 # We also need to make sure that for species that have ed set at zero must also have cd at zero. 
 
-    edzero <- which(object$ed_met == 0)
-    object$cd_met[edzero] <- 0 
-    message("Note: \tIf ed_met is set to 0, then cd_met also must be 0 for those species! Some of your cd_met values were replaced by 0 to satisfy this requirement")  
+# #   edzero <- which(object$ed_met == 0)
+#    object$cd_met[edzero] <- 0 
+#    message("Note: \tIf ed_met is set to 0, then cd_met also must be 0 for those species! Some of your cd_met values were replaced by 0 to satisfy this requirement")  
     
     
     # Sort out size scalars (ca) column for four rates: intake
-    if (!("cd_int" %in% colnames(object))) {
-      message("Note: \tNo cd_int column in species data frame so setting it to 0, giving size independent deactivation of intake")
-      object$cd_int <- 0
-    }
-    missing <- is.na(object$cd_int)
-    if (any(missing)) {
-      object$cd_int[missing] <- 0
-    }
+#    if (!("cd_int" %in% colnames(object))) {
+#      message("Note: \tNo cd_int column in species data frame so setting it to 0, giving size independent deactivation of intake")
+#      object$cd_int <- 0
+#    }
+#    missing <- is.na(object$cd_int)
+#    if (any(missing)) {
+#      object$cd_int[missing] <- 0
+#    }
     
     # We also need to make sure that for species that have ed set at zero must also have cd at zero. 
     
-    edzero <- which(object$ed_int == 0)
-    object$cd_int[edzero] <- 0 
-    message("Note: \tIf ed_int is set to 0, then cd_int also must be 0 for those species! Some of your cd_int values were replaced by 0 to satisfy this requirement") 
+#    edzero <- which(object$ed_int == 0)
+#    object$cd_int[edzero] <- 0 
+ #   message("Note: \tIf ed_int is set to 0, then cd_int also must be 0 for those species! Some of your cd_int values were replaced by 0 to satisfy this requirement") 
  
 #For maturity and mortality deactivation is not used and size dependent deactivation is even more irrelevant. So we set it to zero    
-    object$cd_mat <- 0
-    object$cd_mor <- 0
+#    object$cd_mat <- 0
+#    object$cd_mor <- 0
 
 ## Next we sort out Tmax for intake and metabolism - this the temperature where the rate is highest. Since unimodal responses don't make sense for maturity and metabolism, we set this value to xx by default 
 ### TODO#### - set ref temperature in the params file. Should default tmax be set at tref?

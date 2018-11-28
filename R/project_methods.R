@@ -246,9 +246,6 @@ getPredRate <- function(object, n,  n_pp, intakeScalar,
     # We fill the middle of each row of Q with the proper values
     Q[, idx_sp] <- sweep( (1 - feeding_level) * object@search_vol * intakeScalar * n, 2, # scale with temperature
                          object@w, "*")
-    ###TODO####
-    ##scale search folume here as well to make sure increased intake is reflected in the predation rate 
-
     # We do our spectral integration in parallel over the different species
     pred_rate <- Re(t(mvfft(t(object@ft_pred_kernel_p) *
                                  mvfft(t(Q)), inverse = TRUE))) / no_P
@@ -710,7 +707,7 @@ getSMort <- function(object, n, n_pp, intakeScalar,
     return(mu_S)
 }
 
-#' Get senescence mortality 
+#' Get senescence mortality - not ACTIVE AT THE MOMENT
 #' 
 #' Calculates senescence mortality SenMort according to Law et al. 2009 and applied in coupled community
 #' model in Blanchard et al. 2009 (JAE). 

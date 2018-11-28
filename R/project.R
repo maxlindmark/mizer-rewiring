@@ -99,12 +99,10 @@ NULL
 #' }
 #' 
 project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
-                    temperature = 10, # what do we do with the t_ref?
+                    temperature = rep(params@t_ref, times = length(t_max)), # what do we do with the t_ref?
                     initial_n = params@initial_n,
                     initial_n_pp = params@initial_n_pp, 
                     shiny_progress = NULL, ...) {
-  ### TODO1#### 
-  # decide how to include t_ref in the function
 
     validObject(params)
     
@@ -156,6 +154,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     if (is.unsorted(time_effort)) {
         stop("The time dimname of the effort argument should be increasing.")
     }
+    
     t_max <- time_effort[length(time_effort)]
     # Blow up effort so that rows are dt spaced
     time_effort_dt <- seq(from = time_effort[1], to = t_max, by = dt)
@@ -165,26 +164,23 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
     effort_dt <- t(effort_dt)
     
-    ## create temperature_dt
-    
-    # we get a vector of temperature in celcius
-    # userTemp <- c(20,19.5,19,20,21) # 5 years
-    # names(userTemp) <- seq(1,5)
-    
-    time_temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
-    
-    x_axis <- seq(length.out=100,from =1)   # need to not hard code the 100
-    myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
+    ## expand temperature vector in the required number of timesteps 
+    ## at the moment we just repeat yearly values for the entire year, no smothing or interpolation is used
 
-    temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
+    temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
+    
+#   x_axis <- seq(length.out=(t_max/dt),from =1)   # need to not hard code the 100
+#   myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
+#   temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
 
-    # temperature shenanigans happening here
+    #create arrays where we are going to keep temperature scalars for species, sizes and time and attach it to the sim object. This means that we don' tneed to calculate the scalars at each time step, but just call the correct value from the arrays
     
     metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     matTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     morTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     intTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     
+    print(metTempScalar[,c(30),])
     
 # for(iSpecies in as.numeric(params@species_params$species))
 #     {
@@ -211,23 +207,24 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     
     for(iSpecies in as.numeric(params@species_params$species))
     {
-      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = t_ref, 
+      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
                                             Ea = params@species_params$ea_met[iSpecies], 
                                             c_a = params@species_params$ca_met[iSpecies], w = params@w)
       
-      matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = t_ref, 
+      matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
                                             Ea = params@species_params$ea_mat[iSpecies], 
                                             c_a = params@species_params$ca_mat[iSpecies],  w = params@w)
       
-      morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = t_ref, 
+      morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
                                             Ea = params@species_params$ea_mor[iSpecies], 
                                             c_a = params@species_params$ca_mor[iSpecies],  w = params@w)
       
-      intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = t_ref, 
+      intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
                                             Ea = params@species_params$ea_int[iSpecies], 
                                             c_a = params@species_params$ca_int[iSpecies],  w = params@w)
     }
 
+    print(metTempScalar[,c(30),])
     
     # Make the MizerSim object with the right size
     # We only save every t_save steps
@@ -240,15 +237,22 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     t_dimnames <- time_effort_dt[t_dimnames_index]
     sim <- MizerSim(params, t_dimnames = t_dimnames) 
     # Fill up the effort array
+    print(mode(effort_dt))
     sim@effort[] <- effort_dt[t_dimnames_index,]
+    
     ###TODO####
     ## attach metScalar and other scalars to the sim object?
-    sim@temperature <- temperature_dt
+    print(mode(temperature_dt))
+    print(t_dimnames_index)
     
-    sim@metTempScalar = metTempScalar
-    sim@matTempScalar = matTempScalar
-    sim@morTempScalar = morTempScalar
-    sim@intTempScalar = intTempScalar
+    sim@temperature <- temperature_dt
+    print("added sim@temperature")
+    print(mode(metTempScalar))
+    
+    sim@metTempScalar <- metTempScalar
+    sim@matTempScalar <- matTempScalar
+    sim@morTempScalar <- morTempScalar
+    sim@intTempScalar <- intTempScalar
 
     
     # Set initial population
