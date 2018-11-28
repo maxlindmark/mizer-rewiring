@@ -170,9 +170,11 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     time_temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
     
   x_axis <- seq(length.out=(t_max/dt),from =1)   # need to not hard code the 100
-  myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
-  temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
+  # myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
+  # temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
 
+  temperature_dt <- matrix(time_temperature_dt, dimnames = list(x_axis, "temperature")) # without smoothing
+  
     #create arrays where we are going to keep temperature scalars for species, sizes and time and attach it to the sim object. This means that we don' tneed to calculate the scalars at each time step, but just call the correct value from the arrays
     
     metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
