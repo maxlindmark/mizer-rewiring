@@ -314,22 +314,22 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                          pred_rate = pred_rate)
         # Calculate the resources available for reproduction and growth
-        e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
+        e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time],
                                 feeding_level = feeding_level)
         #Moved total mortality calculation after the e calculation betcause we need e for stravation
         # Calculate total mortality \mu_i(w)
-        z <- getMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], 
+        z <- getMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time],
                      effort = effort_dt[i_time,], e = e, m2 = m2)
         # Calculate the resources for reproduction
-        e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, e = e,intakeScalar = sim@intTempScalar[,,i_time])
+        e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, e = e,intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time])
         # Calculate the growth rate g_i(w)
-        e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], 
+        e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time],
                                e_repro = e_repro, e = e)
         # R_{p,i}
-        rdi <- getRDI(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
+        rdi <- getRDI(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time],
                       e_repro = e_repro, sex_ratio = sex_ratio)
         # R_i
-        rdd <- getRDD(sim@params, n = n, n_pp = n_pp, rdi = rdi, intakeScalar = sim@intTempScalar[,,i_time])
+        rdd <- getRDD(sim@params, n = n, n_pp = n_pp, rdi = rdi, intakeScalar = sim@intTempScalar[,,i_time],metScalar = sim@metTempScalar[,,i_time])
         
         # Iterate species one time step forward:
         # See Ken's PDF

@@ -603,14 +603,14 @@ getFMort <- function(object, effort, time_range, drop=TRUE){
 #' # Get the total mortality at a particular time step
 #' getMort(params,sim@@n[21,,],sim@@n_pp[21,],effort=0.5)
 #' }
-getMort <- function(object, n, n_pp, effort, e, intakeScalar,
+getMort <- function(object, n, n_pp, effort, e, intakeScalar, metScalar,
                  m2 = getPredMort(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)){
     if (!all(dim(m2) == c(nrow(object@species_params), length(object@w)))) {
         stop("m2 argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
              length(object@w), ")")
     }
-    return(m2 + object@mu_b + getFMort(object, effort = effort) + getSMort(object, n=n, n_pp=n_pp, e = e)) 
+    return(m2 + object@mu_b + getFMort(object, effort = effort) + getSMort(object, n=n, n_pp=n_pp, e = e, metScalar = metScalar)) 
 }
 
 #' Alias for getMort
@@ -645,7 +645,7 @@ getZ <- getMort
 #' # Get the energy at a particular time step
 #' getEReproAndGrowth(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getEReproAndGrowth <- function(object, metabolismArray , n, n_pp, intakeScalar,
+getEReproAndGrowth <- function(object, metabolismArray , n, n_pp, intakeScalar, metScalar,
                                feeding_level = getFeedingLevel(object, n = n, 
                                                                n_pp = n_pp, intakeScalar = intakeScalar)) {
   if (!all(dim(feeding_level) == c(nrow(object@species_params), length(object@w)))) {
@@ -666,7 +666,7 @@ getEReproAndGrowth <- function(object, metabolismArray , n, n_pp, intakeScalar,
   
   
   # Subtract metabolism
-  e <- e - (object@metab) # * temperatureScalar)
+  e <- e - (object@metab * metScalar)
   # in order to apply starvation mortality we need to return the actual positive or negative e here
   #e[e < 0] <- 0 # Do not allow negative growth
   return(e)
@@ -687,8 +687,8 @@ getEReproAndGrowth <- function(object, metabolismArray , n, n_pp, intakeScalar,
 #'   internally using the \code{getEReproAndGrowth()} method. 
 #'
 #' @return A two dimensional array of instantaneous starvation mortality (species x size). 
-getSMort <- function(object, n, n_pp, intakeScalar,
-                     e = getEReproAndGrowth(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)){
+getSMort <- function(object, n, n_pp, intakeScalar, metScalar,
+                     e = getEReproAndGrowth(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar, metScalar = metScalar)){
             if (!all(dim(e) == c(nrow(object@species_params), length(object@w)))) {
               stop("e argument must have dimensions: no. species (",
                    nrow(object@species_params), ") x no. size bins (",
@@ -706,53 +706,6 @@ getSMort <- function(object, n, n_pp, intakeScalar,
         #comment to test
     return(mu_S)
 }
-
-#' Get senescence mortality - not ACTIVE AT THE MOMENT
-#' 
-#' Calculates senescence mortality SenMort according to Law et al. 2009 and applied in coupled community
-#' model in Blanchard et al. 2009 (JAE). 
-#' In models without fishing senescence mortality is needed to prevent the build up of large fish, 
-#' which contribute huge amount of spawn. 
-#' Senescence mortality is implemented as an exponential increase in mortality for the last size groups
-#' and has three parameters, currently set as constants. 
-#' 
-#' xsw= 0.9 defining the proportion of Wmax at which senescence starts is at the value defined in k.sm
-#' sen.e = 3 which is exponent of the senescence mortality function (larger values will give
-#' steeper function and mortality will apply only in the last few size groups) here set at 3, but also
-#' values of 0.5 were explored in Law et al. 2009,
-#' k.sm = 0.5 defining instantaneous rate of senescence mortality per year for the size group xsw*Wmax
-#' mu_Sen = k.sm * 10^(sen.e*(w-xsw*Wmax))
-#' 
-#' @param object A \code{MizerParams} object.
-#' @param n A matrix of species abundance (species x size).
-#'
-#' @return A two dimensional array of instantaneous senescence mortality (species x size). 
-
-getSenMort <- function(object, n){
-  if (!all(dim(e) == c(nrow(object@species_params), length(object@w)))) {
-    stop("e argument must have dimensions: no. species (",
-         nrow(object@species_params), ") x no. size bins (",
-         length(object@w), ")")
-  }
-  
-  k.sm <- 0.5
-  xsw <- 0.9
-  sen.e <- 3
-  print(1)
-  temp1 <- xsw*object@species_params$w_inf
-  print(temp1)
-  print(object@w)
-  temp <- object@w-xsw*object@species_params$w_inf
-  print(temp)
-  print(2)
-  
-  mu_Sen = k.sm * 10^(sen.e*(object@w-xsw*object@species_params$w_inf))
-  print(dim(mu_Sen))
-
-  return(mu_Sen)
-}
-
-
 
 
 #' Get energy rate available for reproduction
@@ -781,8 +734,8 @@ getSenMort <- function(object, n){
 #' # Get the energy at a particular time step
 #' getERepro(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getERepro <- function(object, n, n_pp, intakeScalar,
-                         e = getEReproAndGrowth(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar)) {
+getERepro <- function(object, n, n_pp, intakeScalar, metScalar,
+                         e = getEReproAndGrowth(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar, metScalar = metScalar)) {
     if (!all(dim(e) == c(nrow(object@species_params), length(object@w)))) {
         stop("e argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
@@ -832,9 +785,9 @@ getESpawning <- getERepro
 #' # Get the energy at a particular time step
 #' getEGrowth(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getEGrowth <- function(object, n, n_pp, intakeScalar,
-                       e_repro = getERepro(object, n = n, n_pp = n_pp,intakeScalar = intakeScalar),
-                       e=getEReproAndGrowth(object, n = n, n_pp = n_pp,intakeScalar = intakeScalar)) {
+getEGrowth <- function(object, n, n_pp, intakeScalar, metScalar,
+                       e_repro = getERepro(object, n = n, n_pp = n_pp,intakeScalar = intakeScalar, metScalar = metScalar),
+                       e=getEReproAndGrowth(object, n = n, n_pp = n_pp,intakeScalar = intakeScalar, metScalar = metScalar)) {
     if (!all(dim(e_repro) == c(nrow(object@species_params), length(object@w)))) {
         stop("e_repro argument must have dimensions: no. species (",
              nrow(object@species_params), ") x no. size bins (",
@@ -882,8 +835,8 @@ getEGrowth <- function(object, n, n_pp, intakeScalar,
 #' # Get the recruitment at a particular time step
 #' getRDI(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getRDI <- function(object, n, n_pp, intakeScalar,
-                   e_repro = getERepro(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar),
+getRDI <- function(object, n, n_pp, intakeScalar, metScalar,
+                   e_repro = getERepro(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar, metScalar = metScalar),
                    sex_ratio = 0.5) {
     if (!all(dim(e_repro) == c(nrow(object@species_params), length(object@w)))) {
         stop("e_repro argument must have dimensions: no. species (",
@@ -924,8 +877,8 @@ getRDI <- function(object, n, n_pp, intakeScalar,
 #' # Get the energy at a particular time step
 #' getRDD(params,sim@@n[21,,],sim@@n_pp[21,])
 #' }
-getRDD <- function(object, n, n_pp, sex_ratio = 0.5, intakeScalar,
-                   rdi = getRDI(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar, sex_ratio = sex_ratio)) {
+getRDD <- function(object, n, n_pp, sex_ratio = 0.5, intakeScalar, metScalar,
+                   rdi = getRDI(object, n = n, n_pp = n_pp, intakeScalar = intakeScalar, metScalar = metScalar, sex_ratio = sex_ratio)) {
     rdd <- object@srr(rdi = rdi, species_params = object@species_params)
     return(rdd)
 }
