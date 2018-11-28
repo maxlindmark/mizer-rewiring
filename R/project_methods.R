@@ -990,7 +990,7 @@ tempFun <- function(temperature, t_ref, Ea, c_a, w) # default are 0 for now as d
   
   temperature <- temperature + 273 # converting to Kelvin from Celcius
 
-  temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-t_ref))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/t_ref)))) 
+  temperatureScalar <- t(sapply(w,FUN = function(x){x^(c_a*(temperature-(t_ref+273)))}) *exp((-Ea/8.617332e-5)*((1/temperature) - (1/(t_ref+273))))) 
 
                          return(temperatureScalar)
 }
