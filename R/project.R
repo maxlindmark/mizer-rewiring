@@ -185,8 +185,6 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     morTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     intTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     
-    # print(metTempScalar[,c(30),])
-    
 # for(iSpecies in as.numeric(params@species_params$species))
 #     {
 #   metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
@@ -241,19 +239,12 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     t_dimnames_index <- seq(1, to = length(time_effort_dt), by = t_skip)
     t_dimnames <- time_effort_dt[t_dimnames_index]
     sim <- MizerSim(params, t_dimnames = t_dimnames) 
+
     # Fill up the effort array
-    print(mode(effort_dt))
     sim@effort[] <- effort_dt[t_dimnames_index,]
     
-    ###TODO####
-    ## attach metScalar and other scalars to the sim object?
-    print(mode(temperature_dt))
-    print(t_dimnames_index)
-    
     sim@temperature <- temperature_dt
-    print("added sim@temperature")
-    print(mode(metTempScalar))
-    
+
     sim@metTempScalar <- metTempScalar
     sim@matTempScalar <- matTempScalar
     sim@morTempScalar <- morTempScalar
@@ -299,8 +290,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     for (i_time in 1:t_steps) {
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
-       ###TODO#### 
-       ## sim@params will not have informatoin about sim@metscalar, so I guess all scalars will have to be passed to these functions
+
         avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp)
         # Calculate amount f_i(w) of food consumed
         feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
@@ -354,7 +344,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         
         # Dynamics of plankton spectrum uses a semi-chemostat model (de Roos - ask Ken)
         # We use the exact solution under the assumption of constant mortality during timestep
-        ###TODO#### 
+        ###TODO?#### 
         # now we need to scale r_pp (not rr_pp!) with the temperature response. 
         # this could be done at the start again where we create rr_pp object. this means it will have an extra time dimension 
         # or we calcualte rr_pp scalar here at every time step, which might be simpler 
