@@ -166,7 +166,10 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     
     ## expand temperature vector in the required number of timesteps 
     ## at the moment we just repeat yearly values for the entire year, no smothing or interpolation is used
-
+    if (length(temperature) != t_max) {
+      stop("your temperature input vector is not the same length as t_max")
+    }
+    
     time_temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
     
   x_axis <- seq(length.out=(t_max/dt),from =1)   # need to not hard code the 100
