@@ -167,11 +167,11 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     ## expand temperature vector in the required number of timesteps 
     ## at the moment we just repeat yearly values for the entire year, no smothing or interpolation is used
 
-    temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
+    time_temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
     
-#   x_axis <- seq(length.out=(t_max/dt),from =1)   # need to not hard code the 100
-#   myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
-#   temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
+  x_axis <- seq(length.out=(t_max/dt),from =1)   # need to not hard code the 100
+  myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
+  temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
 
     #create arrays where we are going to keep temperature scalars for species, sizes and time and attach it to the sim object. This means that we don' tneed to calculate the scalars at each time step, but just call the correct value from the arrays
     
@@ -180,7 +180,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     morTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     intTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     
-    print(metTempScalar[,c(30),])
+    # print(metTempScalar[,c(30),])
     
 # for(iSpecies in as.numeric(params@species_params$species))
 #     {
@@ -207,24 +207,24 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     
     for(iSpecies in as.numeric(params@species_params$species))
     {
-      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+      metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
                                             Ea = params@species_params$ea_met[iSpecies], 
                                             c_a = params@species_params$ca_met[iSpecies], w = params@w)
       
-      matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+      matTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
                                             Ea = params@species_params$ea_mat[iSpecies], 
                                             c_a = params@species_params$ca_mat[iSpecies],  w = params@w)
       
-      morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+      morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
                                             Ea = params@species_params$ea_mor[iSpecies], 
                                             c_a = params@species_params$ca_mor[iSpecies],  w = params@w)
       
-      intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt, t_ref = t_ref, 
+      intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
                                             Ea = params@species_params$ea_int[iSpecies], 
                                             c_a = params@species_params$ca_int[iSpecies],  w = params@w)
     }
 
-    print(metTempScalar[,c(30),])
+    # print(metTempScalar[,c(30),])
     
     # Make the MizerSim object with the right size
     # We only save every t_save steps
@@ -309,22 +309,22 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                          pred_rate = pred_rate)
         # Calculate the resources available for reproduction and growth
-        e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, 
+        e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                 feeding_level = feeding_level)
         #Moved total mortality calculation after the e calculation betcause we need e for stravation
         # Calculate total mortality \mu_i(w)
-        z <- getMort(sim@params, n = n, n_pp = n_pp, 
+        z <- getMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], 
                      effort = effort_dt[i_time,], e = e, m2 = m2)
         # Calculate the resources for reproduction
-        e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, e = e)
+        e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, e = e,intakeScalar = sim@intTempScalar[,,i_time])
         # Calculate the growth rate g_i(w)
-        e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, 
+        e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], 
                                e_repro = e_repro, e = e)
         # R_{p,i}
-        rdi <- getRDI(sim@params, n = n, n_pp = n_pp, 
+        rdi <- getRDI(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                       e_repro = e_repro, sex_ratio = sex_ratio)
         # R_i
-        rdd <- getRDD(sim@params, n = n, n_pp = n_pp, rdi = rdi)
+        rdd <- getRDD(sim@params, n = n, n_pp = n_pp, rdi = rdi, intakeScalar = sim@intTempScalar[,,i_time])
         
         # Iterate species one time step forward:
         # See Ken's PDF
