@@ -165,6 +165,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     effort_dt <- t(effort_dt)
     
     ## expand temperature vector in the required number of timesteps 
+    ###TODO?####
     ## at the moment we just repeat yearly values for the entire year, no smothing or interpolation is used
     if (length(temperature) != t_max) {
       stop("your temperature input vector is not the same length as t_max")
@@ -172,7 +173,8 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     
     time_temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
     
-  x_axis <- seq(length.out=(t_max/dt),from =1)   # need to not hard code the 100
+  x_axis <- seq(length.out=(t_max/dt),from =1)  
+
   # myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
   # temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
 
@@ -227,7 +229,8 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
                                             c_a = params@species_params$ca_int[iSpecies],  w = params@w)
     }
 
-    # print(metTempScalar[,c(30),])
+    #print(metTempScalar[,c(30,40),])
+    #print(morTempScalar[,c(30,40),])
     
     # Make the MizerSim object with the right size
     # We only save every t_save steps
@@ -243,8 +246,8 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     # Fill up the effort array
     sim@effort[] <- effort_dt[t_dimnames_index,]
     
+    #attach temperature dimension and all the rate scalars to the sim object, so it is stored and can be viewed later
     sim@temperature <- temperature_dt
-
     sim@metTempScalar <- metTempScalar
     sim@matTempScalar <- matTempScalar
     sim@morTempScalar <- morTempScalar
@@ -295,26 +298,50 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # Calculate amount f_i(w) of food consumed
         feeding_level <- getFeedingLevel(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                          avail_energy = avail_energy)
+        #print("feeding level")
+        #print(feeding_level[,c(30,40)])
         # Calculate the predation rate
         pred_rate <- getPredRate(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                  feeding_level = feeding_level)
+        #print("predation rate")
+        #print(pred_rate[,c(67,77)])
+        
         # Calculate predation mortality on fish \mu_{p,i}(w)
         m2 <- getPredMort(sim@params, pred_rate = pred_rate, intakeScalar = sim@intTempScalar[,,i_time])
+        #print("m2")
+        #print(m2[,c(30,40)])
+        
         # Calculate mortality on the plankton spectrum
         m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time],
                                          pred_rate = pred_rate)
+        #print("m2_background")
+        #print(m2_background[c(1:40)])
+        
         # Calculate the resources available for reproduction and growth
         e <- getEReproAndGrowth(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time],
                                 feeding_level = feeding_level)
+        #print("e")
+        #print(e[,c(30,40)])
+        
         #Moved total mortality calculation after the e calculation betcause we need e for stravation
         # Calculate total mortality \mu_i(w)
         z <- getMort(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time], morScalar = sim@morTempScalar[,,i_time],
                      effort = effort_dt[i_time,], e = e, m2 = m2)
+        #print("z")
+        #print(z[,c(30,40)])
+        
         # Calculate the resources for reproduction
         e_repro <- getERepro(sim@params, n = n, n_pp = n_pp, e = e,intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time])
+        
+        #print("e_repro")
+        #print(e_repro[,c(30,40)])
+        
         # Calculate the growth rate g_i(w)
         e_growth <- getEGrowth(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time],
                                e_repro = e_repro, e = e)
+        #print("e_growth")
+        #print(e_growth[,c(30,40)])
+        
         # R_{p,i}
         rdi <- getRDI(sim@params, n = n, n_pp = n_pp, intakeScalar = sim@intTempScalar[,,i_time], metScalar = sim@metTempScalar[,,i_time],
                       e_repro = e_repro, sex_ratio = sex_ratio)
