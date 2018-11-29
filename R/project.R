@@ -207,9 +207,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     sex_ratio <- 0.5
     
     #create a matrix for diet comparison. For prey it has the number of columns set at no_sp+3 because we have 3 background spectra
-    sim@diet_comp<-array(0, c(no_sp, no_w, no_sp + 1, no_w_full), 
+    sim@diet_comp<-array(0, c(no_sp, no_w, no_sp + 3, no_w_full), 
                          dimnames=list( predator=as.character(params@species_params$species), pred_size = params@w, 
-                                        prey = c(as.character(params@species_params$species), "background"),
+                                        prey = c(as.character(params@species_params$species), "plankton", "benthos", "algae"),
                                         prey_size = params@w_full))
     
     
@@ -246,6 +246,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
 
     for (i_time in 1:t_steps) {
+      print(i_time)
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
         avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa) ##AAsp##
