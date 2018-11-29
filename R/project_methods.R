@@ -1110,17 +1110,35 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
 #'   
 #' @return A four dimensional array of predator x size x prey x size 
 
-getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all, diet_steps=diet_steps){ 
+getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all, diet_steps=diet_steps, feedinglevel=getFeedingLevel(object, n = n,n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)){
   
-  #Biomass of resource as prey; scaled to reflect pred size kernel (but not feedinglevel); might have to change if we start using interaction with resource spectrum like Hartvig et al. 2011
+  #Biomass by species;
+  n_total_in_size_bins<- sweep(n, 2, object@dw , "*")
+  b_tot <- sweep(n_total_in_size_bins, 2, object@w , "*")
+  
+  #Biomass of resource as prey; scaled to reflect pred size kernel; might have to change if we start using interaction with resource spectrum like Hartvig et al. 2011
+  
   #Note that we multiply the amount available by the availability parameter in the species parameter file 
   b_background <- (sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_pp, "*")) * object@species_params$avail_PP
   b_benthos <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_bb, "*") * object@species_params$avail_BB
   b_algae <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_aa, "*") * object@species_params$avail_AA
-
-  #Biomass by prey species;
-  n_total_in_size_bins<- sweep(n, 2, object@dw , "*")
-  b_tot_prey <- sweep(n_total_in_size_bins, 2, object@w , "*")
+  
+  ## Correct intake of background spectra by search volume and feeding rate
+  ##TODO#### 
+  #if we have temperature scalars we will need to scale it here 
+  
+  #Search rate *  feeding level * predator biomass
+  b_background<- sweep(b_background, c(1,2), object@search_vol,"*") #Scale up by search volume
+  b_background<- sweep(b_background, c(1,2), feedinglevel,"*") # Scale according to feeding level. Prey eaten: g prey / year / g predator
+  b_background_tot<-sweep(b_background,c(1,2), b_tot, "*") # Prey eaten: total g prey/ year  (given predator biomass density)
+  
+  b_benthos <- sweep(b_benthos, c(1,2), object@search_vol,"*") #Scale up by search volume
+  b_benthos <- sweep(b_benthos, c(1,2), feedinglevel,"*") # Scale according to feeding level. Prey eaten: g prey / year / g predator
+  b_benthos_tot <- sweep(b_benthos,c(1,2), b_tot, "*") # Prey eaten: total g prey/ year  (given predator biomass density)
+  
+  b_algae <- sweep(b_algae, c(1,2), object@search_vol,"*") #Scale up by search volume
+  b_algae <- sweep(b_algae, c(1,2), feedinglevel,"*") # Scale according to feeding level. Prey eaten: g prey / year / g predator
+  b_algae_tot<-sweep(b_algae,c(1,2), b_tot, "*") # Prey eaten: total g prey/ year  (given predator biomass density)
   
   # Hany indices 
   no_w<- dim(n)[2]
@@ -1133,17 +1151,172 @@ getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all
   
   for(i in 1:no_w){
     for(j in 1:no_sp){    
-      diet_comp_all[j,i,1:no_sp,idx_sp]<- sweep(sweep( b_tot_prey, c(1), object@interaction[j, 1:no_sp], "*"), c(2), object@pred_kernel[j,i,idx_sp], "*")
+      diet_comp_all[j,i,1:no_sp,idx_sp]<- sweep(sweep( b_tot, c(1), object@interaction[j, 1:no_sp], "*"), c(2), object@pred_kernel[j,i,idx_sp], "*")
     }
   }
   
-  #background
-  diet_comp_all[,,no_sp+1,]<- b_background
-  diet_comp_all[,,no_sp+2,]<- b_benthos
-  diet_comp_all[,,no_sp+3,]<- b_algae
-
+  ##TODO####
+  #also scale this by temperature if using 
+  
+  # Search rate *  feeding level * predator biomass
+  diet_comp_all[,,1:no_sp,]<- sweep(sweep(sweep(diet_comp_all[,,1:no_sp,], c(1,2), object@search_vol,"*"), c(1,2),feedinglevel,"*"), c(1,2),b_tot,"*")  # Prey eaten: total g prey/ year  (given predator biomass density)
+  
+  # Store background eaten 
+  diet_comp_all[,,no_sp+1,]<- b_background_tot
+  diet_comp_all[,,no_sp+2,]<- b_benthos_tot
+  diet_comp_all[,,no_sp+3,]<- b_algae_tot
+  
   return(diet_comp_all)
   #Save in sim object; divide by the number of time steps, and add time up to get average across time 
   
 } 
+
+
+
+
+getFoodWebStats<-function(model, diet_steps=1,link_strength=0.01, backgroundTL=0){
+  
+  #average n over the same time period diet was averaged 
+  n_ave<- apply(model@n[tail(1:dim(model@n)[1],diet_steps),,], c(2,3), FUN="mean")
+  
+  # Get predator biomass 
+  b_ave<-sweep(n_ave, 2, model@params@w *model@params@dw, "*")
+  predbio<-melt(b_ave)
+  
+  # Sum up prey consumed by prey species and prey size for each predator species and size class 
+  diet_comp<-model@diet_comp
+  
+  dimnames(diet_comp)$pred_size<- floor(log10(as.numeric(dimnames(diet_comp)$pred_size)))+.5
+  dimnames(diet_comp)$prey_size<- floor(log10(as.numeric(dimnames(diet_comp)$prey_size)))+.5
+  
+  diet_df<-melt(diet_comp)
+  
+  # Sum up prey consumed in each predator size class / prey size class 
+  dietmat<-dcast(diet_df, predator + pred_size ~ prey + prey_size, value.var="value", sum) 
+  dietmat_PreyPred<-dcast(diet_df, prey + prey_size ~predator + pred_size , value.var="value", sum) 
+  
+  #Take out rows and columns with zero entries.
+  dietmat<- dietmat[rowSums(dietmat[,3:dim(dietmat)[2]])!=0, ]
+  idx<-colSums(dietmat[,3:dim(dietmat)[2]])!=0
+  dietmat<- dietmat[,c(TRUE, TRUE, idx)]
+  
+  dietmat_PreyPred<- dietmat_PreyPred[rowSums(dietmat_PreyPred[,3:dim(dietmat_PreyPred)[2]])!=0, ]
+  idx<-colSums(dietmat_PreyPred[,3:dim(dietmat_PreyPred)[2]])!=0
+  dietmat_PreyPred<- dietmat_PreyPred[,c(TRUE, TRUE, idx)]
+  
+  #Restandardize diets
+  dietmat_prop<-dietmat
+  dietmat_prop[,3:dim(dietmat)[2]]<-sweep( dietmat_prop[,3:dim(dietmat_prop)[2]], 1, rowSums(dietmat_prop[,3:dim(dietmat_prop)[2]]), "/")
+  
+  #Food web metrics  
+  totLinks <- sum(dietmat_prop[,3:dim(dietmat_prop)[2]]>link_strength) 
+  Connectance <- totLinks / ( dim(dietmat_prop[,3:dim(dietmat_prop)[2]])[1] * dim(dietmat_prop[,3:dim(dietmat_prop)[2]])[2])
+  AveLinks <- totLinks /  dim(dietmat_prop[,3:dim(dietmat_prop)[2]])[1] 
+  
+  #Predator metrics: 
+  datPredSize<-data.frame(predator=dietmat$predator, pred_size=dietmat$pred_size) 
+  
+  #Predator metrics:
+  datPredSize$generality <- rowSums(sweep(dietmat_prop[,3:dim(dietmat_prop)[2]], 1, apply(dietmat_prop[,3:dim(dietmat_prop)[2]],1,FUN="max"),"/"))
+  datPredSize$shannon <- diversity(dietmat_prop[,3:dim(dietmat_prop)[2]])
+  datPredSize$evenness <-  diversity(dietmat_prop[,3:dim(dietmat_prop)[2]])/log(specnumber(dietmat_prop[,3:dim(dietmat_prop)[2]])) #https://cran.r-project.org/web/packages/vegan/vignettes/diversity-vegan.pdf
+  
+  # Cannibalism? Aggregate prey sizes according to prey species 
+  
+  t_dietmat<-t(dietmat_prop)
+  t_dietmat<- as.matrix(t_dietmat[-c(1:2),])
+  t_dietmat<- matrix(as.numeric(as.character(t_dietmat)), nrow=dim(t_dietmat)[1], ncol=dim(t_dietmat)[2])
+  dimnames(t_dietmat)<- list(prey=dietmat_PreyPred$prey, predator=dietmat$predator)
+  t_dietmat<- aggregate(t_dietmat, by=list(dietmat_PreyPred$prey), FUN="sum")
+  rownames(t_dietmat)<-t_dietmat[,1]
+  t_dietmat<-t_dietmat[,-1]
+  diet_matsp<-t(t_dietmat)
+  
+  datPredSize$cannibalism<- 0
+  ma<-match( dietmat$predator, colnames(diet_matsp))
+  for(i in 1:length(ma)){
+    datPredSize$cannibalism[i]<- diet_matsp[i,ma[i]]
+  }
+  
+  #Prey vulnerability 
+  
+  datPreySize<-data.frame(prey=dietmat_PreyPred$prey, prey_size=dietmat_PreyPred$prey_size) 
+  
+  sweep(dietmat_PreyPred[,3:dim(dietmat_PreyPred)[2]], 1, apply(dietmat_PreyPred[,3:dim(dietmat_PreyPred)[2]],1,FUN="max"),"/")
+  datPreySize$vulnerability<- rowSums(sweep(dietmat_PreyPred[,3:dim(dietmat_PreyPred)[2]], 1, apply(dietmat_PreyPred[,3:dim(dietmat_PreyPred)[2]],1,FUN="max"),"/"))
+  
+  ###PPMR #
+
+  # Sum prey eaten within prey size classes
+  diet_compSum<- apply(model@diet_comp, c(1,2,4), sum)
+  
+  # Calculate PPMR 
+  ppmr_df<-melt(diet_compSum)
+  ppmr_df$ppmr<- ppmr_df$pred_size/ppmr_df$prey_size
+  ppmr_df$pred_size<- floor(log10(as.numeric(ppmr_df$pred_size)))+.5
+  
+  # Sum up diet proporation across prey species within prey size class 
+  ppmr_DT <- data.table(ppmr_df)
+  ppmr_DT <- ppmr_DT[,list(ppmr_ave = weighted.mean(ppmr, value)), by=.(predator , pred_size)]
+  
+  #Add PPMR into Predator food web metics   
+  ppmr_df<-as.data.frame(ppmr_DT)
+  ma<-match(paste(datPredSize$predator, datPredSize$pred_size), paste(ppmr_df$predator, ppmr_df$pred_size))
+  datPredSize$ppmr<- ppmr_df$ppmr_ave[ma]
+  
+  #### Calculate trophic level #
+
+  #Pull out diet composition, put into proportional contribution witin a predator species and predator size class
+  tlsum<-model@diet_comp[1,1,,]
+  tlsum<-drop(tlsum)
+  names(dimnames(tlsum))<-c("predator","pred_size")
+  
+  predator<- dimnames(dietcompTL)$predator
+  prey<-dimnames(dietcompTL)$prey
+  pred_size<- dimnames(dietcompTL)$pred_size
+  prey_size<- dimnames(dietcompTL)$prey_size
+  
+  tlsum[]<-0
+  
+  #Load in specific backgroundTL if supplied 
+  tlsum[dimnames(tlsum)$predator=="background", ] <- backgroundTL
+  
+  for(i in 1:length(pred_size)){      # Predator size 
+    for (j in 1:length(predator)){  # Predator species
+      
+      tl<- 1 + weighted.mean(tlsum,  model@diet_comp[dimnames(model@diet_comp)$predator==predator[j], dimnames(model@diet_comp)$pred_size==pred_size[i], ,] ) 
+      tlsum[dimnames(tlsum)$predator==predator[j], dimnames(tlsum)$pred_size==pred_size[i]]<-tl
+    }
+  }
+  
+  # Melt the arrays to make data frame with species, wt, biomass, num, tl 
+  tldat<-melt(tlsum)
+  tldat<-na.omit(tldat)
+  
+  b_ave<-sweep(n_ave, 2, model@params@w *model@params@dw, "*")
+  predbio<-melt(b_ave)
+  
+  
+  ma<-match(paste(tldat$predator, signif(tldat$pred_size,3)), paste(predbio$sp, signif(predbio$w,3)))
+  
+  tldat$predbio<- predbio$value[ma]
+  tldat$pred_size<- floor(log10(as.numeric(tldat$pred_size)))+.5
+  
+  DFtl<- data.table(tldat)
+  tldatave<-DFtl[,list(tl_ave = weighted.mean(value, predbio, na.rm = TRUE)),by=.(predator , pred_size)]
+  
+  # Add to predator food web metrics 
+  ma<-match( paste(datPredSize$predator, datPredSize$pred_size), paste(tldatave$predator, tldatave$pred_size))
+  datPredSize$relTL <- tldatave$tl_ave[ma]
+  
+  #Organize and return objects  
+  FWmetrics<-list(datPredSize=datPredSize,
+                  datPreySize=datPreySize,
+                  dietmat=dietmat,
+                  dietmat_PreyPred=dietmat_PreyPred,
+                  predbio=predbio)
+  
+  return(FWmetrics)
+  
+}
 
