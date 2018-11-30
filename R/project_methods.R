@@ -1124,7 +1124,6 @@ getDietComp<- function(object, n,  n_pp, n_bb, n_aa, intakeScalar, diet_comp_all
   b_benthos <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_bb, "*") * object@species_params$avail_BB
   b_algae <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_aa, "*") * object@species_params$avail_AA
   
-  ## Correct intake of background spectra by search volume and feeding rate
 
   #Search rate *  feeding level * predator biomass
   b_background<- sweep(b_background, c(1,2), object@search_vol * intakeScalar,"*") #Scale up by search volume
