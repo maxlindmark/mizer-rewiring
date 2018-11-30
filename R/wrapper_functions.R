@@ -1243,6 +1243,7 @@ setBackground <- function(params, species = dimnames(params@initial_n)$sp) {
 #' @export
 steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
                    shiny_progress = NULL) {
+  sim <- project(params, t_max = 1) # just to create the scalar arrays
     p <- params
     
     if (hasArg(shiny_progress)) {
@@ -1251,14 +1252,14 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
         proginc <- 1/ceiling(t_max/t_per)
     }
     # Force the recruitment to stay at the current level
-    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa) ##AA
+    rdd <- getRDD(p, n = p@initial_n, n_pp = p@initial_n_pp, n_bb =  p@initial_n_bb, n_aa =  p@initial_n_aa, intakeScalar = sim@intTempScalar[,,1],metScalar = sim@metTempScalar[,,1]) ##AA
     p@srr <- function(rdi, species_params) {rdd}
     
     n <- p@initial_n
     n_pp <- p@initial_n_pp
     n_bb <- p@initial_n_bb ##AA
     n_aa <- p@initial_n_aa ##AA
-    old_rdi <- getRDI(p, n, n_pp, n_bb, n_aa) #AA
+    old_rdi <- getRDI(p, n, n_pp, n_bb, n_aa, intakeScalar = sim@intTempScalar[,,1],metScalar = sim@metTempScalar[,,1] ) #AA
     for (ti in (1:ceiling(t_max/t_per))){
         sim <- project(p, t_max = t_per, t_save = t_per, effort = effort, 
                        initial_n = n, initial_n_pp = n_pp, initial_n_bb = n_bb, initial_n_aa = n_aa) ##AA
@@ -1270,8 +1271,9 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
         n_pp <- sim@n_pp[dim(sim@n_pp)[1],]
         n_bb <- sim@n_bb[dim(sim@n_bb)[1],] ##AA
         n_aa <- sim@n_aa[dim(sim@n_aa)[1],] ##AA
-        new_rdi <- getRDI(p, n, n_pp, n_bb, n_aa) ##AA
+        new_rdi <- getRDI(p, n, n_pp, n_bb, n_aa, intakeScalar = sim@intTempScalar[,,1],metScalar = sim@metTempScalar[,,1]) ##AA
         deviation <- max(abs((new_rdi - old_rdi)/old_rdi)[!is.na(p@A)])
+
         if (deviation < tol) {
             break
         }
@@ -1298,9 +1300,9 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
     
     # Retune the values of erepro so that we get the correct level of
     # recruitment
-    mumu <- getMort(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa, effort = effort) ##AA
-    gg <- getEGrowth(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa)  ##AA
-    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa) ##AA
+    mumu <- getMort(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa, effort = effort, intakeScalar = sim@intTempScalar[,,1],metScalar = sim@metTempScalar[,,1],morScalar = sim@morTempScalar[,,1]) ##AA
+    gg <- getEGrowth(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa, intakeScalar = sim@intTempScalar[,,1],metScalar = sim@metTempScalar[,,1])  ##AA
+    rdd <- getRDD(p, p@initial_n, p@initial_n_pp, p@initial_n_bb, p@initial_n_aa, intakeScalar = sim@intTempScalar[,,1],metScalar = sim@metTempScalar[,,1]) ##AA
     # TODO: vectorise this
     for (i in (1:no_sp)) {
         gg0 <- gg[i, p@w_min_idx[i]]

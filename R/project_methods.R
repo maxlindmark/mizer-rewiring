@@ -743,7 +743,7 @@ getFMort <- function(object, effort, time_range, drop=TRUE){
 #' }
 getMort <- function(object, n, n_pp, n_bb, n_aa, effort, intakeScalar, metScalar, morScalar,
                  m2 = getPredMort(object, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, intakeScalar = intakeScalar), 
-                 e = getEReproAndGrowth(object, n= n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, intakeScalar = intakeScalar)){
+                 e = getEReproAndGrowth(object, n= n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, intakeScalar = intakeScalar,metScalar = metScalar)){
 
     if (!all(dim(m2) == c(nrow(object@species_params), length(object@w)))) {
         stop("m2 argument must have dimensions: no. species (",
