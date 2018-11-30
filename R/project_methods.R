@@ -163,9 +163,9 @@ getFeedingLevel <- function(object, n, n_pp, avail_energy, intakeScalar,
         }
 
         # encountered food = available food * search volume
-        encount <- object@search_vol * intakeScalar * avail_energy # scale with temperature
+        encount <- object@search_vol * avail_energy # scale with temperature
         # calculate feeding level
-        f <- encount / (encount + object@intake_max * intakeScalar) # scale with temperature (again)
+        f <- encount / (encount + object@intake_max) # scale with temperature (again)
         return(f)
     } else {
         if (missing(time_range)) {
