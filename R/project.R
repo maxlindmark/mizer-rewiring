@@ -104,7 +104,7 @@ NULL
 #' }
 #' 
 project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
-                    temperature = rep(params@t_ref, times = length(t_max)), # what do we do with the t_ref?
+                    temperature = rep(params@t_ref, times = t_max), # what do we do with the t_ref?
                     initial_n = params@initial_n,
                     initial_n_pp = params@initial_n_pp, 
                     initial_n_bb = params@initial_n_bb,
