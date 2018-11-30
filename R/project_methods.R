@@ -1123,10 +1123,6 @@ getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all
   b_benthos <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_bb, "*") * object@species_params$avail_BB
   b_algae <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_aa, "*") * object@species_params$avail_AA
   
-  ## Correct intake of background spectra by search volume and feeding rate
-  ##TODO#### 
-  #if we have temperature scalars we will need to scale it here 
-  
   #Search rate *  feeding level * predator biomass
   b_background<- sweep(b_background, c(1,2), object@search_vol,"*") #Scale up by search volume
   b_background<- sweep(b_background, c(1,2), feedinglevel,"*") # Scale according to feeding level. Prey eaten: g prey / year / g predator
@@ -1154,9 +1150,6 @@ getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all
       diet_comp_all[j,i,1:no_sp,idx_sp]<- sweep(sweep( b_tot, c(1), object@interaction[j, 1:no_sp], "*"), c(2), object@pred_kernel[j,i,idx_sp], "*")
     }
   }
-  
-  ##TODO####
-  #also scale this by temperature if using 
   
   # Search rate *  feeding level * predator biomass
   diet_comp_all[,,1:no_sp,]<- sweep(sweep(sweep(diet_comp_all[,,1:no_sp,], c(1,2), object@search_vol,"*"), c(1,2),feedinglevel,"*"), c(1,2),b_tot,"*")  # Prey eaten: total g prey/ year  (given predator biomass density)
