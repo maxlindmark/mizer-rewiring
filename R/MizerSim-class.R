@@ -128,12 +128,10 @@ setClass(
         n = "array",
         effort = "array",
         n_pp = "array",
-        ##AAsp####
         n_bb = "array",
         n_aa = "array",
         diet_comp="array",
         temperature = "matrix",
-        n_pp = "array",
         metTempScalar = "array",
         matTempScalar = "array",
         morTempScalar = "array",
