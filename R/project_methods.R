@@ -1110,7 +1110,8 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
 #'   
 #' @return A four dimensional array of predator x size x prey x size 
 
-getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all, diet_steps=diet_steps, feedinglevel=getFeedingLevel(object, n = n,n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)){
+getDietComp<- function(object, n,  n_pp, n_bb, n_aa, intakeScalar, diet_comp_all=diet_comp_all, diet_steps=diet_steps, 
+                       feedinglevel=getFeedingLevel(object, n = n,n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)){
   
   #Biomass by species;
   n_total_in_size_bins<- sweep(n, 2, object@dw , "*")
@@ -1123,16 +1124,17 @@ getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all
   b_benthos <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_bb, "*") * object@species_params$avail_BB
   b_algae <- sweep( object@pred_kernel[,,], c(3), object@dw_full*object@w_full*n_aa, "*") * object@species_params$avail_AA
   
+
   #Search rate *  feeding level * predator biomass
-  b_background<- sweep(b_background, c(1,2), object@search_vol,"*") #Scale up by search volume
+  b_background<- sweep(b_background, c(1,2), object@search_vol * intakeScalar,"*") #Scale up by search volume
   b_background<- sweep(b_background, c(1,2), feedinglevel,"*") # Scale according to feeding level. Prey eaten: g prey / year / g predator
   b_background_tot<-sweep(b_background,c(1,2), b_tot, "*") # Prey eaten: total g prey/ year  (given predator biomass density)
   
-  b_benthos <- sweep(b_benthos, c(1,2), object@search_vol,"*") #Scale up by search volume
+  b_benthos <- sweep(b_benthos, c(1,2), object@search_vol * intakeScalar,"*") #Scale up by search volume
   b_benthos <- sweep(b_benthos, c(1,2), feedinglevel,"*") # Scale according to feeding level. Prey eaten: g prey / year / g predator
   b_benthos_tot <- sweep(b_benthos,c(1,2), b_tot, "*") # Prey eaten: total g prey/ year  (given predator biomass density)
   
-  b_algae <- sweep(b_algae, c(1,2), object@search_vol,"*") #Scale up by search volume
+  b_algae <- sweep(b_algae, c(1,2), object@search_vol * intakeScalar,"*") #Scale up by search volume
   b_algae <- sweep(b_algae, c(1,2), feedinglevel,"*") # Scale according to feeding level. Prey eaten: g prey / year / g predator
   b_algae_tot<-sweep(b_algae,c(1,2), b_tot, "*") # Prey eaten: total g prey/ year  (given predator biomass density)
   
@@ -1150,9 +1152,9 @@ getDietComp<- function(object, n,  n_pp, n_bb, n_aa, diet_comp_all=diet_comp_all
       diet_comp_all[j,i,1:no_sp,idx_sp]<- sweep(sweep( b_tot, c(1), object@interaction[j, 1:no_sp], "*"), c(2), object@pred_kernel[j,i,idx_sp], "*")
     }
   }
-  
+
   # Search rate *  feeding level * predator biomass
-  diet_comp_all[,,1:no_sp,]<- sweep(sweep(sweep(diet_comp_all[,,1:no_sp,], c(1,2), object@search_vol,"*"), c(1,2),feedinglevel,"*"), c(1,2),b_tot,"*")  # Prey eaten: total g prey/ year  (given predator biomass density)
+  diet_comp_all[,,1:no_sp,]<- sweep(sweep(sweep(diet_comp_all[,,1:no_sp,], c(1,2), object@search_vol * intakeScalar,"*"), c(1,2),feedinglevel,"*"), c(1,2),b_tot,"*")  # Prey eaten: total g prey/ year  (given predator biomass density)
   
   # Store background eaten 
   diet_comp_all[,,no_sp+1,]<- b_background_tot

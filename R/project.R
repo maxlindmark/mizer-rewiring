@@ -371,7 +371,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         diet_store <- tail(t_dimnames_index, diet_steps) %in% (i_time + 1)
         
         if (any(diet_store)) {
-          diet_comp_all[]<- getDietComp(sim@params, n=n,  n_pp=n_pp, n_bb = n_bb, n_aa = n_aa, diet_comp_all=diet_comp_all, diet_steps=diet_steps)
+          diet_comp_all[]<- getDietComp(sim@params, n=n,  n_pp=n_pp, n_bb = n_bb, n_aa = n_aa, 
+                                        diet_comp_all=diet_comp_all, diet_steps=diet_steps, 
+                                        intakeScalar = sim@intTempScalar[,,i_time])
           sim@diet_comp[]<-(diet_comp_all/diet_steps) + sim@diet_comp
         }
 
