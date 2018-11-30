@@ -663,18 +663,18 @@ getEReproAndGrowth <- function(object, metabolismArray , n, n_pp, intakeScalar, 
   # else temperatureScalar = 1
   
   # temperatureScalar <- metabolismArray[,temperature,] # metabolismarray is the slice of the 3*3 array at the right time
-  print("e before metabolism")
-  print(e[,c(30,40)])
+  #print("e before metabolism")
+  #print(e[,c(30,40)])
   
   # Subtract metabolism
   temp <- object@metab * metScalar
   e <- e - (object@metab * metScalar)
   # in order to apply starvation mortality we need to return the actual positive or negative e here
   #e[e < 0] <- 0 # Do not allow negative growth
-  print("scaled metabolism")
-  print(temp[,c(30,40)])
-  print("e after metabolism")
-  print(e[,c(30,40)])
+  #print("scaled metabolism")
+  #print(temp[,c(30,40)])
+  #print("e after metabolism")
+  #print(e[,c(30,40)])
   
   
   return(e)
