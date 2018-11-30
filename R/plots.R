@@ -694,7 +694,7 @@ plotFeedingLevel <- function(sim,
             species = dimnames(sim@n)$sp,
             time_range = max(as.numeric(dimnames(sim@n)$time)),
             print_it = TRUE, ...) {
-    feed_time <- getFeedingLevel(sim, time_range = time_range,
+    feed_time <- getFeedingLevel(sim, time_range = time_range, intakeScalar = sim@intTempScalar[,,time_range], ##AA
                                  drop = FALSE, ...)
     feed <- apply(feed_time, c(2, 3), mean)
     feed <- feed[as.character(dimnames(feed)[[1]]) %in% species, ,
@@ -752,7 +752,7 @@ plotFeedingLevel <- function(sim,
 plotM2 <- function(sim, species = dimnames(sim@n)$sp,
                    time_range = max(as.numeric(dimnames(sim@n)$time)),
                    print_it = TRUE, ...) {
-    m2_time <- getM2(sim, time_range = time_range, drop = FALSE, ...)
+    m2_time <- getM2(sim, time_range = time_range, intakeScalar = sim@intTempScalar[,,time_range], drop = FALSE, ...)
     m2 <- apply(m2_time, c(2, 3), mean)
     m2 <- m2[as.character(dimnames(m2)[[1]]) %in% species, , 
              drop = FALSE]
