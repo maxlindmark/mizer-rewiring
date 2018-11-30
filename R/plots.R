@@ -883,7 +883,7 @@ plotGrowthCurves <- function(object, species,
         ws <- array(dim = c(length(species), length(age)),
                     dimnames = list("Species" = species, "Age" = age))
         g <- getEGrowth(sim@params, sim@n[dim(sim@n)[1], , ], 
-                        sim@n_pp[dim(sim@n)[1], ], sim@n_bb[dim(sim@n)[1], ], sim@n_aa[dim(sim@n)[1], ]) #AA
+                        sim@n_pp[dim(sim@n)[1], ], sim@n_bb[dim(sim@n)[1], ], sim@n_aa[dim(sim@n)[1], ], sim@intTempScalar[,,1], sim@metTempScalar[,,1]) #AA
         for (j in 1:length(species)) {
             i <- idx[j]
             g_fn <- stats::approxfun(sim@params@w, g[i, ])
@@ -938,6 +938,7 @@ plotGrowthCurves <- function(object, species,
         return(p)
     } else {
         # Plot growth curves using a MizerParams object.
+        sim <- (object, t_max = 1) # construct the temperature scalars
         params <- object
         if (missing(species)) {
             species <- dimnames(params@initial_n)$sp
@@ -948,7 +949,8 @@ plotGrowthCurves <- function(object, species,
         age <- seq(0, max_age, length.out = 50)
         ws <- array(dim = c(length(species), length(age)),
                     dimnames = list(Species = species, Age = age))
-        g <- getEGrowth(params, params@initial_n, params@initial_n_pp, params@initial_n_bb, params@initial_n_aa) ##AA
+        g <- getEGrowth(params, params@initial_n, params@initial_n_pp, params@initial_n_bb, params@initial_n_aa, 
+                        intakeScalar = sim@intTempScalar, metScalar = sim@metTempScalar) ##AA
         for (j in 1:length(species)) {
             i <- idx[j]
             g_fn <- stats::approxfun(params@w, g[i, ])
