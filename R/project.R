@@ -313,7 +313,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
 
     for (i_time in 1:t_steps) {
-      print(i_time)
+      #print(i_time)
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
         avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)

@@ -792,6 +792,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$avail_PP)
     if (any(missing)) {
+    message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.5")
       object$avail_PP[missing] <- 0.5
     }
     
@@ -802,6 +803,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$avail_BB)
     if (any(missing)) {
+    message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0.5")
       object$avail_BB[missing] <- 0.5
     }
     
@@ -812,6 +814,7 @@ multispeciesParams <- function(object, interaction,
     }
     missing <- is.na(object$avail_AA)
     if (any(missing)) {
+    message("Note: \tNo avail_AA column in species data frame so setting availability of macroalgal spectrum to 0")
       object$avail_AA[missing] <- 0.0
     }
 

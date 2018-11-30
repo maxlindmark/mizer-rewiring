@@ -251,7 +251,6 @@ MizerSim <- function(params, t_dimnames = NA, t_max = 100, t_save = 1) {
                n_aa = array_n_aa,
                params = params,
                diet_comp=as.array(1,dim = c(1,1,1,1)), #place holder for diet comp array; constructed depending on whether diet comp is requested
-               params = params,
                metTempScalar = array_metTempScalar,
                matTempScalar = array_matTempScalar,
                morTempScalar = array_morTempScalar,

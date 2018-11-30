@@ -333,6 +333,9 @@ set_trait_model <- function(no_sp = 10,
                             ca_mat = NA,
                             ea_mor = NA,
                             ca_mor = NA,
+                            avail_PP = NA,
+                            avail_BB = NA,
+                            avail_AA = NA,
                             ...){
     if (!is.na(no_w_pp))
         warning("New mizer code does not support the parameter no_w_pp")
