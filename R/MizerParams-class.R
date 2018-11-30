@@ -357,7 +357,6 @@ setClass(
         A = "numeric",
         linecolour = "character",
         linetype = "character",
-        ##AAsp####
         rr_bb = "numeric",
         cc_bb = "numeric",
         initial_n_bb = "numeric",
@@ -367,8 +366,8 @@ setClass(
         cc_aa = "numeric",
         initial_n_aa = "numeric",
         lambda_alg = "numeric",
-        kappa_alg = "numeric"
-        ##AAsp##
+        kappa_alg = "numeric",
+        t_ref = "numeric"
     ),
     prototype = prototype(
         w = NA_real_,
@@ -382,6 +381,7 @@ setClass(
         q = NA_real_,
         f0 = NA_real_,
         kappa = NA_real_,
+        t_ref = NA_real_,
         psi = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
         initial_n = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
         intake_max = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
@@ -395,7 +395,6 @@ setClass(
         cc_pp = NA_real_,
         sc = NA_real_,
         initial_n_pp = NA_real_,
-        ##AAsp####
         rr_bb = NA_real_,
         cc_bb = NA_real_,
         initial_n_bb = NA_real_,
@@ -406,7 +405,6 @@ setClass(
         initial_n_aa = NA_real_,
         lambda_alg = NA_real_,
         kappa_alg = NA_real_,
-        ##AAsp##
         A = NA_real_,
         linecolour = NA_character_,
         linetype = NA_character_,
@@ -661,10 +659,9 @@ multispeciesParams <- function(object, interaction,
                     min_w_pp = 1e-10, no_w_pp = NA,
                     n = 2/3, p = 0.7, q = 0.8, r_pp = 2,
                     kappa = 1e11, lambda = (2 + q - n), w_pp_cutoff = 10,
-                    ##AAsp####
                     min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), w_bb_cutoff = 10, r_bb = 2,
                     min_w_aa = 1e-10, kappa_alg = 1e11, lambda_alg = (2 + q - n), w_aa_cutoff = 100, r_aa = 2,
-                    ##AAsp##
+                    t_ref = 10,
                     f0 = 0.6, z0pre = 0.6, z0exp = n - 1) {
     
     row.names(object) <- object$species
@@ -788,7 +785,6 @@ multispeciesParams <- function(object, interaction,
         object$ks[missing] <- object$h[missing] * 0.2
     }
     
-    ##AAsp####
     # Sort out avail_PP column
     if (!("avail_PP" %in% colnames(object))) {
       message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.5")
@@ -818,8 +814,228 @@ multispeciesParams <- function(object, interaction,
     if (any(missing)) {
       object$avail_AA[missing] <- 0.0
     }
-    ##AAsp##
+
+    ###Warnings for temperature scalar parameters 
     
+    # Sort out activation energy (ea) column for four rates: metabolism
+    if (!("ea_met" %in% colnames(object))) {
+      message("Note: \tNo ea_met column in species data frame so setting activation energy (ea) for metabolism to 0.63")
+      object$ea_met <- 0.63
+    }
+    missing <- is.na(object$ea_met)
+    if (any(missing)) {
+      message("Note: \tNo value for ea_met provided so setting activation energy (ea) for metabolism to 0.63")
+      object$ea_met[missing] <- 0.63
+    }
+    
+    # Sort out activation energy (ea) column for four rates: intake 
+    if (!("ea_int" %in% colnames(object))) {
+      message("Note: \tNo ea_int column in species data frame so setting activation energy (ea) for intake to 0.63")
+      object$ea_int <- 0.63
+    }
+    missing <- is.na(object$ea_int)
+    if (any(missing)) {
+      message("Note: \tNo value for ea_int provided so setting activation energy (ea) for intake to 0.63")
+      object$ea_int[missing] <- 0.63
+    }
+    
+    # Sort out activation energy (ea) column for four rates: maturation 
+    if (!("ea_mat" %in% colnames(object))) {
+      message("Note: \tNo ea_mat column in species data frame so setting activation energy (ea) for maturation to 0.63")
+      object$ea_mat <- 0.63
+    }
+    missing <- is.na(object$ea_mat)
+    if (any(missing)) {
+      message("Note: \tNo value for ea_mat provided so setting activation energy (ea) for maturity to 0.63")
+      object$ea_mat[missing] <- 0.63
+    }   
+    
+    # Sort out activation energy (ea) column for four rates: mortality 
+    if (!("ea_mor" %in% colnames(object))) {
+      message("Note: \tNo ea_mor column in species data frame so setting activation energy (ea) for background mortality to 0.63")
+      object$ea_mor <- 0.63
+    }
+    missing <- is.na(object$ea_mor)
+    if (any(missing)) {
+      message("Note: \tNo value for ea_mor provided so setting activation energy (ea) for mortality to 0.63")
+      object$ea_mor[missing] <- 0.63
+    }  
+    
+    ####
+    ## now deactivation energies
+    # Sort out deactivation energy (ed) column for four rates: metabolism
+#    if (!("ed_met" %in% colnames(object))) {
+#      message("Note: \tNo ed_met column in species data frame so setting metabolism deactivation energy x10 the activation rate")
+#      object$ed_met <- object$ea_met *10
+#    }
+#    missing <- is.na(object$ed_met)
+#    if (any(missing)) {
+#      object$ed_met[missing] <- object$ea_met *10
+#    }
+  
+    # Sort out deactivation energy (ea) column for four rates: intake
+#    if (!("ed_int" %in% colnames(object))) {
+#      message("Note: \tNo ed_int column in species data frame so setting intake deactivation energy x10 the activation rate")
+#      object$ed_int <- object$ea_int *10
+#    }
+#    missing <- is.na(object$ed_int)
+#    if (any(missing)) {
+#      object$ed_int[missing] <- object$ea_int *10
+#    }
+    
+##Unimodal responses make sense for intake and metabolism, but not for maturity or mortatlity 
+# So perhaps we should not even give the option in the species parameter file and then in the code just use zeros for these values to enable the use of the universal equation
+#Also for maturity we need a different equation, because we are changing species parameter. Or we are chaning the psi function, and just raise the proportion to reproduction for each size class?
+
+# For maturity temperature deactivation does not make sense, so we set it to zero here without any warnings 
+#    if (!("ed_mat" %in% colnames(object))) {
+#    message("Note: \tNo ed_mat column provided, setting deactivation energy for maturation to 0, giving exponential increase only")
+#      object$ed_mat <- 0
+#    }
+#    missing <- is.na(object$ed_mat)
+#    if (any(missing)) {
+#      object$ed_mat[missing] <- 0
+#    }   
+    
+# For mortality temperature deactivation does not make sense, so we set it to zero 
+#    if (!("ed_mor" %in% colnames(object))) {
+#      message("Note: \tNo ed_mor column provided, setting deactivation energy for mortality to 0, giving exponential increase only")
+#      object$ed_mor <- 0
+#    }
+#    missing <- is.na(object$ed_mor)
+#    if (any(missing)) {
+#      object$ed_mor[missing] <- 0
+#    }   
+
+## Now we sort out size scalars setting size dependent activtion rates. THese make sense for metabolism, intake and mortality
+    # Sort out size scalars (ca) column for three rates: metabolism
+    if (!("ca_met" %in% colnames(object))) {
+    message("Note: \tNo ca_met column in species data frame so setting it to 0, giving size independent temp scaling of metabolism")
+      object$ca_met <- 0
+    }
+    missing <- is.na(object$ca_met)
+    if (any(missing)) {
+      message("Note: \tNo value for ca_met provided so setting size specific scalar to 0, giving size independent temp scaling of metabolism")
+      object$ca_met[missing] <- 0
+    }
+    
+    # Sort out activation size scalars (ca) column for three rates: intake
+    if (!("ca_int" %in% colnames(object))) {
+      message("Note: \tNo ca_int column in species data frame so setting it to 0, giving size independent temp scaling of intake")
+      object$ca_int <- 0
+    }
+    missing <- is.na(object$ca_int)
+    if (any(missing)) {
+      message("Note: \tNo value for ca_int provided so setting size specific scalar to 0, giving size independent temp scaling of intake")
+            object$ca_int[missing] <- 0
+    }
+    
+# For maturity size dependent activation does not make sense. Just set it to zero 
+#    if (!("ca_mat" %in% colnames(object))) {
+#    message("Note: \tNo ca_mat column in species data frame so setting it to 0, giving size independent temp scaling of maturation")
+      object$ca_mat <- 0
+#    }
+#    missing <- is.na(object$ca_mat)
+#    if (any(missing)) {
+#      object$ca_mat[missing] <- 0
+#    }
+    
+    # Sort out size scalars (ca) column for three rates: mortality
+    if (!("ca_mor" %in% colnames(object))) {
+      message("Note: \tNo ca_mor column in species data frame so setting it to 0, giving size independent temp scaling of mortality")
+      object$ca_mor <- 0
+    }
+    missing <- is.na(object$ca_mor)
+    if (any(missing)) {
+      message("Note: \tNo value for ca_mor provided so setting size specific scalar to 0, giving size independent temp scaling of mortality")
+      object$ca_mor[missing] <- 0
+    }
+
+ ##Now deactivation rate size scalar cd for metabolism and intake
+    # Sort out size scalars (ca) column for four rates: metabolism
+#    if (!("cd_met" %in% colnames(object))) {
+#      message("Note: \tNo cd_met column in species data frame so setting it to 0, giving size independent deactivation of metabolism")
+#      object$cd_met <- 0
+#    }
+#    missing <- is.na(object$cd_met)
+#    if (any(missing)) {
+#      object$cd_met[missing] <- 0
+#    }
+
+# We also need to make sure that for species that have ed set at zero must also have cd at zero. 
+
+# #   edzero <- which(object$ed_met == 0)
+#    object$cd_met[edzero] <- 0 
+#    message("Note: \tIf ed_met is set to 0, then cd_met also must be 0 for those species! Some of your cd_met values were replaced by 0 to satisfy this requirement")  
+    
+    
+    # Sort out size scalars (ca) column for four rates: intake
+#    if (!("cd_int" %in% colnames(object))) {
+#      message("Note: \tNo cd_int column in species data frame so setting it to 0, giving size independent deactivation of intake")
+#      object$cd_int <- 0
+#    }
+#    missing <- is.na(object$cd_int)
+#    if (any(missing)) {
+#      object$cd_int[missing] <- 0
+#    }
+    
+    # We also need to make sure that for species that have ed set at zero must also have cd at zero. 
+    
+#    edzero <- which(object$ed_int == 0)
+#    object$cd_int[edzero] <- 0 
+ #   message("Note: \tIf ed_int is set to 0, then cd_int also must be 0 for those species! Some of your cd_int values were replaced by 0 to satisfy this requirement") 
+ 
+#For maturity and mortality deactivation is not used and size dependent deactivation is even more irrelevant. So we set it to zero    
+#    object$cd_mat <- 0
+#    object$cd_mor <- 0
+
+## Next we sort out Tmax for intake and metabolism - this the temperature where the rate is highest. Since unimodal responses don't make sense for maturity and metabolism, we set this value to xx by default 
+### TODO#### - set ref temperature in the params file. Should default tmax be set at tref?
+#     
+#     # Sort out maximum temp (tmax) column for two rates: metabolism
+#     if (!("tmax_met" %in% colnames(object))) {
+#       message("Note: \tNo tmax_met column in species data frame so setting Tmax for metabolism tp reference temperature")
+#       object$tmax_met <- object@tref
+#     }
+#     missing <- is.na(object$tmax_met)
+#     if (any(missing)) {
+#       object$tmax_met[missing] <- object@tref
+#     }
+#     ## Give warning if maximum temperatures are set at or below 0C
+#     tmaxlow <- which(object$tmax_met <= 0)
+#     if (length(tmaxlow > 0)) {
+#       message("Note: \tSome of the maximum metabolism temperatures are set at or below freezing point. Are you sure?")
+#     }
+# 
+#     # Sort out maximum temp (tmax) column for two rates: intake
+#     if (!("tmax_int" %in% colnames(object))) {
+#       message("Note: \tNo tmax_int column in species data frame so setting Tmax for intake tp reference temperature")
+#       object$tmax_int <- object@tref
+#     }
+#     missing <- is.na(object$tmax_int)
+#     if (any(missing)) {
+#       object$tmax_int[missing] <- object@tref
+#     }    
+#     ## Give warning if maximum temperatures are set at or below 0C    
+#     tmaxlow <- which(object$tmax_int <= 0)
+#     if (length(tmaxlow > 0)) {
+#       message("Note: \tSome of the maximum intake temperatures are set at or below freezing point. Are you sure?")
+#     }
+# ## Finally quit the run if maximum temperature for rates are set at -273 as this is an absolute freezing point and it will make nonsensical temperature scaling results
+#     tmaxlow <- which(object$tmax_met <= -273)
+#     tmaxlow2 <- which(object$tmax_int <= -273)
+#     if (length(tmaxlow) > 0 | length(tmaxlow2) > 0) {
+#       stop("Note: \tSome of your maximum intake rates are set at or below absolute zero. This does not make sense")
+#     }
+#     
+# ### for maturation and mortality unimodal response does not make sense, so we set tmax at reference temperature 
+#   object$tmax_mat <- object@tref
+#   object$tamx_mor <- object@tref
+  
+###AAtemp_modif_end  
+
+    ####
+
     # Check essential columns: species (name), wInf, wMat, h, gamma,  ks, beta, sigma 
     check_species_params_dataframe(object)
     
@@ -837,12 +1053,11 @@ multispeciesParams <- function(object, interaction,
     res@q <- q
     res@f0 <- f0
     res@kappa <- kappa
-    ## AAsp####
     res@lambda_ben <- lambda_ben
     res@kappa_ben <- kappa_ben
     res@lambda_alg <- lambda_alg
     res@kappa_alg <- kappa_alg
-    ## AAsp##
+    res@t_ref <- t_ref
     
     # If not w_min column in species_params, set to w_min of community
     if (!("w_min" %in% colnames(object)))
