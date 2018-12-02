@@ -938,7 +938,7 @@ plotGrowthCurves <- function(object, species,
         return(p)
     } else {
         # Plot growth curves using a MizerParams object.
-        sim <- (object, t_max = 1) # construct the temperature scalars
+        sim <- project(object, t_max = 1) # construct the temperature scalars
         params <- object
         if (missing(species)) {
             species <- dimnames(params@initial_n)$sp
@@ -950,7 +950,7 @@ plotGrowthCurves <- function(object, species,
         ws <- array(dim = c(length(species), length(age)),
                     dimnames = list(Species = species, Age = age))
         g <- getEGrowth(params, params@initial_n, params@initial_n_pp, params@initial_n_bb, params@initial_n_aa, 
-                        intakeScalar = sim@intTempScalar, metScalar = sim@metTempScalar) ##AA
+                        intakeScalar = sim@intTempScalar[,,1], metScalar = sim@metTempScalar[,,1]) ##AA
         for (j in 1:length(species)) {
             i <- idx[j]
             g_fn <- stats::approxfun(params@w, g[i, ])
