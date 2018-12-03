@@ -175,6 +175,12 @@ getBiomassFrame <- function(sim,
     return(bm)
 }
 
+uselessPlot <- function(object)
+{
+  plotDietComp(object)
+  print("yo")
+  return()
+}
 
 #' Plot the biomass of species through time
 #'
@@ -1141,14 +1147,7 @@ plotPPMR<-function(object=object, grid=T, observed=FALSE, prey=dimnames(object@d
   return(p)
 }
 
-uselessPlot <- function(object)
-{
-plotDietComp(object)
-  
-  return()
-  
-  
-}
+
 
 
 
