@@ -185,7 +185,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     # temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
     
     temperature_dt <- matrix(time_temperature_dt, dimnames = list(x_axis, "temperature")) # without smoothing
-    
+
     #arrays with scalar values for all time, species and size
     metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     matTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
@@ -214,8 +214,8 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
 #                                         c_a = params@species_params$ca_int[iSpecies], c_d = params@species_params$cd_int[iSpecies], 
 #                                         tmax = params@species_params$tmax_int[iSpecies], w = params@w)
 #     }
-    
-    for(iSpecies in as.numeric(params@species_params$species))
+
+    for(iSpecies in 1:dim(params@species_params)[1])
     {
       metTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
                                             Ea = params@species_params$ea_met[iSpecies], 
@@ -313,7 +313,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
 
     for (i_time in 1:t_steps) {
-      #print(i_time)
+      # print(i_time)
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
         avail_energy <- getAvailEnergy(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa)
