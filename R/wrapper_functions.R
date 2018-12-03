@@ -1272,7 +1272,13 @@ steady <- function(params, effort = 0, t_max = 50, t_per = 2, tol = 10^(-2),
         n_bb <- sim@n_bb[dim(sim@n_bb)[1],] ##AA
         n_aa <- sim@n_aa[dim(sim@n_aa)[1],] ##AA
         new_rdi <- getRDI(p, n, n_pp, n_bb, n_aa, intakeScalar = sim@intTempScalar[,,1],metScalar = sim@metTempScalar[,,1]) ##AA
-        deviation <- max(abs((new_rdi - old_rdi)/old_rdi)[!is.na(p@A)])
+        
+        temp_rdi <- rep(0, times = length(old_rdi)) # in case old_rdi = 0, we put a failsaefe
+        for(i in 1:length(old_rdi))
+          if(old_rdi[i] != 0) temp_rdi[i] <- (new_rdi[i] - old_rdi[i])/old_rdi[i] else temp_rdi[i] <- 10e5 # arbitrary value for + infinite
+        
+        deviation <- max(abs(temp_rdi)[!is.na(p@A)])
+        # deviation <- max(abs((new_rdi - old_rdi)/old_rdi)[!is.na(p@A)])
 
         if (deviation < tol) {
             break
