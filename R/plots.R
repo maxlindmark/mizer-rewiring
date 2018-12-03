@@ -1008,7 +1008,6 @@ plotGrowthCurves <- function(object, species,
 
 
 #' Plot diets composition of by predator / prey and their sizes 
-#'  
 
 plotDietComp<-function(object, prey=dimnames(object@diet_comp)$prey, min_w=.001,
                        predator=dimnames(object@diet_comp)$predator, timeaverage=FALSE){
@@ -1060,7 +1059,6 @@ plotDietComp<-function(object, prey=dimnames(object@diet_comp)$prey, min_w=.001,
 }
 
 #' Plot PPRM values for the selected time period based on diet compositions 
-#' 
 
 plotPPMR<-function(object=object, grid=T, observed=FALSE, prey=dimnames(object@diet_comp)$prey, 
                    predator=dimnames(object@diet_comp)$predator, timeaverage=FALSE ){
@@ -1143,6 +1141,14 @@ plotPPMR<-function(object=object, grid=T, observed=FALSE, prey=dimnames(object@d
   return(p)
 }
 
+uselessPlot <- function(object)
+{
+plotDietComp(object)
+  
+  return()
+  
+  
+}
 
 
 
