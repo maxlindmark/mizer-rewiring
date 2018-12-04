@@ -175,12 +175,6 @@ getBiomassFrame <- function(sim,
     return(bm)
 }
 
-uselessPlot <- function(object)
-{
-  plotDietComp(object)
-  print("yo")
-  return()
-}
 
 #' Plot the biomass of species through time
 #'
