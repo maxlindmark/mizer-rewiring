@@ -546,6 +546,7 @@ plotSpectra <- function(object, species = NULL,
         n_pp <- apply(object@n_pp[time_elements,,drop = FALSE], 2, mean)
         ##AAsp##
         #n_bb <- apply(object@n_bb[time_elements,,drop = FALSE], 2, mean)
+        
         ps <- plot_spectra(object@params, n = n, n_pp = n_pp, 
                            species = species, min_w = min_w, ylim = ylim,
                            power = power, print_it = print_it,
