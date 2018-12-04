@@ -1190,12 +1190,13 @@ multispeciesParams <- function(object, interaction,
     res@rr_bb[] <- r_bb * res@w_full^(n - 1) # weight specific benthos growth rate
     res@cc_bb[] <- kappa_ben *res@w_full^(-lambda_ben) # benthos carrying capacity
     res@cc_bb[res@w_full > w_bb_cutoff] <- 0  # set density of sizes < benthic cutoff size
-    res@cc_bb[res@w_full] < min_w_bb <- 0 #set density of sizes < min size of benthos ##AAdec
+    res@cc_bb[res@w_full < min_w_bb] <- 0 #set density of sizes < min size of benthos ##AAdec
     res@initial_n_bb <- res@cc_bb  # put this as initial density
     #algal spectum -- 
     res@rr_aa[] <- r_aa * res@w_full^(n - 1) # weight specific algal growth rate
     res@cc_aa[] <- kappa_alg *res@w_full^(-lambda_alg) # algal carrying capacity
     res@cc_aa[res@w_full > w_aa_cutoff] <- 0  # set density of sizes < algal cutoff size
+    res@cc_aa[res@w_full < min_w_aa] <- 0 #set density of sizes < min size of algal ##AAdec
     res@initial_n_aa <- res@cc_aa  # put this as initial density
     ## AAspEND
     

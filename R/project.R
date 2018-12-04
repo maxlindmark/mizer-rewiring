@@ -412,11 +412,13 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # currently it follows exactly the same rules as plankton but has it's own parameters
         tmp <- (sim@params@rr_bb * sim@params@cc_bb / (sim@params@rr_bb + m2_benthos))
         n_bb <- tmp - (tmp - n_bb) * exp(-(sim@params@rr_bb + m2_benthos) * dt)
+        n_bb[sim@params@initial_n_bb == 0] <- 0 # destroy what's below (and above) threshold sizes
         
         # Dynamics of the algal spectrum uses a semi-chemostat model 
         # currently it follows exactly the same rules as plankton but has it's own parameters
         tmp <- (sim@params@rr_aa * sim@params@cc_aa / (sim@params@rr_aa + m2_algae))
         n_aa <- tmp - (tmp - n_aa) * exp(-(sim@params@rr_aa + m2_algae) * dt)
+        n_aa[sim@params@initial_n_aa == 0] <- 0 # destroy what's below (and above) threshold sizes
         ##AAsp##
         
         # Store results only every t_step steps.
