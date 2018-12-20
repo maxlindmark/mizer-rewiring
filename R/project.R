@@ -104,13 +104,13 @@ NULL
 #' }
 #' 
 project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
-                    temperature = rep(params@t_ref, times = t_max), # what do we do with the t_ref?
+                    temperature = rep(params@t_ref, times = t_max), # what do we do with t_ref?
                     initial_n = params@initial_n,
                     initial_n_pp = params@initial_n_pp, 
                     initial_n_bb = params@initial_n_bb,
                     initial_n_aa = params@initial_n_aa,
                     shiny_progress = NULL, 
-                    diet_steps=10, ...) {  #default number of years (steps?) to calcualte diet for 
+                    diet_steps= 0, ...) {  #default number of years (steps?) to calcualte diet for 
     validObject(params)
     
     # Do we need to create an effort array?

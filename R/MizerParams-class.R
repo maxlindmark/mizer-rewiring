@@ -547,8 +547,7 @@ mat2 <- array(NA, dim=c(object,no_w,no_w_full), dimnames = list(sp=species_names
                pred_kernel=mat2, ##AAAA
                selectivity = selectivity, catchability = catchability,
                rr_pp = vec1, cc_pp = vec1, sc = w, initial_n_pp = vec1, 
-               ##AAsp_DO #### 
-               ##? what is sc?
+               ##AAsp #### 
                rr_bb = vec1, cc_bb = vec1, initial_n_bb = vec1, 
                rr_aa = vec1, cc_aa = vec1, initial_n_aa = vec1,
                ##AAsp##
@@ -787,29 +786,29 @@ multispeciesParams <- function(object, interaction,
     
     # Sort out avail_PP column
     if (!("avail_PP" %in% colnames(object))) {
-      message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.5")
-      object$avail_PP <- 0.5
+      message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 1")
+      object$avail_PP <- 1
     }
     missing <- is.na(object$avail_PP)
     if (any(missing)) {
-    message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 0.5")
-      object$avail_PP[missing] <- 0.5
+    message("Note: \tNo avail_PP column in species data frame so setting availability of plankton spectrum to 1")
+      object$avail_PP[missing] <- 1
     }
     
     # Sort out avail_BB column
     if (!("avail_BB" %in% colnames(object))) {
-      message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0.5")
-      object$avail_BB <- 0.5
+      message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0")
+      object$avail_BB <- 0.0
     }
     missing <- is.na(object$avail_BB)
     if (any(missing)) {
-    message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0.5")
-      object$avail_BB[missing] <- 0.5
+    message("Note: \tNo avail_BB column in species data frame so setting availability of benthic spectrum to 0")
+      object$avail_BB[missing] <- 0.0
     }
     
     # Sort out avail_AA column
     if (!("avail_AA" %in% colnames(object))) {
-      message("Note: \tNo avail_AA column in species data frame so setting availability of algal spectrum to 0.0")
+      message("Note: \tNo avail_AA column in species data frame so setting availability of algal spectrum to 0")
       object$avail_AA <- 0.0
     }
     missing <- is.na(object$avail_AA)
