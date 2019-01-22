@@ -69,6 +69,50 @@ getAvailEnergy <- function(object, n, n_pp, n_bb, n_aa) {
     # idx_sp are the index values of object@w_full such that
     # object@w_full[idx_sp] = object@w
     idx_sp <- (length(object@w_full) - length(object@w) + 1):length(object@w_full)
+    
+    #### varPPMR ####
+    
+    # If the feeding kernel does not have a fixed predator/prey mass ratio
+    # then the integral is not a convolution integral and we can not use fft.
+    # In this case we use the code from mizer version 0.3
+    if (is(object, "MizerParamsVariablePPMR")) {
+      # n_eff_prey is the total prey abundance by size exposed to each
+      # predator (prey not broken into species - here we are just working out
+      # how much a predator eats - not which species are being eaten - that is
+      # in the mortality calculation
+      n_eff_prey <- sweep(object@interaction %*% n, 2, 
+                          object@w * object@dw, "*", check.margin = FALSE) 
+      # pred_kernel is predator species x predator size x prey size
+      # So multiply 3rd dimension of pred_kernel by the prey abundance
+      # Then sum over 3rd dimension to get total eaten by each predator by 
+      # predator size
+      # This line is a bottle neck
+      phi_prey_species <- rowSums(sweep(
+        object@pred_kernel[, , idx_sp, drop = FALSE],
+        c(1, 3), n_eff_prey, "*", check.margin = FALSE), dims = 2)
+      # Eating the background
+      
+      #Asta's bit of code
+      ##First for the multiple background spectra I need to replace n_pp with all spectra multiplied by their availability 
+      #first get the available plankton spectrum food. For this I convert the availability vector into a one column matrix, so I can use matrix multiplication with n_pp. This will give a matrix of species x size groups in the full spectrum (species and background)
+      pl_food <- matrix(object@species_params$avail_PP, nrow = length(object@species_params$avail_PP), ncol = 1) %*% n_pp
+      #do the same for the benthic spectrum
+      ben_food <- matrix(object@species_params$avail_BB, nrow = length(object@species_params$avail_PP), ncol = 1) %*% n_bb
+      #do the same for the algal spectrum
+      alg_food <- matrix(object@species_params$avail_AA, nrow = length(object@species_params$avail_AA), ncol = 1) %*% n_aa
+      #now we can simply add these matrices
+      prey_backgr <- pl_food + ben_food + alg_food
+      
+      #Then continue to Julia's code
+      # This line is a bottle neck
+      phi_prey_background <- rowSums(sweep(
+        object@pred_kernel, 3, object@dw_full * object@w_full * prey_backgr,
+        "*", check.margin = FALSE), dims = 2)
+      
+      return(phi_prey_species + phi_prey_background)
+    }
+    
+    ### varPPMR ####
 
     prey <- matrix(0, nrow = dim(n)[1], ncol = length(object@w_full))
     # Looking at Equation (3.4), for available energy in the mizer vignette,
@@ -261,6 +305,23 @@ getPredRate <- function(object, n,  n_pp, n_bb, n_aa, intakeScalar,
              no_sp, ") x no. size bins (", no_w, ")")
     }
 
+    ### varPPMR #### 
+    
+    # If the feeding kernel does not have a fixed predator/prey mass ratio
+    # then the integral is not a convolution integral and we can not use fft.
+    # In this case we use the code from mizer version 0.3
+    if (is(object, "MizerParamsVariablePPMR")) {
+      n_total_in_size_bins <- sweep(n, 2, object@dw, '*', check.margin = FALSE)
+      # The next line is a bottle neck
+      pred_rate <- sweep(object@pred_kernel, c(1,2),
+                         (1-feeding_level) * object@search_vol * 
+                           n_total_in_size_bins,
+                         "*", check.margin = FALSE)
+      return(pred_rate)
+    }
+    
+    ### varPPRM ####
+    
     # Get indices of w_full that give w
     idx_sp <- (no_w_full - no_w + 1):no_w_full
     # get period used in spectral integration
