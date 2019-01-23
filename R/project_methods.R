@@ -407,7 +407,7 @@ getPredMort <- function(object, n, n_pp, n_bb, n_aa, pred_rate, intakeScalar, ti
                                      n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, feeding_level = feeding_level)
         }
         idx_sp <- (length(object@w_full) - length(object@w) + 1):length(object@w_full)
-
+        
         m2 <- (t(object@interaction) %*% pred_rate)[, idx_sp, drop = FALSE]
         return(m2)
     } else {
@@ -480,13 +480,9 @@ getPlanktonMort <- function(object, n, n_pp, n_bb, n_aa, intakeScalar,
     #print(pred_rate[,c(25:34)])
     ## First, get the availability of plankton for all species and put it in the right dimensions. We need a matrix of 1 x no. sp.  
     temp <- matrix(object@species_params$avail_PP, nrow = 1, ncol = length(object@species_params$avail_PP), byrow = T)
-    #print(temp)
-    #print(dim(temp))
     ## Next, multiply this availability matrix by the size specific mortality imposed by predators (pred_rate has dimensions of no. sp x no. size bins)
     m2_plankton <- temp %*% pred_rate
-    #print(dim(m2_plankton))
-    #print(m2_plankton[c(25:34)])
-  
+
     #return(colSums(pred_rate))
     return(m2_plankton)
 }
