@@ -352,6 +352,7 @@ setClass(
         p = "numeric",
         lambda = "numeric",
         q = "numeric",
+        m = "numeric", ###varPPMR
         f0 = "numeric",
         kappa = "numeric",
         A = "numeric",
@@ -379,6 +380,7 @@ setClass(
         p = NA_real_,
         lambda = NA_real_,
         q = NA_real_,
+        m = NA_real_,  ###varPPMR
         f0 = NA_real_,
         kappa = NA_real_,
         t_ref = NA_real_,
@@ -614,6 +616,7 @@ mat2 <- array(NA, dim=c(object,no_w,no_w_full), dimnames = list(sp=species_names
 #' @param n Scaling of the intake. Default value is 2/3.
 #' @param p Scaling of the standard metabolism. Default value is 0.7. 
 #' @param q Exponent of the search volume. Default value is 0.8. 
+#' @param m Factor determining the width of predation window for variable PPMR. Default is NA
 #' @param r_pp Growth rate of the primary productivity. Default value is 2. 
 #' @param kappa Carrying capacity of the resource spectrum. Default
 #'       value is 1e11.
@@ -679,7 +682,7 @@ mat2 <- array(NA, dim=c(object,no_w,no_w_full), dimnames = list(sp=species_names
 multispeciesParams <- function(object, interaction,
                     min_w = 0.001, max_w = max(object$w_inf) * 1.1, no_w = 100,
                     min_w_pp = 1e-10, no_w_pp = NA,
-                    n = 2/3, p = 0.7, q = 0.8, r_pp = 2,
+                    n = 2/3, p = 0.7, q = 0.8, m = NA, r_pp = 2,
                     kappa = 1e11, lambda = (2 + q - n), w_pp_cutoff = 10,
                     min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), w_bb_cutoff = 10, r_bb = 2,
                     min_w_aa = 1e-10, kappa_alg = 1e11, lambda_alg = (2 + q - n), w_aa_cutoff = 100, r_aa = 2,
@@ -708,6 +711,11 @@ multispeciesParams <- function(object, interaction,
         object$k[missing] <- 0
     }
     
+    # If no column with m (variable PPMR scaling factor) is provided then set it all to NA
+    if (!("m" %in% colnames(object))) {
+      object$m <- rep(NA, no_sp)
+    }
+
     # If no alpha (conversion efficiency), then set to 0.6
     if (!("alpha" %in% colnames(object))) {
         object$alpha <- rep(NA, no_sp)
