@@ -559,7 +559,8 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
     linetype <- c(linetype, "Total" = "solid", "Plankton" = "solid",
                   "Background" = "solid")
     
-mat2 <- array(NA, dim=c(object,no_w,no_w_full), dimnames = list(sp=species_names,w_pred=signif(w,3), w_prey=signif(w_full,3)))
+    # Dimensions to setup old predation kernel (species x pred size classes x prey)
+    mat2 <- array(NA, dim=c(object,no_w,no_w_full), dimnames = list(sp=species_names,w_pred=signif(w,3), w_prey=signif(w_full,3)))
     
     
     # Make the new object
@@ -1193,17 +1194,18 @@ multispeciesParams <- function(object, interaction,
     res@ft_pred_kernel_p <- matrix(0, nrow = no_sp, ncol = no_P)
     dimnames(res@ft_pred_kernel_p) <- list(sp = rownames(res@metab),
                                            k = (1:no_P))
+    
     # Add in the original predation kernel array so we can calculate diet composition in a straight forward manner.
     # Could maybe improve this. Pretty ugly at the moment
     res@pred_kernel[] <- object$beta
     
     ### variable PPMR ####
-    for (sm in 1:length(object$m)) {
-      D.z <- 2*(3*res@w*1e12/(4*pi))^(1/3) # convert body mass g to ESD (um)
-      betas <-  (exp(0.02*log(D.z)^2 - object$m[sm] + 1.832))^3
-      
-      if (!is.na(object$m[sm])) res@pred_kernel[sm,,]<- betas
-    }
+   # for (sm in 1:length(object$m)) {
+  #    D.z <- 2*(3*res@w*1e12/(4*pi))^(1/3) # convert body mass g to ESD (um)
+  #    betas <-  (exp(0.02*log(D.z)^2 - object$m[sm] + 1.832))^3
+  #    
+  #    if (!is.na(object$m[sm])) res@pred_kernel[sm,,]<- betas
+  #  }
     ### variable PPMRend ####
     
     res@pred_kernel <- exp(-0.5*sweep(log(sweep(sweep(res@pred_kernel,3,res@w_full,"*")^-1,2,res@w,"*")),1,object$sigma,"/")^2)
