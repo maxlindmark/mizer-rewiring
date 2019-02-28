@@ -1211,7 +1211,6 @@ getDietComp<- function(object, n,  n_pp, n_bb, n_aa, intakeScalar, diet_comp_all
       diet_comp_all[j,i,1:no_sp,idx_sp]<- sweep(sweep( b_tot, c(1), object@interaction[j, 1:no_sp], "*"), c(2), object@pred_kernel[j,i,idx_sp], "*")
     }
   }
-
   # Search rate *  feeding level * predator biomass
   diet_comp_all[,,1:no_sp,]<- sweep(sweep(sweep(diet_comp_all[,,1:no_sp,], c(1,2), object@search_vol * intakeScalar,"*"), c(1,2),feedinglevel,"*"), c(1,2),b_tot,"*")  # Prey eaten: total g prey/ year  (given predator biomass density)
   
