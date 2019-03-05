@@ -11,6 +11,65 @@ output:
     toc:no
 ---
 
+### Thoughts and tasks 
+
+Mar 5: Chat with Scott Ling about urchin parameters 
+
+Spines are ca 30% of body weight, so discount that (and water inside the urchin) from body mass, as it is really not available for consumption and does not really determine their feeding preferences. 
+Centrstephanus - Wmax = 700g, Wmat = 65g with spines. For the model purpose therefore Wmax = 500g, Wmat = 45g
+Heliocedaris in tasmania, Wmax = 300g, Wmat = 45g, average weight of an individual = 150g. Without spines Wmax = 200g, Wmat = 30g, average weight ca 100g (so an average individual is quite big!)
+Heliocedaris in Port Phillip Bay, Wmax (with spines) = 210g, Wmat = 25, average weight = 85 
+
+Maximum intake rates have been calcualted based on gut weight and evacuation rate of 5 days (determined in experiments). For Centrostephanus daily intake then is = 0.01-0.03 (mean of 0.02) g/g/day. For Heliocedaris = 0.026g/g/day (0.006-0.04 for min-max gut weight versus body weight) in Tasmania and 0.032g/g/day in Port Phillip bay. 
+
+In mizer parameters are given per year, so average daily intake of 0.02g/g/day would become 7.3 g/g/year. This seems way too small. In my current setup h for urchins is 145, so a 50g urchin would eat (145*50^0.8)/365= 9g of algae per day. Seems too much. If h is reduced in half 
+(75*50^0.8)/365  = 4.7 g per day or 8-9% of body weight. 
+
+Olistophs wmat of 440g (say 500g) and h of 180, means their maximum possible intake per year would be 
+180*500^0.8 = 26000g or 26 kg. Per day it is 70g per 500 g fish or 14% of body mass. If h is 90, then maximum intake is 
+(90*500^0.8)/365 = 35g or 7% of body weight. This seems more reasonable. 
+
+For D_lewini of 250g and h = 50, the max intake per day is (50*250^0.8)/365 = 11g of fish per individual. This seems totally reasonable, in fact possibly too small... 
+
+**
+
+Feb 25: The difference in long term projections is big if we use 200 or 1000 size groups. So the number of size groups is a very important parameter and should be explored as such. Same applies to the time step or dt
+
+Feb 15: After talking to Scott I realised that urchins are much too small! They can grow to 900g in size!
+
+Issues as of Feb 11
+
+Added urchins and lobsters. They all seem to coexist ok, but the problem is with diets and the fact that herbivores don't eat macroalgae and exclusive benthivores don't eat benthos anymore. Lobsters eat all the benthos, it seems. 
+
+Meeting on Feb 6, 2019
+
+Lobsters eat small fish and urchins. They used to be the dominant predator of small fish (hypothesis)
+Southern and eastern rock lobster 
+Southern calamari and snapper thermal preference 
+Use relative abundance and use species specific size spectra from the first 5 years 
+
+1. Fishing mortality using data inside and outside MPA
+2. Benthic resource slope and regeneration rate and how they change with temperature and what does it mean to the community 
+3. How does temperature alter the community structure inside MPA using long term data
+
+how are these systems functioning?
+how does fishing and climate affect that?
+
+Adding urchins and lobsters
+For urchins h based on standard equation is 26, but given that they are herbivores it should be at least 3 time higher. Still it only is 75, while h for herbivorous fish is closer to 180. So if urchin h = 200, it means they can eat 200g per 1 g per year, or 2kg per 10g urchin per year, or 5.5g per day. Need references from herbivory studies 
+
+Parameterisation thoughts
+
+What will control species calibrated through erepro? If their recruitment is directly proportional to spawn, then with fishing mortality added the only way it would not lead to crashing biomass, is through density dependence processes. This means that when biomass is removed through fishing it has to be compensated by emergent increased recruitment. This will only work through competition processesses and starvation mortality. If under fishing smaller number of larvae compete less for food, they will grow faster and will have less background mortality before reproduction. To get this happening we want to make sure that background food can be limited and lead to starvation mortality. 
+
+Generally we find that erepro for most species is around 0.0001 but is much higher (0.04) in Trachinus. I suspect this is because they have such small body size and not enough size classes between maturation and w_inf to produce lots of eggs. This is also partly because psi function is identical among species when I imagine such small species shift allocation much faster to reproduction. At the momnet I use exponent 5 in the psi function (mizer default is 10). Chaning the exponent for all species (in MizerParams-class.R) does not make much effect on Trachinus because it just increases allocation speed in all species. So it makes sense that their erepro is much higher, as it would encompass higher allocation to reproduction (sort off...)
+
+Pooling of species 
+
+The two Notolabrus (wrasse) species are now pool into one group, as they are too similar for the model to coexist 
+Nev's thesis say that M. australis and A. vittiger both grow to about 320mm and both feed on invertebrates, such as molluscs, echinoids and poriferans. M. australis has some algae in its stomachs but Nev's view is that algae are not digested but are accidentally swallowed. For M. australis the MP(5-95) is 14.8 for A. vittiger it is 17.3. Growth trajectories for the two species in Nev's thesis also look similar, they reach about 15-18cm by the age of 2, and 30 cm by the age of 5-6 and older ages are not seen. I pool them into leather_cool category
+
+
 ### Install mizer/rewiring  
 
 ```{r warning=F, message=FALSE, echo=T}
@@ -28,15 +87,15 @@ library(mizer)
 
 ```{r warning=T, message=FALSE, echo=T}
 
-#mariaParams <- read.csv(file = "C:/Users/astaa/Dropbox/asta/TasmanianModel/Parameters/Tasm_modelParamsnoHerb.csv") #16 species
-mariaParams <- read.csv(file = "C:/Users/astaa/Dropbox/asta/TasmanianModel/Parameters/Tasm_Params_Optim.csv") #16 species
 
-#inter <- read.csv(file = "C:/Users/astaa/Dropbox/asta/TasmanianModel/Parameters/Tasmanian_intNoHerb.csv") #16 species
-inter <- read.csv(file = "C:/Users/astaa/Dropbox/asta/TasmanianModel/Parameters/Tasm_Inter_optim.csv") #16 species
+mariaParams <- read.csv(file = "Tasm_Parameters.csv") #16 species
+inter <- read.csv(file = "Tasm_Interaction.csv") #16 species
 inter <- as.matrix(inter)
 
 #number of size groups 
 no_size_groups = 200
+#timestep used in the integration 
+dt = 0.2
 #total_scalar = 10000 ## scalar to get initial abundance close to what is observed per survey
 
 ```
@@ -46,21 +105,21 @@ no_size_groups = 200
 ```{r warning=T, message=FALSE, echo=T}
 
 ## resource params
-kappa = 0.02 # 1.5 #1.5 ## 0.017g/m3 
-lambda = 2.1 
+kappa = 1 # 0.02 # 1.5 #1.5 ## 0.017g/m3 
+lambda = 2.0 #1.9 #2.1 
 w_pp_cutoff = 1 #5
 r_pp = 2 
 min_w_pp = 1e-10
 
-kappa_ben = 0.035 # 0.025 and 0.017 worked, but not enough benthos in diets # 1.3 #2, most parameterisation at 1, but try higher
-lambda_ben = 1.6 #1.8 used
+kappa_ben = 14 #0.035 # 0.025 and 0.017 worked, but not enough benthos in diets # 1.3 #2, most parameterisation at 1, but try higher
+lambda_ben = 1.6 #0.6 #1.6 #1.8 used
 w_bb_cutoff = 50 # 10 worked and used initially, but not enough benthos in diets # 1e2 # had 10
 r_bb = 1.5 #0.4 # normally tried with 0.2, but benthos definitely gets depleted. If increased to 0.5, it leads to too many predators and crash of small fish. For rmax3 increase r_bb to 0.4, as 0.2 seems too low
-min_w_bb = 0.01
+min_w_bb = 0.001 # 0.01
 
-kappa_alg = 0.02 # 1 #2
-lambda_alg = 1.7
-w_aa_cutoff = 50 
+kappa_alg = 20 # 1.5 #1 # 0.02 # 1 #2
+lambda_alg = 1.5 #0.5 # 1.7
+w_aa_cutoff = 100 
 r_aa = 1 #0.2
 min_w_aa = 0.01
 
@@ -126,6 +185,31 @@ juv_mort = function(sppParams, params, juv.sm, juvsw, juv.e) {
 
 ```
 
+### Calibrate benthic spectrum abundance
+
+```{r, eval = F}
+#inferred observed abundance (on log10 scale from Kate's and Freddie's data)
+#Data using the estimated regression slope
+obsab <- 1.1 - 0.62*log10(params@w_full)
+
+# the model abundance is per m3, but observations are per m2. I assume that depth is ca 10m, so the model abundance should be multipled by 10
+#length(params@dw_full[c(min(which(params@w_full > min_w_bb)):max(which(params@w_full < w_bb_cutoff)))])
+
+modab <- log10(params@initial_n_bb * params@dw_full * 10) 
+modpl <- log10(params@initial_n_pp * params@dw_full * 10)
+modaa <- log10(params@initial_n_aa * params@dw_full * 10)
+
+plot(log10(params@w_full), modab, type = 'l', xlim = c(-6,2), ylim = c(-3, 5), main = "Slopes of initial benthic abundance versus observed abundance", xlab = "Log10, w, g", ylab = "Log10(Abundance per m2")
+points(log10(params@w_full), obsab, type = 'l', col = 'red')
+points(log10(params@w_full),modpl, type = 'l', col = 'green')
+points(log10(params@w_full),modaa, type = 'l', col = 'brown')
+#abline(v = log10(0.05), lty = 2)
+abline(v = log10(min_w_bb), lty =2)
+
+#Note, the slope of the model abundance is not as steep, because we actually get a lot of depletion at larger sizes and the realised abundance at larger sizes is much lower. The observed abundances should more closely match the realised abundances  
+
+```
+
 ###Get initial abundance scalar 
 
 ```{r}
@@ -143,11 +227,13 @@ modelAb[i] <- (sum(params@initial_n[i,c(minobs:200)]))
 #Observed mean abundances are for survey area of 500m2 and assuming 10m depth, so 5000m3
 abund_scalar <- (params@species_params$meanAb/5000)/modelAb
 
+#But 
+
 ```
 
 ### Interaction 
 
-```{r warning=T, message=FALSE, echo=T, eval = F}
+```{r warning=T, message=FALSE, echo=T, eval = T}
 
 #Reduce availability of Trachinops from 0.7 to 0.3, because predation mortality on them is huge 
 availTr = 0.25  #availability of Trachinus to all other species 
@@ -163,6 +249,136 @@ inter[which(mariaParams$species == "lobsters"), which(mariaParams$species == "ur
 
 
 ```
+
+### Fixed params
+
+```{r warning=T, message=FALSE, echo=T, eval = F}
+
+#### egg size, rmax, exponents ####
+mariaParams$w_min <- (0.0015* mariaParams$w_inf^0.14)*10  # Barneche et al. 2018 equation for egg sizes, but let's start with at least 10 times bigger individuals, as they don't start as eggs
+mariaParams$w_min[which(mariaParams$species == "C_laticeps")] <- 1  #assume that shark eggs are 5 grams?
+
+mariaParams$n <- 0.75 # maximum intake scaling, mizer default is 2/3, but the growth curves don't look so good
+mariaParams$p <- 0.8 # metabolism scaling
+mariaParams$q <- 0.75 # search rate scaling
+
+#### h & ks  ####
+
+# by default mizer will set  h values, calcualted as h = [3*k_vb/(alfa*f0)]*W_inf^(1/3)
+# I use size dependent scaling, derived from earlier explorations 
+
+mariaParams$h = 50 * (mariaParams$w_inf/1000)^0.15
+# then for herbivores, who have low assimilation efficiency, we increase the maximum intake rate 3 times (based on Graham Edgar daily intake calculations, ref in Soler et al. 2018)
+mariaParams$h[which(mariaParams$funcgr == "herbi")] <- mariaParams$h[which(mariaParams$funcgr == "herbi")]*3
+
+
+#set size dependent ks based on my earlier explorations 
+mariaParams$ks <- 20*mariaParams$w_inf^(-0.25)
+#however this relationship gives Trachinops very high ks, so I decrease it. The relationship seems too steep for smallest species. Even though small species have high per unit body mass ks, this apppears much too high
+mariaParams$ks[which(mariaParams$species == "T_caudimaculatus")] <- 4.5 #instead of 8
+
+### Background mortality 
+
+# Version 1
+#I am now using mizer default values for background mortality, as z0 = z0pre * w_inf ^ (n-1)
+#mariaParams$z0 = mariaParams$z0pre * mariaParams$w_inf ^ (mariaParams$n -1 )
+#min(mariaParams$z0)
+
+# Version 2
+#Actually I am not using mizer default, because I am not sure why background mortlaity should depend on n. I am just using exponent of -0.3, but scale down Trachinops mortality from 0.2 to 0.15
+#mariaParams$z0 = (mariaParams$z0pre) * mariaParams$w_inf ^ (-0.3)
+#min(mariaParams$z0)
+#max(mariaParams$z0)
+#plot(mariaParams$w_inf, mariaParams$z0)
+#exponential scaling gives very high background mort for Trachinops, so I set it lower 
+#mariaParams$z0[which(mariaParams$species =="T_caudimaculatus")] <- 0.15
+#mariaParams$z0[which(mariaParams$species =="P_laticlavius")] <- 0.08
+
+# Version 3 
+# Mortality of smallest species is already very high from predation, so I am not sure why background mortality for large species should be lower (as in mizer default), especially when they are in larval stage. In fact there is evidence that fast growth results in higher mortality, and this would apply for larvae of large species. So I am setting background mortality to same value for all species. The initial value of background mortality of 0.1 I used is actually quite high, in Atlantis we tried to use values of 0.0001 or lower.  So I will set it at 0.05 for now
+mariaParams$z0 <- 0.05
+
+```
+
+### Dynamic parameters: gamma and erepro
+
+```{r warning=T, message=FALSE, echo=T, eval = F}
+
+## Gamma 
+
+## In the MizerParams we asked mizer to set gamma's based on the defaults: 
+## gamma = f0*h*beta^(2-lambda)/((1-f0)*2*3.14*kappa*sigma)
+
+mean_lam = mean(lambda, lambda_ben, lambda_alg)
+mean_kappa = mean(kappa, kappa_ben, kappa_alg)
+
+#as an initial setup we use default mizer gamma parameters, but note this is a very crude approximation because we have 3 size spectra and species have different access to these spectra
+gammaDef = mariaParams$f0 *mariaParams$h*mariaParams$beta^(2-mean_lam)/((1-mariaParams$f0)*2*3.14*mean_kappa*mariaParams$sigma)
+
+#for herbivores gamma values are doubled
+#gammaDef[which(mariaParams$funcgr == "herbi")] <- gammaDef[which(mariaParams$funcgr == "herbi")] *2
+# for predators gamma values should be much higher or else they don't get enough food 
+gammaDef[which(mariaParams$funcgr == "predat")] <- gammaDef[which(mariaParams$funcgr == "predat")] *4
+mariaParams$gamma <- gammaDef
+
+## Erepro 
+
+# Initial erepro is set using a general approximation now but will be optimised later. This way the steady state optimiser finds values easier
+mariaParams$erepro <- 0.05 * mariaParams$w_inf^(-0.5)
+
+```
+
+
+### Steady state (not needed now)  
+
+```{r warning=T, message=FALSE, echo=T, eval = F}
+### setup  
+params <- MizerParams(mariaParams, interaction = inter, no_w = no_size_groups, kappa = kappa, lambda = lambda, w_pp_cutoff = w_pp_cutoff, r_pp = r_pp, min_w_pp = min_w_pp, kappa_ben = kappa_ben, lambda_ben = lambda_ben, w_bb_cutoff = w_bb_cutoff, r_bb = r_bb, min_w_bb = min_w_bb, kappa_alg = kappa_alg, lambda_alg = lambda_alg, w_aa_cutoff = w_aa_cutoff, r_aa = r_aa, min_w_aa = min_w_aa)
+
+## update initial abundances based on observations 
+for (i in 1:length(mariaParams$species)) {
+  
+# multiply initial abundances by the relative abundance of this species in the observations, which is the abund_scalar calculated above
+
+    params@initial_n[i,] <- params@initial_n[i,] * abund_scalar[i]
+} 
+
+## add senescence and juvenile mortality to background mortality 
+params@mu_b <- params@mu_b + sen_mort(mariaParams, params, k.sm, xsw, sen.e) + juv_mort(mariaParams, params, juv.sm, juvsw, juv.e)
+
+#params@species_params$r_max <- Inf
+
+## find a steady state by modifying erepro
+stedTas <- steady(params, t_max = 300) #t_max gives the number of interations needed 
+
+#plot erepro values and check if they are realistic 
+plot(log(stedTas@species_params$w_inf), stedTas@species_params$erepro, xlab = 'log w_inf', ylab = 'erepro', pch = 19)
+
+#just output the values
+stedTas@species_params$erepro
+params@species_params$species
+
+#to do this iteratively put, the new erepro values into params and run steady again. Might need to do a few iterations
+params@species_params$erepro <- stedTas@species_params$erepro
+#now run steady function again (above)
+
+#which species have lowest and highest erepro
+print("max erepro for species")
+as.character(stedTas@species_params$species[which(stedTas@species_params$erepro == max(stedTas@species_params$erepro))])
+max(stedTas@species_params$erepro)
+
+print("min erepro for species")
+as.character(stedTas@species_params$species[which(stedTas@species_params$erepro == min(stedTas@species_params$erepro))])
+min(stedTas@species_params$erepro)
+
+mariaParams$erepro_2 <- stedTas@species_params$erepro
+mariaParams$erepro <- stedTas@species_params$erepro
+
+```
+
+
+
+
 
 ###  Calibration: functions
 
@@ -849,6 +1065,161 @@ sum(biom_aa)
 sum(biom_pp)
 
 ```
+
+### DATA CODES
+
+### Code to get abundance per suvery 
+
+Getting data for urchins, lobsters and fish. This is setup to extract either average or time series mean abundance and mean Biomass data. Currently using only data before year 2000.
+
+```{r warning=T, message=FALSE, echo=T, eval=F}
+load(file="C:/Users/astaa/Dropbox/asta/RLS/DATAsets/rlsbas.RData")
+library(tidyverse)
+
+MainLocs =c("Tinderbox Reserve", "Tinderbox External", "Maria Island Reserve", "Maria Island Vincinity", "Maria External", "Ninepin Internal","Ninepin External", "Bicheno Internal", "Bicheno External")
+
+urchinSum <- rls_bas %>% 
+  filter(Location %in% MainLocs) %>%
+  filter (year < 2000) %>% 
+    filter(Method==2) %>% 
+      filter( GENUS == "Heliocidaris" | GENUS == "Centrostephanus" | GENUS == "Goniocidaris" ) %>%
+     #   group_by (year) %>%
+          summarise(meanAb = mean(Abundance)*5, sdAb = sd(Abundance)*5, maxAb = max(Abundance)*5, meanBio = meanAb * 5) #to convert to biomass, assume mean weight of ca1g (5cm across, 0.01*5^3). For biomass I assume that an average urchin weighs 5 grams
+
+lobsterSum <- rls_bas %>% 
+  filter(Location %in% MainLocs) %>%
+  filter (year < 2000) %>%
+    filter(Method==2) %>% 
+      filter( GENUS == "Jasus") %>%
+      #  group_by (year) %>%
+          summarise(meanAb = mean(Abundance)*5, sdAb = sd(Abundance)*5, maxAb = max(Abundance)*5, meanBio = meanAb*300) #to convert to biomass, assume mean weight of 150g
+#For method 2 remember to multiply everything by 5 to get comparable abundances. For biomass I assume that average observed lobster weighs 300g (below the maturaiton size)
+
+## now get observed fish abundances for the required period 
+
+ModelSpp = c("Caesioperca rasor", "Cheilodactylus spectabilis" ,"Dinolestes lewini" ,"Latridopsis forsteri" ,"Aplodactylus arctidens" ,"Notolabrus tetricus", "Notolabrus fucicola" ,"Cephaloscyllium laticeps", "Meuschenia australis" ,"Acanthaluteres vittiger" ,"Pseudophycis bachus" ,"Trachinops caudimaculatus", "Olisthops cyanomelas" ,"Pentaceropsis recurvirostris", "Meuschenia freycineti" ,"Pictilabrus laticlavius")
+
+MatchNames <- list()
+MatchNames$modelName <- c("C_rasor", "C_spectabilis" ,"D_lewini" ,"L_forsteri" ,"A_arctidens" ,"Notolabrus", "Notolabrus" ,"C_laticeps", "leatherjack" ,"leatherjack" ,"P_bachus" ,"T_caudimaculatus", "O_cyanomelas" ,"Boarfish", "M_freycineti" ,"P_laticlavius")
+MatchNames$sppName <- ModelSpp
+
+fishSumm <- rls_bas %>% 
+  filter (Location %in% MainLocs) %>% 
+  filter (year < 2000) %>% 
+    filter (Method == 1) %>%
+      filter(TAXONOMIC_NAME %in% ModelSpp) %>% 
+        group_by(TAXONOMIC_NAME) %>%
+          summarise(meanAb = mean(Abundance), sdAb = sd(Abundance), maxAb = max(Abundance), meanBio = mean(BioMass), sdBio = sd(BioMass), maxBio = max(BioMass))
+
+fishSumm$modelName <- MatchNames$modelName[match(fishSumm$TAXONOMIC_NAME, MatchNames$sppName)]
+
+fishAbund <- fishSumm %>% group_by(modelName) %>% summarise(meanAb = mean(meanAb), sdAb = mean(sdAb), maxAb = mean(maxAb), meanBio = mean(meanBio), sdBio = mean(sdBio), maxBio = mean(maxBio))
+
+#Add urchin observations
+fishAbund <- add_row(fishAbund)
+fishAbund[length(fishAbund$modelName),c(2:5)] <- urchinSum
+fishAbund[length(fishAbund$modelName),1] <- "urchins"
+
+#Add lobster observations
+fishAbund <- add_row(fishAbund)
+fishAbund[length(fishAbund$modelName),c(2:5)] <- lobsterSum
+fishAbund[length(fishAbund$modelName),1] <- "lobsters"
+
+#for Trachinops mean abundance is 110 but it gives diffcult calibration so I set to lower number for now (note that here we only record abundance above 2cm, whereas model counts all abundance and assumes same size slopes for all species)
+fishAbund$meanAb[which(fishAbund$modelName == "T_caudimaculatus")] <- 60
+fishAbund$meanAb[which(fishAbund$modelName == "urchins")] <- 100 #instead of 230, which drives the system nuts I think
+
+save(fishAbund, file = "meanAbundBefore2000.RData")
+
+#For lobsters LW conversion is as 
+#W = 0.000285*L^3.114 males
+#W = 0.000271*L^3.135 females
+#to convert from carapace length in mm to grams
+
+```
+
+### Benthic spectra 
+
+```{r}
+
+library(tidyverse)
+
+Freddie <- read.csv(file = "C:/Users/astaa/Dropbox/asta/TasmanianModel/Parameters/BenthicInvertData/Freddie.csv")
+
+Kate <- read.csv(file = "C:/Users/astaa/Dropbox/asta/TasmanianModel/Parameters/BenthicInvertData/all_bysample_size.csv")
+KateCodes <- read.csv(file = "C:/Users/astaa/Dropbox/asta/TasmanianModel/Parameters/BenthicInvertData/sample_data_env_vectors.csv")
+
+# coordinates for eastern Tasmanian coast
+#TasmCoorLon <- c(146.5, 148.5) 
+#TasmCoorLat <- c(-41.00, -43.60)
+KateWgtGroups <- c(1.8E-06,4.8E-06, 1.1E-05, 2.9E-05, 7.1E-05, 1.8E-04, 4.5E-04, 1.1E-03, 2.8E-03, 6.8E-03, 1.7E-02, 4.2E-02, 1.1E-01, 2.5E-01, 6.8E-01, 1.6E+00)
+
+TasmCodes <- KateCodes %>% filter (lat > -43.60 & lat < -41.00) %>% filter (lon > 146.5 & lon < 148.5)
+TasmCodes.l <- unique(TasmCodes$SampleCode)
+TasmInvSmall <- Kate %>% filter (SampleCode %in% TasmCodes.l) 
+TasmInvSmall <- TasmInvSmall[,-c(1:2)]
+
+MeanAbund <- apply(TasmInvSmall, 2, mean)
+MinAbund <- apply(TasmInvSmall, 2, min)
+MaxAbund <- apply(TasmInvSmall, 2, max)
+
+InvData <- list()
+InvData$wgt <- KateWgtGroups
+InvData$meanAb <- MeanAbund
+InvData$minAb <- MinAbund
+InvData$maxAb <- MaxAbund
+InvData <- as.data.frame(InvData)
+InvData <- InvData[-c(which(InvData$meanAb ==0)),] # remove size groups that have 0 abundance
+
+#combine with Freddie's data about average abundance at size in Tasmania
+InvData <- rbind(InvData, Freddie)
+#save(InvData, file = "BenticInvAbund_Tasm.RData")
+
+
+
+## now I have to bin data into bins of equal size on log10 scale 
+InvData$cat <- NA
+log10(min(InvData$wgt)) # minimum size on log10 scale
+log10(max(InvData$wgt))
+
+breaks <- seq(from = -6, to = 4) #make a vector of breaks 
+
+for (i in 1:length(breaks)) {
+  temp <- which((log10(InvData$wgt) > breaks[i]) & (log10(InvData$wgt) < breaks[i+1]))
+  InvData$cat[c(temp)] <- i
+  
+}
+
+InvDataBinned <- InvData %>% group_by(cat) %>% summarise (mean_ab = sum(meanAb), min_ab = sum(minAb), max_ab = sum(maxAb), meanWgt = mean(wgt))
+
+InvDataBinned$wgtBinLog10 <- seq(from = -5.5, to = 3.5, by = 1) #mean weight in the bin on log 10 scale
+InvDataBinned$wgtGroup <- 10^(InvDataBinned$wgtBinLog10)
+
+#Now we fit linear regression
+bs <- lm(log10(InvDataBinned$mean_ab) ~ log10(InvDataBinned$wgtGroup))
+summary(bs)
+
+plot(log10(InvDataBinned$wgtGroup), log10(InvDataBinned$mean_ab), type = 'l', ylim = c(-4, 6), main = "Benthos slopes in Tasmania: log10(Abund) = 1.1 - 0.62*log10(wgt_bin)", xlab = "Log10 (w,g)", ylab = "Log10 (Abundance: min, mean, max)")
+points(log10(InvDataBinned$wgtGroup), log10(InvDataBinned$min_ab), type = 'l', lty = 2)
+points(log10(InvDataBinned$wgtGroup), log10(InvDataBinned$max_ab), type = 'l', lty = 2)
+abline(lm(log10(InvDataBinned$mean_ab) ~ log10(InvDataBinned$wgtGroup)), col = 'red')
+abline(v = log10(2), lty = 3)
+
+
+
+
+plot(log10(InvData$wgt), log10(InvData$meanAb), type = 'l', ylim = c(-4, 6), main = "Benthos slopes in Tasmania: log(Abund) = 0.35 - 0.71*log(wgt)", xlab = "Log10 (w,g)", ylab = "Log10 (Abundance: min, mean, max)")
+points(log10(InvData$wgt), log10(InvData$minAb), type = 'l', lty = 2)
+points(log10(InvData$wgt), log10(InvData$maxAb), type = 'l', lty = 2)
+abline(lm(log10(InvData$meanAb) ~ log10(InvData$wgt)), col = 'red')
+abline(v = log10(2), lty = 3)
+
+bs <- lm(log10(InvData$meanAb) ~ log10(InvData$wgt))
+
+summary(bs)
+
+```
+
 
 
 
