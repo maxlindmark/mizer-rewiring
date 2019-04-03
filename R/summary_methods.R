@@ -9,6 +9,111 @@
 # Maintainer: Gustav Delius, University of York, <gustav.delius@york.ac.uk>
 
 # Soundtrack: The Definitive Lead Belly
+
+#' Get diet of predator resolved by prey species
+#'
+#' Calculates the rate at which a predator of a particular species and size
+#' consumes biomass of a prey species, where for this purpose we treat the
+#' plankton like another prey species. 
+#' 
+#' This function performs the same integration as
+#' \code{getAvailEnergy()} but does not aggregate over prey species, and
+#' multiplies by (1-feeding_level) to get the consumed biomass rather than the
+#' available biomass. Outside the range of sizes for a predator species the
+#' returned rate is zero.
+#'
+#' @param params A MizerParams object
+#' @param n An array (species x size) with the abundance density of fish
+#' @param n_pp A vector with the abundance of plankton
+#' 
+#' @return An array (predator species  x predator size x (prey species + plankton) )
+#' @export
+#' 
+getDiet <- function(params, n, n_pp, n_bb, n_aa) {
+  # The code is based on that for getAvailEnergy()
+  no_sp <- dim(n)[1]
+  no_w <- dim(n)[2]
+  no_w_full <- length(n_pp)
+  diet <- array(0, dim = c(no_sp, no_w, no_sp + 3),
+                dimnames = list("predator" = dimnames(n)$sp,
+                                "w" = dimnames(n)$w,
+                                "prey" = c(dimnames(n)$sp, "plankton", "benthos", "algae")))
+  # idx_sp are the index values of object@w_full such that
+  # object@w_full[idx_sp] = object@w
+  idx_sp <- (no_w_full - no_w + 1):no_w_full
+  
+  ## Because I use three background spectra with different availabilities (scalars), I need to create new values to replace n_pp and so on. Here I use the same approach as in getAvailEnergy
+  pl_food <- matrix(params@species_params$avail_PP, nrow = length(params@species_params$avail_PP), ncol = 1) %*% n_pp
+  #do the same for the benthic spectrum
+  ben_food <- matrix(params@species_params$avail_BB, nrow = length(params@species_params$avail_PP), ncol = 1) %*% n_bb
+  #do the same for the algal spectrum
+  alg_food <- matrix(params@species_params$avail_AA, nrow = length(params@species_params$avail_AA), ncol = 1) %*% n_aa
+  
+  # If the feeding kernel does not have a fixed predator/prey mass ratio
+  # then the integral is not a convolution integral and we can not use fft.
+  
+  if (length(params@ft_pred_kernel_e) == 1) {
+    # pred_kernel is predator species x predator size x prey size
+    # We want to multiply this by the prey abundance, which is
+    # prey species by prey size, sum over prey size. We use matrix
+    # multiplication for this. Then we multiply 1st and 3rd 
+    ae <- matrix(params@pred_kernel[, , idx_sp, drop = FALSE],
+                 ncol = no_w) %*%
+      t(sweep(n, 2, params@w * params@dw, "*"))
+    dim(ae) <- c(no_sp, no_w, no_sp)
+    # We multiply by interaction matrix, choosing the correct dimensions
+    diet[, , 1:no_sp] <- sweep(ae, c(1, 3), params@interaction, "*")
+    # Eating the plankton
+    diet[, , no_sp + 1] <- rowSums(sweep(
+      params@pred_kernel, 3, params@dw_full * params@w_full * pl_food,
+      "*", check.margin = FALSE), dims = 2)
+    # Eating the benthos
+    diet[, , no_sp + 2] <- rowSums(sweep(
+      params@pred_kernel, 3, params@dw_full * params@w_full * ben_food,
+      "*", check.margin = FALSE), dims = 2)
+    # Eating the algae
+    diet[, , no_sp + 3] <- rowSums(sweep(
+      params@pred_kernel, 3, params@dw_full * params@w_full * alg_food,
+      "*", check.margin = FALSE), dims = 2)
+    
+  } 
+    else 
+  {
+    prey <- matrix(0, nrow = no_sp + 3, ncol = no_w_full) #AA - replace +1 with +3
+    prey[1:no_sp, idx_sp] <- sweep(n, 2, params@w * params@dw, "*")
+    #prey[no_sp + 1, ] <- n_pp * params@w_full * params@dw_full
+    prey[no_sp + 1, ] <- pl_food * params@w_full * params@dw_full
+    prey[no_sp + 2, ] <- ben_food * params@w_full * params@dw_full
+    prey[no_sp + 3, ] <- alg_food * params@w_full * params@dw_full
+    
+    ft <- array(rep(params@ft_pred_kernel_e, times = no_sp + 3) *  #AA - replace +1 with +3
+                  rep(mvfft(t(prey)), each = no_sp),
+                dim = c(no_sp, no_w_full, no_sp + 3))              #AA - replace +1 with +3
+    # We now have an array predator x wave number x prey
+    # To Fourier transform back we need a matrix of wave number x everything
+    ft <- matrix(aperm(ft, c(2, 1, 3)), nrow = no_w_full)
+    ae <- array(Re(mvfft(ft, inverse = TRUE) / no_w_full), 
+                dim = c(no_w_full, no_sp, no_sp + 3))              #AA - replace +1 with +3
+    ae <- ae[idx_sp, , , drop = FALSE]
+    ae <- aperm(ae, c(2, 1, 3))
+    # Due to numerical errors we might get negative or very small entries that
+    # should be 0
+    ae[ae < 1e-18] <- 0
+    diet[] <- ae
+    # Multiply by interaction matrix
+    diet[, , 1:no_sp] <- sweep(diet[, , 1:no_sp], c(1, 3), 
+                               params@interaction, "*")
+  }
+  
+  # Correct for satiation and keep only entries corresponding to fish sizes
+  f <- getFeedingLevel(params, n, n_pp, n_bb, n_aa) ##AA
+  fish_mask <- n > 0
+  diet <- sweep(diet, c(1, 2), (1 - f) * fish_mask, "*")
+  return(diet)
+}
+
+
+
 #' Calculate the SSB of species
 #' 
 #' Calculates the spawning stock biomass (SSB) through time of the species in
@@ -240,6 +345,7 @@ setMethod("summary", signature(object = "MizerParams"), function(object, ...) {
 #' sim <- project(params, effort=1, t_max=5)
 #' summary(sim)
 #' }
+
 setMethod("summary", signature(object = "MizerSim"), function(object, ...){
     cat("An object of class \"", as.character(class(object)), "\" \n", sep = "")
     cat("Parameters:\n")

@@ -254,7 +254,6 @@ validMizerParams <- function(object) {
 #'   that holds the Fourier transform of the feeding kernel in a form
 #'   appropriate for evaluating the predation mortality integral. If this is NA
 #'   then the \code{pred_kernel} will be used to calculate the integral.
-#' @slot pred_kernel A different predation kernal (without FFT) to get diet composition    
 #' @slot rr_pp A vector the same length as the w_full slot. The size specific
 #'   growth rate of the plankton spectrum. Default \eqn{r_0 w^{p-1}}
 #' @slot cc_pp A vector the same length as the w_full slot. The size specific
@@ -505,9 +504,7 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
     mat2 <- array(NA, dim = c(no_sp, no_w, no_w_full), 
                   dimnames = list(sp = species_names, w_pred = signif(w,3), 
                                   w_prey = signif(w_full,3)))
-#    mat3 <- array(NA, dim=c(object,no_w,no_w_full), dimnames = list(sp=species_names,w_pred=signif(w,3), w_prey=signif(w_full,3)))
-    
-    
+
     ft_pred_kernel <- array(NA, dim = c(no_sp, no_w_full), 
                               dimnames = list(sp = species_names, k = 1:no_w_full))
     
