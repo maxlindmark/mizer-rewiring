@@ -112,7 +112,7 @@ getAvailEnergy <- function(object, n, n_pp, n_bb, n_aa) {
       return(phi_prey_species + phi_prey_background)
     }
     
-    ### varPPMR ####
+    ### varPPMR ####end
 
     prey <- matrix(0, nrow = dim(n)[1], ncol = length(object@w_full))
     # Looking at Equation (3.4), for available energy in the mizer vignette,
