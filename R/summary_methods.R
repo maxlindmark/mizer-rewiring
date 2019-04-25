@@ -42,13 +42,6 @@ getDiet <- function(params, n, n_pp, n_bb, n_aa) {
   # object@w_full[idx_sp] = object@w
   idx_sp <- (no_w_full - no_w + 1):no_w_full
   
-  ## Because I use three background spectra with different availabilities (scalars), I need to create new values to replace n_pp and so on. Here I use the same approach as in getAvailEnergy
-  pl_food <- matrix(params@species_params$avail_PP, nrow = length(params@species_params$avail_PP), ncol = 1) %*% n_pp
-  #do the same for the benthic spectrum
-  ben_food <- matrix(params@species_params$avail_BB, nrow = length(params@species_params$avail_PP), ncol = 1) %*% n_bb
-  #do the same for the algal spectrum
-  alg_food <- matrix(params@species_params$avail_AA, nrow = length(params@species_params$avail_AA), ncol = 1) %*% n_aa
-  
   # If the feeding kernel does not have a fixed predator/prey mass ratio
   # then the integral is not a convolution integral and we can not use fft.
   
@@ -63,28 +56,30 @@ getDiet <- function(params, n, n_pp, n_bb, n_aa) {
     dim(ae) <- c(no_sp, no_w, no_sp)
     # We multiply by interaction matrix, choosing the correct dimensions
     diet[, , 1:no_sp] <- sweep(ae, c(1, 3), params@interaction, "*")
+    
+    #### CHECK THIS PART ####
     # Eating the plankton
     diet[, , no_sp + 1] <- rowSums(sweep(
-      params@pred_kernel, 3, params@dw_full * params@w_full * pl_food,
+      params@pred_kernel, 3, params@dw_full * params@w_full * n_pp * params@species_params$avail_PP,
       "*", check.margin = FALSE), dims = 2)
     # Eating the benthos
     diet[, , no_sp + 2] <- rowSums(sweep(
-      params@pred_kernel, 3, params@dw_full * params@w_full * ben_food,
+      params@pred_kernel, 3, params@dw_full * params@w_full * n_bb * params@species_params$avail_BB,
       "*", check.margin = FALSE), dims = 2)
     # Eating the algae
     diet[, , no_sp + 3] <- rowSums(sweep(
-      params@pred_kernel, 3, params@dw_full * params@w_full * alg_food,
+      params@pred_kernel, 3, params@dw_full * params@w_full * n_aa * params@species_params$avail_AA,
       "*", check.margin = FALSE), dims = 2)
+    #### 
     
   } 
     else 
   {
     prey <- matrix(0, nrow = no_sp + 3, ncol = no_w_full) #AA - replace +1 with +3
     prey[1:no_sp, idx_sp] <- sweep(n, 2, params@w * params@dw, "*")
-    #prey[no_sp + 1, ] <- n_pp * params@w_full * params@dw_full
-    prey[no_sp + 1, ] <- pl_food * params@w_full * params@dw_full
-    prey[no_sp + 2, ] <- ben_food * params@w_full * params@dw_full
-    prey[no_sp + 3, ] <- alg_food * params@w_full * params@dw_full
+    prey[no_sp + 1, ] <- n_pp * params@w_full * params@dw_full
+    prey[no_sp + 2, ] <- n_bb * params@w_full * params@dw_full
+    prey[no_sp + 3, ] <- n_aa * params@w_full * params@dw_full
     
     ft <- array(rep(params@ft_pred_kernel_e, times = no_sp + 3) *  #AA - replace +1 with +3
                   rep(mvfft(t(prey)), each = no_sp),
@@ -100,9 +95,19 @@ getDiet <- function(params, n, n_pp, n_bb, n_aa) {
     # should be 0
     ae[ae < 1e-18] <- 0
     diet[] <- ae
+
     # Multiply by interaction matrix
-    diet[, , 1:no_sp] <- sweep(diet[, , 1:no_sp], c(1, 3), 
-                               params@interaction, "*")
+    diet[, , 1:no_sp] <- sweep(diet[, , 1:no_sp], c(1, 3), params@interaction, "*")
+    
+    #Apply the background availability scalars: plankton 
+    #print(diet[,80 , no_sp + 1])
+    #print(params@species_params$avail_PP)
+    diet[, , no_sp + 1] <- diet[, , no_sp + 1] * params@species_params$avail_PP
+    #print(diet[,80 , no_sp + 1])
+    #Apply the background availability scalars: benthos 
+    diet[, , no_sp + 2] <- diet[, , no_sp + 2] * params@species_params$avail_BB
+    #Apply the background availability scalars: algae 
+    diet[, , no_sp + 3] <- diet[, , no_sp + 3] * params@species_params$avail_AA
   }
   
   # Correct for satiation and keep only entries corresponding to fish sizes
