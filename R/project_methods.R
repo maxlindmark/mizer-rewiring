@@ -1155,7 +1155,7 @@ get_time_elements <- function(sim, time_range, slot_name = "n"){
     return(time_elements)
 }
 
-#' Get diet composition
+#' Get diet composition - NOT USED NOW
 #'
 #' Returns diet composition by predator/size/prey/size for the selected number of years
 #' at the end of the model simulation. 
