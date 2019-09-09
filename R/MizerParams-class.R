@@ -543,13 +543,14 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
                     "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
     linecolour <- rep(cbbPalette, length.out = no_sp)
     names(linecolour) <- as.character(species_names)
-    linecolour <- c(linecolour, "Total" = "black", "Plankton" = "green",
+    # ML: added algae and benthos
+    linecolour <- c(linecolour, "Total" = "black", "Plankton" = "green", "Benthos" = "brown", "Algae" = "yellow",
                     "Background" = "grey")
     linetype <-rep(c("solid", "dashed", "dotted", "dotdash", "longdash", 
                      "twodash"), length.out = no_sp)
     names(linetype) <- as.character(species_names)
-    linetype <- c(linetype, "Total" = "solid", "Plankton" = "solid",
-                  "Background" = "solid")
+    linetype <- c(linetype, "Total" = "solid", "Plankton" = "dashed", "Benthos" = "dotted", "Algae" = "dotdash",
+                  "Background" = "longdash")
     
     # Make the new object
     # Should Z0, rrPP and ccPP have names (species names etc)?
@@ -991,6 +992,16 @@ multispeciesParams <- function(object, interaction,
       object$ca_mor[missing] <- 0
     }
 
+    # ML: Sort out cost of growth (alpha_g ) column
+    if (!("alpha_g" %in% colnames(object))) {
+      message("Note: \tNo alpha_g column in species data frame so using 1 (no additional cost of growth)")
+      object$alpha_g <- 1
+    }
+    missing <- is.na(object$alpha_g)
+    if (any(missing)) {
+      object$alpha_g[missing] <- 1
+    }
+    
  ##Now deactivation rate size scalar cd for metabolism and intake
     # Sort out size scalars (ca) column for four rates: metabolism
 #    if (!("cd_met" %in% colnames(object))) {
