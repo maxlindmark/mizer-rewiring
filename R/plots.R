@@ -522,7 +522,7 @@ plotSpectra <- function(object, species = NULL,
                         time_range,
                         min_w, ylim = c(NA, NA),
                         power = 1, biomass = TRUE, print_it = TRUE,
-                        total = FALSE, plankton = TRUE,
+                        total = FALSE, plankton = TRUE, benthos = TRUE, algae = TRUE,
                         background = TRUE, ...) {
     if (is(object, "MizerSim")) {
         if (missing(time_range)){
@@ -538,13 +538,14 @@ plotSpectra <- function(object, species = NULL,
         time_elements <- get_time_elements(object,time_range)
         n <- apply(object@n[time_elements, , ,drop = FALSE], c(2, 3), mean)
         n_pp <- apply(object@n_pp[time_elements,,drop = FALSE], 2, mean)
-        ##AAsp##
-        #n_bb <- apply(object@n_bb[time_elements,,drop = FALSE], 2, mean)
+        ##AAsp & ML##
+        n_bb <- apply(object@n_bb[time_elements,,drop = FALSE], 2, mean)
+        n_aa <- apply(object@n_aa[time_elements,,drop = FALSE], 2, mean)
         
-        ps <- plot_spectra(object@params, n = n, n_pp = n_pp, 
+        ps <- plot_spectra(object@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa,
                            species = species, min_w = min_w, ylim = ylim,
                            power = power, print_it = print_it,
-                           total = total, plankton = plankton, 
+                           total = total, plankton = plankton, benthos = benthos, algae = algae,
                            background = background)
         return(ps)
     } else {
@@ -556,23 +557,25 @@ plotSpectra <- function(object, species = NULL,
         }
         ps <- plot_spectra(object, n = object@initial_n,
                            n_pp = object@initial_n_pp,
+                           n_bb = object@initial_n_bb,
+                           n_aa = object@initial_n_aa,
                            species = species, min_w = min_w, ylim = ylim,
                            power = power, print_it = print_it,
-                           total = total, plankton = plankton, 
+                           total = total, plankton = plankton, benthos = benthos, algae = algae,
                            background = background)
         return(ps)
     }
 }
 
 
-plot_spectra <- function(params, n, n_pp, 
+plot_spectra <- function(params, n, n_pp, n_bb, n_aa,
                          species, min_w, ylim, power, print_it,
-                         total, plankton, background) {
+                         total, plankton, benthos, algae, background) {
     if (total) {
         # Calculate total community abundance
         fish_idx <- (length(params@w_full) - length(params@w) + 1):
             length(params@w_full)
-        total_n <- n_pp
+        total_n <- n_pp + n_bb + n_aa # Include additional spectra in total
         total_n[fish_idx] <- total_n[fish_idx] + colSums(n)
         total_n <- total_n * params@w_full^power
     }
@@ -609,6 +612,38 @@ plot_spectra <- function(params, n, n_pp,
                           data.frame(value = c(plank_n),
                                      Species = "Plankton",
                                      w = w_plankton))
+    }
+    # ML: add benthos to spectra plot the same way as plankton
+    if (benthos) {
+        # Decide where to cut off benthos
+        max_w <- min(params@species_params$w_mat)
+        if (is.na(max_w)) {
+          max_w <- Inf
+        }
+        benthos_sel <- params@w_full >= min_w &
+            params@w_full < max_w
+        w_benthos <- params@w_full[benthos_sel]
+        benthos_n <- n_bb[benthos_sel] * w_benthos^power
+        plot_dat <- rbind(plot_dat,
+                        data.frame(value = c(benthos_n),
+                                   Species = "Benthos",
+                                   w = w_benthos))
+    }  
+    # ML: add algae to spectra plot the same way as plankton
+    if (algae) {
+        # Decide where to cut off algae
+        max_w <- min(params@species_params$w_mat)
+        if (is.na(max_w)) {
+          max_w <- Inf
+        }
+        algae_sel <- params@w_full >= min_w &
+            params@w_full < max_w
+        w_algae <- params@w_full[algae_sel]
+        algae_n <- n_aa[algae_sel] * w_algae^power
+        plot_dat <- rbind(plot_dat,
+                        data.frame(value = c(algae_n),
+                                   Species = "Algae",
+                                   w = w_algae))
     }
     if (total) {
         plot_dat <- rbind(plot_dat,
@@ -652,7 +687,7 @@ plot_spectra <- function(params, n, n_pp,
             geom_line(aes(group = Species), colour = "grey",
                       data = plot_back)
     }
-    if ( (length(species) + plankton + total) > 13) {
+    if ( (length(species) + plankton + benthos + total) > 13) {
         p <- p + geom_line(aes(group = Species))
     } else {
         p <- p + geom_line(aes(colour = Species, linetype = Species))
