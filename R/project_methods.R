@@ -1050,7 +1050,8 @@ getEGrowth <- function(object, n, n_pp, n_bb, n_aa, intakeScalar, metScalar,
     
     #Because getEReproAndGrowth now can return negative values, we add an extra line here 
     e[e < 0] <- 0 # Do not allow negative growth
-    e_growth <- (e - e_repro)*0.6 ##AAsp = add growth cost
+    #e_growth <- (e - e_repro)*0.6 ##AAsp = add growth cost
+    e_growth <- (e - e_repro) * object@species_params$alpha_g # 0.6 ##AAsp = add growth cost, ML: species parameter (default 1)
     return(e_growth)
 }
 
