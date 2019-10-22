@@ -1,3 +1,60 @@
+# Warming alters the effect of fishing on the size spectra of an exploited temperate food web
+## Description
+Here we parameterize and calibrate a multispecies size-spectrum model (mizer) for the Baltic Sea. We use this as a case study to assess interactive effects of fishing and climate change on size structure and yield of a temperate food web.
+
+**Collaborators**: Asta Audzijonyte, Julia Blanchard and Anna Gårdmark.
+We use non-released version of mizer with added functionality (multiple resource background spectra and temperature-dependence of vital rates), developed also with Jon Reum and Romain Forestier. This version can be downloaded at: devtools::install_github("astaaudzi/mizer-rewiring", ref = "rewire-temp")
+
+
+## Mizer
+mizer web page: https://sizespectrum.github.io/mizer/dev/
+
+**Developers**
+
+Finlay Scott, Author, copyright holder
+
+Julia Blanchard, Author, copyright holder  
+
+Ken Andersen, Author, copyright holder
+
+Gustav Delius, Contributor, maintainer
+
+**Citation for mizer** 
+Scott F, Blanchard JL, Andersen KH (2014). "mizer: an R package for multispecies, trait-based and community size spectrum ecological modelling." *Methods Ecol Evol*, **5**, 1121-1125. doi: 10.1111/2041-210X.12256.
+
+
+## Contents
+The **R/Parameter_estimation** folder contains code for estimating parameters and for compiling time series for calibration. 
+
+The **data** folder contains data for estimating parameters and for compiling time series for calibration. Actually currently too big! Will need to figure this out, currently only existing locally.
+
+The **R/MSSM** folder contains R code for model calibration code and simulations.
+
+The **Params** folder contains .csv files with parameters that are read in modelling scripts, see **R/Parameter_estimation**
+
+## Data sources (ICES) 
+### Spatial overlap estimate (abundance by ICES-rectangle)
+**Benthic species**: ICES Database of Trawl Surveys (DATRAS), Extraction 1 JAN 2018 of International Bottom Trawl Survey (BITS). ICES, Copenhagen, available at http://www.ices.dk/marine-data/data-portals/Pages/DATRAS.aspx
+
+**Pelagic** species: ICES WGBIFS database for the BIAS survey data (https://community.ices.dk/ExpertGroups/wgbifs/2018%20Meeting%20docs/06.%20Data/01_BIAS%20Database/). Note this is not public yet but our extraction can still be upload
+
+
+### von Bertalanffy growth parameters & Weight-Length relationships (individual length-weight-age)
+ICES Database of Trawl Surveys (DATRAS), Extraction 1 JAN 2018 of International Bottom Trawl Survey (BITS). ICES, Copenhagen, available at http://www.ices.dk/marine-data/data-portals/Pages/DATRAS.aspx
+
+
+### Times series of Abundance and F
+**Cod**:	ICES. 2013. *Report of the Baltic Fisheries Assessment Working Group (WGBFAS)*, 10 - 17 April 2013, ICES Headquarters, Copenhagen. ICES CM 2013/ACOM:10. 747 pp. [Final accepted analytical assessment by ICES; done using SAM model]
+
+**Sprat**:	ICES. 2015. *Report of the Baltic Fisheries Assessment Working Group (WGBFAS)*, 14-21 April 2015, ICES HQ, Copenhagen, Denmark. ICES CM 2015/ACOM:10. [from XSA model] 
+
+**Herring**: ICES. 2015. *Report of the Baltic Fisheries Assessment Working Group (WGBFAS)*, 14-21 April 2015, ICES HQ, Copenhagen, Denmark. ICES CM 2015/ACOM:10. [from XSA model]
+
+*Eventually have a look at this guide to good "Read me's": https://gist.github.com/PurpleBooth/109311bb0361f32d87a2 and this example: https://github.com/seananderson/heavy-tails*
+
+
+
+
 # mizer
 
 mizer is a package that implements size-based ecological models.
