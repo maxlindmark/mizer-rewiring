@@ -1,4 +1,4 @@
-species;w_inf;w_mat;beta;sigma;r_max;k_vb;AveSpawnBiomass;AveEffort;sd25-29+32_m^2
-Cod;44903;267;66;1.3;0.0826;0.07;115;0.899;2,49E+11
-Sprat;21;4;51076;0.8;7.38;0.287;1401;0.306;2,49E+11
-Herring;125;17;280540;3.2;11.1;0.165;581;0.34;2,49E+11
+species;w_inf;w_mat;beta;sigma;r_max;k_vb;AveSpawnBiomass;AveEffort
+Cod;44903;267;66;1.3;0.0826;0.07;115;0.899
+Sprat;21;4;51076;0.8;7.38;0.287;1401;0.306
+Herring;125;17;280540;3.2;11.1;0.165;581;0.34
