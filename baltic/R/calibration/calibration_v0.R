@@ -31,74 +31,42 @@ rm(list = ls())
 # .libPaths()
 # .libPaths("C:/Program Files/R/R-3.5.0/library")
 
-# Load local mizer
-devtools::load_all(".")
-
-# Provide package names
-pkgs <- c("ggplot2", "devtools", "RCurl", "RColorBrewer", "magrittr", "viridis", "tidyr", "dplyr")
-
-# Install packages
-# if (length(setdiff(pkgs, rownames(installed.packages()))) > 0) {
-#   install.packages(setdiff(pkgs, rownames(installed.packages())))
-# }
-
-# Load all packages
-lapply(pkgs, library, character.only = TRUE)
-
-# Print package version
-# script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-baltic-sea/master/R/Functions/packageInfo.R", ssl.verifypeer = FALSE)
-# eval(parse(text = script))
-# pkg_info(pkgs)
-
-# package loadedversion
-# 1     devtools         2.0.2
-# 2        dplyr         0.8.1
-# 3      ggplot2         3.1.1
-# 4     magrittr           1.5
-# 5 RColorBrewer         1.1-2
-# 6        RCurl     1.95-4.12
-# 7        tidyr         0.8.3
-# 8      viridis         0.5.1
-
+# Load libraries, install if needed
+library(ggplot2)
+library(devtools)
+library(RColorBrewer)
+library(RCurl)
+library(magrittr)
+library(viridis)
+library(tidyr)
+library(dplyr)
 # devtools::install_github("thomasp85/patchwork")
 library(patchwork)
-# packageVersion("patchwork") # v.0.0.1
 
-# To install Astas Mizer branch, use:
-#install_github("astaaudzi/mizer-rewiring", ref = "rewire-temp")
+# Install and reload local mizer package
+devtools::load_all(".")
 
-# This was downloaded 2019.04.15
-# A copy of the package will be available *somewhere* 
-#--- Remove this hashtag if Asta accepts push
-#--- Before that, I need to Build/Load All to get the local version
-#library(mizer, lib.loc = "C:/Program Files/R/R-3.5.0/library") # This fork is based on mizer # v1.1  
+# Print package versions
+# print(sessionInfo())
+# other attached packages:
+# [1] mizer_1.1 testthat_2.0.0 patchwork_0.0.1 dplyr_0.8.1 tidyr_0.8.3       
+# [6] viridis_0.5.1 viridisLite_0.3.0 magrittr_1.5 RCurl_1.95-4.12 bitops_1.0-6      
+# [11] RColorBrewer_1.1-2 usethis_1.4.0 devtools_2.0.2 ggplot2_3.1.1  
 
 
 # B. READ DATA =====================================================================
 #**** Species parameters ===========================================================
-balticParams <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-baltic-sea/master/Params/species_params.csv"), sep = ";", stringsAsFactors = FALSE)
-
-balticParams
-
-# Remove flounder for now
-balticParams <- balticParams[-2, ]
+balticParams <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/params/species_params.csv"), sep = ";")
 
 # Fix data format after reading
 str(balticParams)
-cols = c(2:5, 7, 8) # r_max, effort and Baltic area need special care...
+cols = c(2:4, 8) # Baltic area need special care...
 balticParams[, cols] %<>% lapply(function(x) as.numeric(as.character(x)))
 str(balticParams)
 
-balticParams$r_max <- as.numeric(as.character(gsub(",", ".", balticParams$r_max)))
-balticParams$r_max <- as.numeric(as.character(balticParams$r_max))
+# Add area of Baltic (roughly Baltic proper) as a column
+balticParams$sd25.29.32_m.2 <- 2.49e+11
 
-balticParams$AveEffort <- as.numeric(as.character(gsub(",", ".", balticParams$AveEffort)))
-balticParams$AveEffort <- as.numeric(as.character(balticParams$AveEffort))
-
-balticParams$sd25.29.32_m.2 <- as.numeric(as.character(gsub(",", ".", balticParams$sd25.29.32_m.2)))
-balticParams$sd25.29.32_m.2 <- as.numeric(as.character(balticParams$sd25.29.32_m.2))
-
-str(balticParams)
 
 #**** Empirical growth =============================================================
 # Create a dataframe to hold empirical VBGE growth for comparison
@@ -124,14 +92,12 @@ empiri$weight <- empiri$w_inf*(1-exp(-empiri$k_vb*(empiri$age - empiri$t_0)))^em
 
 
 #**** Stock assessment data ========================================================
-ssb_f <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-baltic-sea/master/data/SSB_F/SSB_F_data.csv"), sep = ";")
+ssb_f <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/data/SSB_F/SSB_F_data.csv"), sep = ";")
 
 head(ssb_f)
 str(ssb_f)
 
 colnames(ssb_f)[5] <- "Fm" # Bad idea to call a column F in R
-
-ssb_f <- ssb_f %>% filter(!Species == "Flounder")
 
 # Create dataframes with mean SSB and F for calibration period plotting
 min_cal_yr <- 1992
@@ -155,7 +121,9 @@ unique(mean_ssb_F$mean_SSB)
 # C. CALIBRATE MODEL ================================================================
 # This will help seeing the lines..
 update_geom_defaults("line", list(size = 1.75))
-col <- viridis(n = 5)
+#col <- viridis(n = 5)
+col <- colorRampPalette(brewer.pal(5, "Dark2"))(5)
+
 
 # Set some standard parameters (some means overwriting existing parameters that were inherited from the NS model)
 # 
@@ -188,7 +156,6 @@ effort = c(Cod = balticParams$AveEffort[1],
 
 #** 1. Find starting value for kappa ===============================================
 # Given the default model, what should kappa be to get ssb in the same order of magnitude? This is just an iterative process, since well opimize r_max to minimize residual sum of squares (RSS) between predicted and observed SSB
-
 dt <- 0.2
 
 # These are the values I choose (lowest kappa with coexistence).
@@ -228,9 +195,9 @@ plotGrowthCurves(m1) +
   geom_hline(data = empiri, aes(yintercept = w_mat), 
              color = "gray30", size = 1, linetype = 2) +
   geom_line(data = empiri, aes(age, weight), 
-            color = col[2], size = 1.8, linetype = 3) +
+            color = col[1], size = 1.8, linetype = 3) +
   geom_line(aes(x = Age, y = value), 
-            color = col[1], size = 1.8) +
+            color = col[2], size = 1.8) +
   facet_wrap(~ Species, scales = "free_y", ncol = 3) +
   guides(color = FALSE, linetype = FALSE) +
   theme_classic(base_size = 14) + 
@@ -271,7 +238,7 @@ m2 <- project(params2_upd,
               t_max = t_max) 
 
 m2@params@linetype <- rep("solid", 6)
-m2@params@linecolour[1:3] <- col[c(1,5,3)]
+m2@params@linecolour[1:3] <- col
 
 plotSpectra(m2, algae = FALSE) + theme_classic(base_size = 14)
 
@@ -282,8 +249,8 @@ plotBiomass(m2) + theme_classic(base_size = 14)
 #**** Check growth =======================================================================
 # Growth rates look slightly better, ok for now since they will change after calibrating r_max
 
-# Read in growth data
-vbgedat <- read.csv("C:/R_STUDIO_PROJECTS/mizer-baltic-sea/Data/BITS/clean_BITS.csv", sep = ",")
+# Read in growth data (currently only local since too big for github)
+vbgedat <- read.csv("C:/R_STUDIO_PROJECTS/mizer-rewiring-baltic/baltic/data/BITS/clean_BITS.csv", sep = ",")
 str(vbgedat)
 
 vbgedat <- vbgedat %>% filter(Species %in% c("Cod", "Herring", "Sprat"))
@@ -324,7 +291,8 @@ vbgedat$keep3 <- ifelse(vbgedat$Species == "Sprat" & vbgedat$AgeRings < maxsprag
 # When I redo this figure do as I do for temperature-effect, i.e. extract the data and put back together
 # so that I can create a legend and filter by max age and use scales = "free"
 plotGrowthCurves(m2, max_age = 15) + 
-  geom_point(data = subset(vbgedat, AgeRings < 16), aes(AgeRings, Weight_g), size = 2, fill = col[3], 
+  geom_point(data = subset(vbgedat, AgeRings < 16), 
+             aes(AgeRings, Weight_g), size = 2, fill = col[3], 
              color = "white", shape = 21, alpha = 0.1) +
   geom_hline(data = empiri, aes(yintercept = w_mat), 
              color = "gray30", size = 0.8, linetype = 2) +
@@ -355,10 +323,10 @@ balticParams$AveSpawnBiomass
 
 #**** Source functions =============================================================
 # See the functions script for description of their arguments and such
-script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-baltic-sea/master/R/Functions/StartVector.R", ssl.verifypeer = FALSE)
+script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/StartVector.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
-script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-baltic-sea/master/R/Functions/FunctionsForOptim.R", ssl.verifypeer = FALSE)
+script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/FunctionsForOptim.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
 # With only r_max to be optimized, and three species, this function takes 1.5 minutes on my laptop
@@ -415,7 +383,7 @@ m3 <- project(params3_upd,
               t_max = t_max) 
 
 m3@params@linetype <- rep("solid", 6)
-m3@params@linecolour[1:3] <- col[c(1,5,3)]
+m3@params@linecolour[1:3] <- col
 
 # Check dynamics and density
 plotBiomass(m3) + theme_classic(base_size = 14)
@@ -452,7 +420,7 @@ ssb_eval <- data.frame(SSB = c(obs, pred),
 
 p1 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) + 
   geom_point(size = 6, alpha = 0.5) +
-  scale_fill_manual(values = col[c(1,3,5)]) +
+  scale_fill_manual(values = col) +
   scale_shape_manual(values = c(21, 24),
                      guide = guide_legend(override.aes = list(colour = "black", 
                                                               fill = "black",
@@ -468,7 +436,7 @@ ssb_eval_l <- data.frame(obs = log10(obs), pred = log10(pred), Species = balticP
 
 p2 <- ggplot(ssb_eval_l, aes(obs, pred, fill = Species, shape = Species)) +
   geom_point(size = 6, alpha = 0.5) +
-  scale_fill_manual(values = col[c(1,3,5)]) +
+  scale_fill_manual(values = col) +
   scale_shape_manual(values = c(21, 22, 24)) +
   labs(x = "Log10(Observed SSB)", y = "Log10(Predicted SSB)") +
   geom_abline(slope = 1, intercept = 0, color = "red", linetype = 2) +
@@ -509,7 +477,7 @@ rec <- data.frame(Species = names(rdi),
                    "RDI/RDD" = rdi/rdd)
                   
 ggplot(rec, aes(Species, RDI.RDD, color = Species, shape = Species)) +
-  scale_color_manual(values = col[c(1,3,5)]) +
+  scale_color_manual(values = col) +
   labs(x = "", y = "RDI / RDD") +
   theme_classic(base_size = 14) +
   geom_abline(intercept = 1, slope = 0, color = "gray30", 
@@ -533,7 +501,7 @@ rdi / params3_upd@species_params$r_max
 # Looks OK, but clear that we need size-varying theta
 plotDietComp(m3, prey = dimnames(m3@diet_comp)$prey[1:5]) + 
   theme_classic(base_size = 14) +
-  scale_fill_manual(values = col,
+  scale_fill_manual(values = rev(col),
                     labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
@@ -675,11 +643,11 @@ ggplot(dat, aes(Year, SSB_norm, linetype = source, color = source)) +
                 xmax = max(Year),
                 ymin = 0,
                 ymax = 1),
-            fill  = col[2], alpha = 0.05) +
-  geom_line(size = 1.7, alpha = 0.7) +
+            fill  = "gray50", alpha = 0.05) +
+  geom_line(size = 1.7, alpha = 1) +
   # geom_point(data = mdat, aes(Year, mean_SSB), size = 1.2) + This is not really working atm
   scale_linetype_manual(values = c("solid", "twodash")) +
-  scale_color_manual(values = col[c(1,3)]) +
+  scale_color_manual(values = col) +
   theme(aspect.ratio = 1) +
   ylab("SSB (1000 tonnes)") +
   theme_classic(base_size = 12) +
