@@ -5,3 +5,12 @@
 src/*.o
 src/*.so
 src/*.dll
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+Exchange Data_2019-04-04 14_32_48.csv
+StomachDataSet201932090580.csv
+clean_BITS.csv
+sprat_herring_acoustic_abundance_1992_2002.csv
+Annual_Average_Baltic_ChangeRelTo1970-1999_RCP8.5
