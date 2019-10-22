@@ -3,7 +3,7 @@
 Here we parameterize and calibrate a multispecies size-spectrum model (mizer) for the Baltic Sea. We use this as a case study to assess interactive effects of fishing and climate change on size structure and yield of a temperate food web.
 
 **Collaborators**: Asta Audzijonyte, Julia Blanchard and Anna Gårdmark.
-We use non-released version of mizer with added functionality (multiple resource background spectra and temperature-dependence of vital rates), developed also with Jon Reum and Romain Forestier. This version can be downloaded at: devtools::install_github("astaaudzi/mizer-rewiring", ref = "rewire-temp")
+We use non-released version of mizer with added functionality (multiple resource background spectra and temperature-dependence of vital rates), developed also with Jon Reum and Romain Forestier. This is a fork of "astaaudzi/mizer-rewiring, ref = "rewire-temp". I have kept all files and put Baltic files in the Baltic folder.
 
 
 ## Mizer
@@ -24,21 +24,20 @@ Scott F, Blanchard JL, Andersen KH (2014). "mizer: an R package for multispecies
 
 
 ## Contents
-The **R/Parameter_estimation** folder contains code for estimating parameters and for compiling time series for calibration. 
+The **baltic/data** folder contains data for estimating parameters and for compiling time series for calibration. Actually currently too big! Will need to figure this out, currently only existing locally.
 
-The **data** folder contains data for estimating parameters and for compiling time series for calibration. Actually currently too big! Will need to figure this out, currently only existing locally.
+The **baltic/params** folder contains .csv files with parameters that are read in modelling scripts, see **R/Parameter_estimation**
 
-The **R/MSSM** folder contains R code for model calibration code and simulations.
+The **Baltic/figures** folder contains figures for the publication
 
-The **Params** folder contains .csv files with parameters that are read in modelling scripts, see **R/Parameter_estimation**
+The **baltic/R/parameter_estimation** folder contains code for estimating parameters and for compiling time series for calibration. 
+
+The **baltic/R/MSSM** folder contains R code for model calibration code and simulations.
+
+The **baltic/R/functions** folder contains functions for calibtration and loading packages.
+
 
 ## Data sources (ICES) 
-### Spatial overlap estimate (abundance by ICES-rectangle)
-**Benthic species**: ICES Database of Trawl Surveys (DATRAS), Extraction 1 JAN 2018 of International Bottom Trawl Survey (BITS). ICES, Copenhagen, available at http://www.ices.dk/marine-data/data-portals/Pages/DATRAS.aspx
-
-**Pelagic** species: ICES WGBIFS database for the BIAS survey data (https://community.ices.dk/ExpertGroups/wgbifs/2018%20Meeting%20docs/06.%20Data/01_BIAS%20Database/). Note this is not public yet but our extraction can still be upload
-
-
 ### von Bertalanffy growth parameters & Weight-Length relationships (individual length-weight-age)
 ICES Database of Trawl Surveys (DATRAS), Extraction 1 JAN 2018 of International Bottom Trawl Survey (BITS). ICES, Copenhagen, available at http://www.ices.dk/marine-data/data-portals/Pages/DATRAS.aspx
 

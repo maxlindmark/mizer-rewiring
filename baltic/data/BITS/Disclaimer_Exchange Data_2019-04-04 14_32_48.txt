@@ -1,0 +1,141 @@
+1. FEEDBACK 
+
+Thank you for downloading data from the ICES Data Centre. 
+If you experienced any problems, or would like to provide feedback that will help 
+us to improve our service, please email us at: DatrasAdministration@ices.dk
+
+2. IMPORTANT 
+
+Note that data download is built on the following national submissions:
+1992:DEN,GFR,POL,SWE
+1993:DEN,GFR,LAT,POL,RUS,SWE
+1994:DEN,GFR,LAT,POL,RUS,SWE
+1995:DEN,EST,GFR,LAT,POL,RUS,SWE
+1996:DEN,EST,GFR,LAT,POL,RUS,SWE
+1997:DEN,GFR,LAT,POL,RUS,SWE
+1998:DEN,GFR,LAT,POL,RUS,SWE
+1999:DEN,EST,GFR,LAT,POL,RUS,SWE
+2000:DEN,EST,GFR,LAT,POL,RUS,SWE
+2001:DEN,GFR,LAT,POL,RUS,SWE
+2002:DEN,GFR,LAT,POL,RUS,SWE
+2003:DEN,GFR,LAT,POL,RUS,SWE
+
+
+
+ This file is the counterpart to the data download file Exchange Data_2019-04-04 14_32_48
+and was downloaded on 04/04/2019 14:32:48 by IP 213.89.5.218 . 
+
+Please read this before using these data as this file contains specific information 
+about the use of these data limitations and known issues. This file contains 
+contact information regarding the origins of these data (where supplied), 
+as well as how to reference these data in a publication or data product. 
+
+By downloading data from the ICES website [www.ices.dk] you are agreeing to
+the terms and conditions of use as described in this document and any documents
+referred to in this text.
+
+3. ICES CONTACT
+
+For queries about this data download:
+Web  : http://datras.ices.dk/
+Email: DatrasAdministration@ices.dk 
+Tel  : +45 3338 6700
+
+4. PROJECT/DOWNLOAD SPECIFIC INFORMATION
+
+Data from the trawl survey database are freely available for downloading.
+
+Whilst the data have been extensively checked by both the supplying institutes
+and ICES there are inherent flaws in gathering the information. 
+ For example:
+
+* In spite of the fact that now all bottom trawl surveys are in the same database
+   and often at least partially overlap in time period or area covered, there are
+   differences between the surveys that do not allow the combination of data from 
+   different surveys in one analysis unless this point is specifically addressed. 
+
+* There is no guarantee that the gears deployed adequately sample all species 
+   (e.g. catchability of flatfish in beam trawls is markedly higher than that of GOV).
+   It should be realized that each survey gear catches a gear-dependent subset 
+   of the fish community.
+
+* A common property of all surveys is that over time species determination skills
+   improve. As a result, new taxa will emerge in the dataset that were previously 
+   reported as part of another closely-related taxon.
+
+* Over time the sampling procedures, gear characteristics, timing of the survey 
+   or the area covered may have changed thereby influencing the catches. Expert 
+   advice recommendations are given in order to prevent bias in the analyses using
+   DATRAS catch data, caused by such factors.
+
+*  Please check on the submission status https://datras.ices.dk/Data_products/Submission_Status.aspx
+   before finalizing your report.
+
+*  Data product 'Litter Assessment Output' provides data mapping to Exclusive Economic Zones in the 
+   field 'EEZ'. Layer with EEZ boundaries is from the http://www.marineregions.org/, 
+   and ICES does not bear any responsibility for EEZ definitions. 
+   When using this data product, please include acknowledgement of the EEZ data source as in the section below.  
+
+Thus users are urged to treat the data with caution. If the user has any queries
+on the validity of the data or the conclusions to be drawn they should contact 
+ either the ICES Secretariat or the Chairs of the relevant Working Group 
+ (IBTS, BITS or BEAM)
+
+
+5. DATA ACKNOWLEDGMENT
+
+Please acknowledge this data in a publication. 
+Source : BITS
+ 
+For Litter Assessment Output, please acknowledge the EEZ data source as follows:
+
+VLIZ (2014). Union of the ESRI Country shapefile and the Exclusive Economic Zones (version 9). 
+Available online at http://www.marineregions.org/. Consulted on 2017-02-15.
+
+6. TERMS OF USE: DATA 
+
+ICES makes data available in an open, timely and easy way to users, but ICES 
+ remains dependent on data contributions.
+- Correct and appropriate data interpretation is solely the responsibility 
+   of data users.
+- Data Users must not expressly or otherwise imply ICES’ substantiation of their 
+   work, results, conclusions and/or recommendations.
+- Data sources must be duly acknowledged.
+- Data Users must respect any and all restrictions on the use or reproduction 
+   of data such as restrictions on use for commercial purposes.
+- Data Users are obliged to inform ICES of any suspected problems in the data.
+- Data Users are encouraged to inform ICES of possible sources of other relevant
+   data.
+
+The full ICES data policy and terms of use can be viewed at:
+http://www.ices.dk/marine-data/guidelines-and-policy/Pages/ICES-data-policy.aspx
+
+Data held at the ICES Data Centre are used for various assessments and working 
+ group purposes. The data guidelines and procedures for these can be viewed 
+ at: http://www.ices.dk/marine-data/guidelines-and-policy/Pages/default.aspx
+
+7. TERMS OF USE: SOFTWARE 
+
+Software is available for use from the ICES website that is provided as an aid 
+ for data users to work with, analyse and convert 
+ data: http://www.ices.dk/marine-data/tools/Pages/Software.aspx
+
+The downloading and use of any software from http://www.ices.dk/ grants you only
+a limited, nonexclusive license for use solely by you for your own personal use 
+ and not for republication, distribution, assignment, sublicense, sale or other 
+ use. No part of any content, coding or documentation may be reproduced in any 
+ form or incorporated into any information retrieval system without the express
+permission of ICES or the third party that provided the software
+on http://www.ices.dk/
+
+The downloading and installation of software from http://www.ices.dk/ is at your
+own risk. ICES undertakes every effort to ensure software is compatible with the
+latest windows operating system, or other systems as defined in specific readme 
+ or a software documentation file. ICES accepts no responsibility for the correct
+functioning and operation of software downloaded from http://www.ices.dk/, nor 
+ any incidental, special or consequential damages associated with downloading and 
+ installing software provided by ICES.
+
+
+- END OF FILE -
+

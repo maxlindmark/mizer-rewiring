@@ -1,0 +1,3 @@
+I used web plot digitizer to get this data:
+
+httpswww.smhi.seklimatframtidens-klimatklimatscenarier-for-hav#scenario=rcp85,season=year,param=temperature
