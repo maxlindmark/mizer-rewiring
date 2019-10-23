@@ -678,10 +678,14 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
 multispeciesParams <- function(object, interaction,
                     min_w = 0.001, max_w = NA, no_w = 100,
                     min_w_pp = NA, no_w_pp = NA,
-                    n = 2/3, p = 0.7, q = 0.8, mm = NA, r_pp = 2,
+                    #n = 2/3, default from Asta
+                    p = 0.7, 
+                    n = 0.7, # new value from me to fit new default calculation from Gustav 
+                    q = 0.8, mm = NA, r_pp = 2,
                     kappa = 1e11, lambda = (2 + q - n), w_pp_cutoff = 10,
-                    min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), w_bb_cutoff = 10, r_bb = 2,
-                    min_w_aa = 1e-10, kappa_alg = 1e11, lambda_alg = (2 + q - n), w_aa_cutoff = 100, r_aa = 2,
+                    min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), 
+                    w_bb_cutoff = 10, r_bb = 2, min_w_aa = 1e-10, kappa_alg = 1e11, 
+                    lambda_alg = (2 + q - n), w_aa_cutoff = 100, r_aa = 2,
                     t_ref = 10,
                     f0 = 0.6, z0pre = 0.6, z0exp = n - 1,
                     store_kernel = (no_w <=100)) {
@@ -764,18 +768,51 @@ multispeciesParams <- function(object, interaction,
     
     # Sort out h column If not passed in directly, is calculated from f0 and
     # k_vb if they are also passed in
+    
+    # ML (from mizer master branch, 2019.10.23)
+    #' In old version, it filled in any missing values for \code{h} according to
+    #' the formula
+    #' \deqn{h = 3 k_{vb} w_{inf}^{1/3}/ (\alpha f_0)}.
+    #' In the new version it sets \code{h} so that the species reaches maturity 
+    #' size at the age predicted by the von Bertalannfy growth curve parameters
+    #' \code{k_vb} and (optionally \code{t0}) taken from the species parameter
+    #' data frame. Also needs the exponent \code{b} from the length-weight
+    #' relationship \eqn{w = a l^b}. If this is not present in the species
+    #' parameter data frame it is set to \code{b = 3}.
+    
     if (!("h" %in% colnames(object))) {
         object$h <- rep(NA, no_sp)
     }
+    
     if (any(is.na(object$h))) {
         message("Note: \tNo h provided for some species, so using f0 and k_vb to calculate it.")
         if (!("k_vb" %in% colnames(object))) {
             stop("\t\tExcept I can't because there is no k_vb column in the species data frame")
-        }
-        h <- ((3 * object$k_vb) / (object$alpha * f0)) * (object$w_inf ^ (1/3))
+    }
+    
+    # ML:
+    #if (length(object@p) == 1 && object@n != object@p) {
+    #    message("Note: Because you have n != p, the default value is not very good.")
+    #}  
+        # Old default:       
+        # h <- ((3 * object$k_vb) / (object$alpha * f0)) * (object$w_inf ^ (1/3))
         # Only overwrite missing h with calculated values
-        missing <- is.na(object$h)
-        if (any(is.na(h[missing]))) {
+        # missing <- is.na(object$h)
+        
+    #if (!is.null(getOption("mizer_new"))) {
+        # New default:
+        age_mat <- -log(1 - (object$w_mat/object$w_inf)^(1/object$b)) / object$k_vb + object$t0
+        h <- (object$w_mat^(1 - 0.7) - 0.001^(1 - 0.7)) / age_mat / (1 - 0.7) / 0.6 / (f0 - 0.2)
+
+        # Below is the code from github. Above I replace n, alpha and w_min with 
+        # hard coded values
+        # age_mat <- -log(1 - (w_mat/w_inf)^(1/b)) / k_vb + species_params$t0
+        # h <- (w_mat^(1 - n) - w_min^(1 - n)) / age_mat / (1 - n) / params@species_params$alpha / (params@f0 - 0.2)
+      
+     #   }  
+      
+        
+    if (any(is.na(h[missing]))) {
             stop("Could not calculate h, perhaps k_vb is missing?")
         }
         object$h[missing] <- h[missing]
