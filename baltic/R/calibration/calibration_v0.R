@@ -1,8 +1,9 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # 2019.04.16: Max Lindmark
 #
-# Code for calibrating the default a Baltic Sea mizer model (1992-2002). 
-# Here we use a three-species version instead
+# Code for calibrating the default a Baltic Sea mizer model (1992-2002). This is a 
+# standard calibration method, similar to Blanchard et al 2014 J.A.E. In v1 I'm 
+# implementing some new features from unreleased mizer packages.
 # 
 # A. Load parameters and set up objects
 #
@@ -170,6 +171,8 @@ params <- MizerParams(balticParams,
                       w_pp_cutoff = w_pp_cutoff,
                       r_pp = r_pp,
                       r_bb = r_bb)
+
+params@species_params$h
 
 # Project model
 t_max <- 600
