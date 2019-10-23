@@ -1,0 +1,1 @@
+"Exchange Data_2019-04-04 14_32_48_no_flounder.csv" is the same data as "Exchange Data_2019-04-04 14_32_48.csv" but without flounder

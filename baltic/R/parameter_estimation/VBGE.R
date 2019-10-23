@@ -1,4 +1,4 @@
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # 2018.11.20: Max Lindmark
 #
 # - The following code fits VBGE curves to length-at-age data for species used in 
@@ -11,54 +11,47 @@
 #      
 # C. Plot fitted curves against empirical data 
 #
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Questions in progress marked with ***
 
-#======== A. LOAD LIBRARIES =========================================================
+# A. LOAD LIBRARIES ================================================================
 rm(list = ls())
 
-# Provide package names
-pkgs <- c("ggplot2", 
-          "dplyr", 
-          "tidyr", 
-          "FSA", 
-          "FSAdata", 
-          "nlstools", 
-          "devtools", 
-          "viridis")
+# When doing a fresh start I need to check I'm in the right libpath to get the right mizer version
+# .libPaths()
+# .libPaths("C:/Program Files/R/R-3.5.0/library")
 
-# Install packages
-if (length(setdiff(pkgs, rownames(installed.packages()))) > 0) {
-  install.packages(setdiff(pkgs, rownames(installed.packages())))
-}
+# Load libraries, install if needed
+library(ggplot2)
+library(devtools)
+library(RColorBrewer)
+library(dplyr)
+library(tidyr)
+library(viridis)
+library(FSA)
+library(FSAdata)
+library(nlstools)
+# devtools::install_github("thomasp85/patchwork")
+library(patchwork)
 
-# Load all packages
-lapply(pkgs, library, character.only = TRUE)
+# Print package versions
+# print(sessionInfo())
+# other attached packages:
+# [1] mizer_1.1 nlstools_1.0-2 FSAdata_0.3.6 FSA_0.8.22 testthat_2.0.0    
+# [6] patchwork_0.0.1 dplyr_0.8.3 viridis_0.5.1 viridisLite_0.3.0 tidyr_0.8.1       
+# [11] magrittr_1.5 RCurl_1.95-4.10 bitops_1.0-6 RColorBrewer_1.1-2 usethis_1.4.0     
+# [16] devtools_2.0.1 ggplot2_3.1.1      
 
-# Print package version
-script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-baltic-sea/master/R/Functions/package_info.R", ssl.verifypeer = FALSE)
-eval(parse(text = script))
-pkg_info(pkgs)
 
-# Package versions
-# 1 devtools  1.13.6
-# 2    dplyr   0.7.5
-# 3      FSA  0.8.21
-# 4  FSAdata   0.3.6
-# 5  ggplot2   3.0.0
-# 6 nlstools   1.0-2
-# 7    tidyr   0.8.1
-# 8  viridis   0.5.1
-
-#======== B. FIT VBGE BY SPECIES  ===================================================
-#====** BITS (Trawl Survey) ========
+# B. FIT VBGE BY SPECIES  ==========================================================
+#** BITS (Trawl Survey) ============================================================
 # See cleanup_BITS_data for post download processing of data
-dat <- read.csv("Data/BITS/clean_BITS.csv", sep = ",")
+dat <- read.csv("baltic/data/BITS/clean_BITS.csv", sep = ",")
 
 head(dat)
 
-#====** Cod ========
+#**** Cod ==========================================================================
 cod <- dat %>% 
   filter(Species == "Cod") %>% 
   select("AgeRings", "IndWgt", "Species", "Length_cm", "Area_s", "Code_s")
@@ -87,7 +80,26 @@ hist(residuals(fitTypical_c), main = "")
 
 # Confidence intervals better acquired from bootstrapping in nls()
 # bootTypical <- nlsBoot(fitTypical_c, niter = 200) 
-# confint(bootTypical, plot = TRUE)
+# # confint(bootTypical, plot = TRUE)
+# 
+# # Extract prediction interval
+# ests <- bootTypical$coefboot
+# ages2plot <- 0:20
+# cod_LCI <- numeric(length(ages2plot))
+# cod_UCI <- numeric(length(ages2plot))
+# cod_p <- numeric(length(ages2plot))
+# 
+# for (i in 1:length(ages2plot)) {
+#   pv <- ests[,"Linf"]*(1-exp(-ests[,"K"]*(ages2plot[i]-ests[,"t0"])))
+#   cod_p[i] <- quantile(pv,0.5)
+#   cod_LCI[i] <- quantile(pv,0.025)
+#   cod_UCI[i] <- quantile(pv,0.975)
+# }
+# 
+# fitPlot(fitTypical_c, xlab = "Age", ylab = "Total Length (cm)", main = "")
+# lines(cod_p~ages2plot,type="l",col="blue",lwd=2,lty=2)
+# lines(cod_LCI~ages2plot,type="l",col="blue",lwd=2,lty=2)
+# lines(cod_UCI~ages2plot,type="l",col="blue",lwd=2,lty=2)
 
 # Filter data for later plotting
 cod$pred <- predict(fitTypical_c)
@@ -103,7 +115,7 @@ w_inf_cod <- (0.0078*summary(fitTypical_c)$coefficients[1]^3.07) # asymptotic we
 (0.0078*30^3.07) # weight at maturation
 
 
-#====** Sprat ========
+#**** Sprat ========================================================================
 spr <- dat %>% 
   filter(Species == "Sprat") %>% 
   select("AgeRings", "IndWgt", "Species", "Length_cm", "Area_s", "Code_s")
@@ -193,10 +205,11 @@ w_inf_her <- (0.0042*summary(fitTypical_h)$coefficients[1]^3.14) # asymptotic we
 (0.0042*14^3.14) # weight at maturation
 
 
-#======== C. PLOT FITTED CURVES AGAINST DATA ========================================
+# C. PLOT FITTED CURVES AGAINST DATA ===============================================
+col <- colorRampPalette(brewer.pal(5, "Dark2"))(5)
 all_spec <- rbind(her, spr, cod)
 
-#====** Length/weight ~ age ========
+#** Length/weight ~ age ============================================================
 # Free y-axis
 ggplot(all_spec, aes(AgeRings, Length_cm)) +
   facet_wrap(~ Species, ncol = 2, scales = "free_y") + 
@@ -239,18 +252,22 @@ all_spec$pred_g <- ifelse(all_spec$Species == "Cod",
                           0.0078*all_spec$pred^3.07, 
                           all_spec$pred_g)
 
-ggplot(all_spec, aes(AgeRings, Weight_g)) +
-  facet_wrap(~ Species, ncol = 2, scales = "free_y") + 
+# Plot weight ~ age
+p <- ggplot(all_spec, aes(AgeRings, Weight_g)) +
+  facet_wrap(~ Species, ncol = 3, scales = "free_y") + 
   geom_point(size = 3, fill = "black", 
              color = "white", shape = 21, alpha = 0.05) +
-  geom_line(data = all_spec, aes(AgeRings, pred_g), size = 2, color = "red") +
-  theme_bw(base_size = 18) +
-  theme(panel.grid.major = element_line(colour = NA),
-        panel.grid.minor = element_blank()) +
+  geom_line(data = all_spec, aes(AgeRings, pred_g), size = 2, color = col[2]) +
+  theme_classic(base_size = 12) +
   labs(x = "Age [yr]", y = "Weight [g]") +
+  theme(aspect.ratio = 3/4) +
   NULL
 
-#====** Standardized length/weight ~ age ========
+p
+
+ggsave("baltic/figures/VBGE.pdf", plot = p, width = 15, height = 15, units = "cm")
+
+#** Standardized length/weight ~ age ===============================================
 # Here I need to standardize against max (or asymptotic) weight so that I can use the same color density for all species
 all_spec <- all_spec %>% 
   group_by(Species) %>% 
@@ -265,9 +282,11 @@ p <- ggplot(all_spec, aes(age_stand, weight_stand)) +
              color = "white", shape = 21, alpha = 0.1) +
   geom_line(data = all_spec, aes(age_stand, pred_stand), 
             size = 2, color = viridis(n = 1, begin = 0.2)) +
-  theme_bw(base_size = 12) +
+  theme_classic(base_size = 12) +
   labs(x = "Age/max(Age)", y = "Weight/max(Weight)") +
   NULL
+
+p
 
 #ggsave("Figures/VBGE.tiff", plot = p, dpi = 300, width = 15, height = 15, units = "cm")
 

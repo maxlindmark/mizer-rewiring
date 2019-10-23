@@ -1,4 +1,4 @@
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # 2018.11.20: Max Lindmark
 #
 # - The following code fits VBGE curves to length-at-age data for species used in 
@@ -8,74 +8,48 @@
 #
 # B. Cleanup BITS data
 #
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#======== A. LOAD LIBRARIES =========================================================
+# A. LOAD LIBRARIES ================================================================
 rm(list = ls())
 
-# Provide package names
-pkgs <- c("ggplot2", "dplyr", "tidyr", "FSA", "FSAdata", "nlstools")
+# When doing a fresh start I need to check I'm in the right libpath to get the right mizer version
+# .libPaths()
+# .libPaths("C:/Program Files/R/R-3.5.0/library")
 
-# Install packages
-if (length(setdiff(pkgs, rownames(installed.packages()))) > 0) {
-  install.packages(setdiff(pkgs, rownames(installed.packages())))
-}
+# Load libraries, install if needed
+library(ggplot2)
+library(RColorBrewer)
+library(dplyr)
+library(tidyr)
+library(FSA)
+library(FSAdata)
+library(nlstools)
+# devtools::install_github("thomasp85/patchwork")
+library(patchwork)
 
-# Load all packages
-lapply(pkgs, library, character.only = TRUE)
-
-# Print package version
-script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-baltic-sea/master/R/Functions/package_info.R", ssl.verifypeer = FALSE)
-eval(parse(text = script))
-pkg_info(pkgs)
-
-# Package versions
-# 1    dplyr   0.7.5
-# 2      FSA  0.8.22
-# 3  FSAdata   0.3.7
-# 4  ggplot2   3.0.0
-# 5 nlstools   1.0-2
-# 6    tidyr   0.8.1
-
-# See Appendix S1 and Readme.md for details about data sources.
-# For individual-level data (age, length, weight) I use data from the BITS
-#  survey (downloaded manually from DATRAS):
-#  http://www.ices.dk/marine-data/data-portals/Pages/DATRAS.aspx
-
-#    Selection: 
-#      Exchange
-#      CA
-#      BITS
-#      All quarters
-#      1992-2002
-#      All ships
-#      Downloaded: 2019.04.04
-#      Species codes:
-#        https://datras.ices.dk/Data_products/qryspec.aspx
-#        cod:      "126436", "164712"
-#        flounder: "127141", "172894"
-#        herring:  "126417", "161722"
-#        sprat:    "126425", "161789"
+# Print package versions
+# print(sessionInfo())
+# other attached packages:
+# [1] mizer_1.1 nlstools_1.0-2 FSAdata_0.3.6 FSA_0.8.22 testthat_2.0.0    
+# [6] patchwork_0.0.1 dplyr_0.8.3 viridis_0.5.1 viridisLite_0.3.0 tidyr_0.8.1       
+# [11] magrittr_1.5 RCurl_1.95-4.10 bitops_1.0-6 RColorBrewer_1.1-2 usethis_1.4.0     
+# [16] devtools_2.0.1 ggplot2_3.1.1      
 
 
-#======== B. CLEANUP BITS DATA ======================================================
-dat <- read.csv("Data/BITS/Exchange Data_2019-04-04 14_32_48.csv", sep = ",")
+# B. CLEANUP BITS DATA =============================================================
+dat <- read.csv("baltic/data/BITS/Exchange Data_2019-04-04 14_32_48_no_flounder.csv", sep = ";")
 
 str(dat)
 dat$AgeRings <- as.numeric(dat$AgeRings)
 
 dat <- dat %>%
   filter(SpecCode %in% c("126436", "164712",
-                         "127141", "172894",
                          "126417", "161722",
                          "126425", "161789")
          & AgeRings > -1)
 
 dat$Species <- "Cod"
-
-dat$Species <- ifelse(dat$SpecCode %in% c("127141", "172894"),
-                      "Flounder",
-                      dat$Species)
 
 dat$Species <- ifelse(dat$SpecCode %in% c("126417", "161722"),
                       "Herring",
@@ -107,25 +81,7 @@ ggplot(dat, aes(AgeRings, LngtClass)) +
   theme_bw(base_size = 14) +
   NULL
 
-ggplot(dat, aes(AgeRings, Length_cm)) +
-  facet_wrap(~Species, ncol = 2, scales = "free_y") +
-  geom_point() +
-  theme_bw(base_size = 14)
-
-# Some errors I think, let's look at flounder
-dat %>% 
-  filter(Species == "Flounder") %>% 
-  ggplot(., aes(AgeRings, Length_cm, color = LngtCode)) +
-  facet_wrap(~Species, ncol = 2, scales = "free_y") +
-  geom_point() +
-  theme_bw(base_size = 14)
-
-# Obviously a typo, will scale them down
-dat$Length_cm <- ifelse(dat$Species == "Flounder" & dat$Length_cm > 100,
-                        dat$Length_cm / 10,
-                        dat$Length_cm)
-
-# Check again
+# Check again with cm instead of LngtClass
 ggplot(dat, aes(AgeRings, Length_cm)) +
   facet_wrap(~Species, ncol = 2, scales = "free_y") +
   geom_point() +
