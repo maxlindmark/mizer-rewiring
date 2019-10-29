@@ -25,15 +25,13 @@ modelParams <- balticParams
 # B. Create list to hold parameters to be optimized
 startpars <- list()
 
-# Which parameters you want to optimise
-# Startpars$names <- c("gamma", "erepro", "r_max", "regeneration", "availability", "inter")
-
+# Which parameters do you want to optimise
 startpars$names <- c("r_max")
 
 # Log scale!
 startpars$r_max <- log(modelParams$r_max) 
 
-# C. Define gamma multiplier
+# C. Define r_max multiplier
 startpars$multiplier <- 100000
 
 # D. Define hard bounds (lower and upper)
@@ -42,6 +40,5 @@ startpars$upper_hard_bound <- 1e5
 startpars$lower_hard_bound <- 1e-5
 
 # Lastly, use the list to create a vector of parameters to be optimised. This is because optim takes a vector, not a list
-
 start_vector <- c(startpars$r_max)
 print(start_vector)
