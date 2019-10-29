@@ -184,12 +184,13 @@ m1 <- project(params,
               diet_steps = 10,
               t_max = t_max) 
 
-plotSpectra(m1, algae = FALSE)
 
 m1@params@linetype <- rep("solid", 6)
 
 # Check dynamics and density
 plotBiomass(m1) + theme_classic(base_size = 14)
+
+plotSpectra(m1, algae = FALSE)
 
 
 #**** Check growth =======================================================================
@@ -231,7 +232,7 @@ params2_upd <- MizerParams(params2@species_params,
                            r_bb = r_bb)
 
 # Project model
-t_max <- 200
+t_max <- 400
 
 m2 <- project(params2_upd,
               dt = dt,
