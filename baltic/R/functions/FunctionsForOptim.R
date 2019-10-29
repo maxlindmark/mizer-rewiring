@@ -1,66 +1,64 @@
 # This code was provided by Asta Audzijonyte, here modified to my needs
 # The error function has is modified code from Reum et al (2018) Oikos
 
-#==== General params ====
+# General params ===================================================================
 # Number of size groups 
 no_size_groups = 100
 
 # Timestep used in the integration 
-dt = 0.2
+dt = 0.1
 
 # How many years to run the model for each optimiser round.
-tmax = 100 
+tmax = 200 
 
 # Fishing mortality for calibrations. This is overall mean for calibration period, see abundance_F_time series
 effort = c(Cod = 0.899, Herring = 0.340, Sprat = 0.306)
 
 
-#==== Optimization params ====
+# Optimization params ==============================================================
 # Initialize count of function evaluations
 optimizer_count = 0
 
 # How many years to calculate base the error on
 meansteps.par <- 30 
 
-#==== Upper and lower bound functions ====
+# Upper and lower bound functions ==================================================
 # This function will take the upper multiplier values and set upper bounds
 upper_bounds <- function(startpars) {  
   
   # Set an empty vector for upper values
   upper_value <- list()
   
-  if (length(startpars[['rmax']]) > 0) {
-    startpars.t <- startpars$rmax
-    t_ind <- which(startpars$names == "rmax")
+  if (length(startpars[['r_max']]) > 0) {
+    startpars.t <- startpars$r_max
+    t_ind <- which(startpars$names == "r_max")
     upper_value.t <- startpars.t + log(startpars$multiplier[t_ind])
     upper_value.t[c(which(upper_value.t > log(startpars$upper_hard_bound[t_ind])))] <- log(startpars$upper_hard_bound[t_ind])
-    upper_value$rmax <- upper_value.t
+    upper_value$r_max <- upper_value.t
   }
 
     return(unlist(upper_value))
 }
 
-# This function will take the lowe multiplier values and set upper bounds
+# This function will take the lower multiplier values and set upper bounds
 lower_bounds <- function(startpars) {  
   
   # Set an empty vector for upper values
   lower_value <- list()
   
-  if(length(startpars[['rmax']]) > 0) {
-    startpars.t <- startpars$rmax
-    t_ind <- which(startpars$names == "rmax")
+  if(length(startpars[['r_max']]) > 0) {
+    startpars.t <- startpars$r_max
+    t_ind <- which(startpars$names == "r_max")
     lower_value.t <- startpars.t - log(startpars$multiplier[t_ind])
     lower_value.t[c(which(lower_value.t < log(startpars$lower_hard_bound[t_ind])))] <- log(startpars$lower_hard_bound[t_ind])
-    lower_value$rmax <- lower_value.t
+    lower_value$r_max <- lower_value.t
   }
   
   return(unlist(lower_value))
 }
 
 
-#==== Error functions ====
-#*** I will start with Rmax, then potentially something growth-related
-
+# Error functions ==================================================================
 # Berror_SSB_TOT: calculates the residual sum of square (RSS) based on SSB for species and model output
 errorSSB <- function(model_run, meansteps = meansteps.par){
   
@@ -87,7 +85,7 @@ errorSSB <- function(model_run, meansteps = meansteps.par){
 }
 
 
-#==== Function to run model ====
+# Function to run model ============================================================
 
 run_model <- function(params, tmax, effort) {
   
@@ -98,7 +96,7 @@ run_model <- function(params, tmax, effort) {
 }
 
 
-#==== Main optimization function ====
+# Main optimization function =======================================================
 # The optim function uses fn function to calculate errors
 # This function will take parameter values from the optim function, will take my mizer object params to run the model (run_model function), and a few other thing
 
@@ -122,10 +120,10 @@ calibratePar_Baltic <- function(start_vector,
   no_sp <- length(modelParams$species)
   count = 0 
 
-  if(length(startpars[['rmax']]) > 0) {
+  if(length(startpars[['r_max']]) > 0) {
   modelParams$r_max <- exp(start_vector[c((count+1):(count + no_sp))])
-  count = count + length(startpars[['rmax']])
-  print("updated rmax")
+  count = count + length(startpars[['r_max']])
+  print("updated r_max")
   print(count)
   }
 
@@ -135,16 +133,16 @@ calibratePar_Baltic <- function(start_vector,
   params <- MizerParams(modelParams, 
                         no_w = no_size_groups,
                         store_kernel = F,
-                        kappa_ben = 6, # 2 with erepro = 0.1 across,
-                        kappa = 6, # 2 with erepro = 0.1 across,
+                        kappa_ben = 1,
+                        kappa = 1,
                         w_bb_cutoff = 20,
                         w_pp_cutoff = 1,
                         r_pp = 4,
                         r_bb = 4)
   
-  # Increase maximum consumption rates by a factor 1.7
+  # Increase maximum consumption rates by a factor 1.75
   h <- params@species_params$h
-  params@species_params$h <- h * 1.7
+  params@species_params$h <- h * 1.75
   
   # Remove gamma, because it needs to be recalculated using the new h. 
   params@species_params <- subset(params@species_params,
@@ -154,8 +152,8 @@ calibratePar_Baltic <- function(start_vector,
   params_upd <- MizerParams(params@species_params,
                             no_w = no_size_groups,
                             store_kernel = F,
-                            kappa_ben = 6, # 2 with erepro = 0.1 across,
-                            kappa = 6, # 2 with erepro = 0.1 across,
+                            kappa_ben = 1,
+                            kappa = 1,
                             w_bb_cutoff = 20,
                             w_pp_cutoff = 1,
                             r_pp = 4,
