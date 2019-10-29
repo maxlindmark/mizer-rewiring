@@ -17,6 +17,8 @@
 #-Move below to analysis-script?
 # Or where do I split?
 # When I validate with time series I need temperature, so I should probably:
+#
+# 0. Test if I can get better FMSY plots by reducing the optimal r_max, first for sprat, then for all. What is it I should optimize? Is it minimizing FMSY or correlation with time series? How do I weight those two? First make a simple test.... This is tricky. It's not like the h, which we at least can say yields values between the two extremes, see 
 # 1. Add temperature of resource params (change code)
 # 2. Read in temperature data in the Load data section
 # 3. Do model validation with and without temperature, i.e. borrow code from below. 
@@ -238,8 +240,6 @@ m1@params@linetype <- rep("solid", 6)
 # Check dynamics and density
 plotBiomass(m1) + theme_classic(base_size = 14)
 
-plotSpectra(m1, algae = FALSE)
-
 
 #**** Check growth =======================================================================
 # Growth rates are extremely low
@@ -269,10 +269,8 @@ kappa_ben <- 1
 kappa <- 1
 
 # Increase maximum consumption rates by a factor 1.75
-params2@species_params$species
-params2@species_params$h[1] <- params@species_params$h[1] * 1.5 # cod
-params2@species_params$h[2] <- params@species_params$h[2] * 2.2 # sprat 
-params2@species_params$h[3] <- params@species_params$h[3] * 2.2 # herring 
+params2@species_params$h <- params@species_params$h * 1.75
+#params2@species_params$h <- params@species_params$h * c(1.5, 2.2, 2.2)
 
 # Remove gamma, because it needs to be recalculated using the new h. 
 params2@species_params <- subset(params2@species_params,
@@ -518,6 +516,7 @@ rdi / params3_upd@species_params$r_max
 
 # **** which is more important? rdd to rdi or rmax? rmax right? what's a good value for the ratio?
 
+
 #**** Diet =========================================================================
 # This is Jon's function 
 # Looks OK, but clear that we need size-varying theta
@@ -530,153 +529,13 @@ plotDietComp(m3, prey = dimnames(m3@diet_comp)$prey[1:5]) +
   NULL
 
 
-# D. VALIDATE WITH TIME SERIES =====================================================
-#**** Set up time varying effort ===================================================
-# In this section I will try out and summarize different ways to get time series validation (burn in etc)
-
-# This procedure is based on the Mizer vignette
-# Read in historical F
-f_history <- as.matrix(
-  ssb_f %>% 
-    filter(Year > 1973 & Year < 2013 & !Species == "Flounder") %>% 
-    select(Year, Species, Fm) %>% 
-    spread(Species, Fm) %>%
-    select(Cod, Herring, Sprat)
-)
-
-rownames(f_history) <- 1974:2012  # If I wan the full time series, do: 1974:2012. Now I just to 10 years prior and after
-
-# Before projecting forward, we want to remove the transient dynamics.
-# Judging from the last projection, 40 yrs burn in seems ok.
-# We also start the time series at 1974 (1992-2002 for calibration)
-# That means we start the simulation to get a time series free from transients 
-# by starting from 1974-burnin
-plotBiomass(m3) + theme_classic(base_size = 14)
-
-burnin <- 40
-
-# Here I use the F at the first time step of the series, as in 'mizer'
-initial_effort <- matrix(f_history[1, ], # colMeans(f_history[1:19, ])
-                         byrow = TRUE,
-                         nrow = burnin,
-                         ncol = ncol(f_history), 
-                         dimnames = list(1934:1973)) 
-
-all_effort <- rbind(initial_effort, f_history)
-
-dimnames(all_effort)
-
-# Now project forward with the effort matrix
-# When effort is provided as an array, the t_max argument is not used, but is taken from dimensions of effort.
-# Temperature must match the time steps in length (temperature = rep(params@t_ref, times = t_max))
-# from "project" code
-time_effort <- as.numeric(dimnames(all_effort)[[1]])
-t_max <- time_effort[length(time_effort)]
-
-m4 <- project(params3_upd, 
-              dt = 0.1,
-              effort = all_effort,
-              temperature = rep(10, 2012),
-              diet_steps = 10,
-              t_max = t_max) 
-
-m4@params@linetype <- rep("solid", 6)
-
-# Full time series including burn in
-plotBiomass(m4) + theme_classic(base_size = 14)
-
-# From 1974 and forward
-plotBiomass(m4) + 
-  theme_classic(base_size = 14) +
-  xlim(1974, 2014) +
-  ylim(1, 12)
-
-
-#**** Compare with assessment data =================================================
-pred_ssb <- data.frame(getSSB(m4))
-pred_ssb$Year <- rownames(getSSB(m4))
-pred_ssb$source <- "Predicted"
-
-# Convert to long data frame (1 obs = 1 row)
-pred_ssb_l <- pred_ssb %>% 
-  filter(Year > 1973) %>% 
-  gather(Species, ssb_g.m2, 1:3)
-
-# Scale up from g/m2 to 10^6 kg / Baltic
-pred_ssb_l$SSB <- pred_ssb_l$ssb_g.m2 * (balticParams$sd25.29.32_m.2) / (1e9)
-
-pred_ssb_l <- pred_ssb_l %>% select(-ssb_g.m2)
-
-str(pred_ssb_l)
-
-# Now do observed ssb
-obs_ssb_l <- ssb_f %>%
-  filter(Year > 1973) %>% 
-  select(Species, Year, SSB)
-
-obs_ssb_l$source <- "Observed"
-
-str(obs_ssb_l)
-
-# And finally trawl survey index
-# Need to add it on secondary axis in that case, maybe I won't add it afterall
-# obs_tsb_l <- ssb_f %>%
-#   filter(Year > 1973) %>% 
-#   select(Species, Year, TSB)
-# obs_tsb_l$source <- "Survey CPUE"
-# colnames(obs_tsb_l)[3] <- "SSB" # Rename column for plotting purposes
-# str(obs_tsb_l)
-
-# Combine observed and predicted SSB
-dat <- data.frame(rbind(obs_ssb_l, pred_ssb_l))
-dat$Year <- as.integer(dat$Year)
-
-# Normalize to maximum within species
-dat <- dat %>% 
-  drop_na() %>% 
-  ungroup() %>% 
-  group_by(Species) %>% 
-  mutate(test = max(SSB)) %>% 
-  mutate(SSB_norm = SSB / max(SSB))
-
-df <- data.frame(g = rep(c("a", "b"), each = 5),
-                 y = runif(n=10))
-
-df %>% 
-  group_by(g) %>% 
-  mutate(y_norm = y/max(y))
-
-# Get mean data for calibration period
-# For some reason this doesn't work with ggplot???
-# mdat <- data.frame(filter(mean_ssb_F, !Species == "Flounder"))
-
-# Plot predicted and observed ssb by species, normalize by max within species
-ggplot(dat, aes(Year, SSB_norm, linetype = source, color = source)) +
-  facet_wrap(~ Species, ncol = 3, scales = "free") +
-  geom_rect(data = ref_time, inherit.aes = FALSE, 
-            aes(xmin = min(Year), 
-                xmax = max(Year),
-                ymin = 0,
-                ymax = 1),
-            fill  = "gray50", alpha = 0.05) +
-  geom_line(size = 1.7, alpha = 1) +
-  # geom_point(data = mdat, aes(Year, mean_SSB), size = 1.2) + This is not really working atm
-  scale_linetype_manual(values = c("solid", "twodash")) +
-  scale_color_manual(values = col) +
-  theme(aspect.ratio = 1) +
-  ylab("SSB (1000 tonnes)") +
-  theme_classic(base_size = 12) +
-  scale_y_continuous(expand = c(0, 0)) +
-  #coord_cartesian(xlim = c(1980, 2010)) + # This is the time frame used in Jacobsen et al 
-  NULL
-
-
 #**** Estimate FMSY from model - compare with assessment ===========================
 # In lack of a better approach, I will just for-loop different F, extract Yield, plot
 # over F. I will increase each species F separately, keeping the others at their mean
 
 F_range <- seq(0.2, 1.4, 0.01)
 t_max <- 75
+
 
 #****** Cod ========================================================================
 # Mean F in calibration time
@@ -858,6 +717,146 @@ ggplot(asses_mod_FMSY, aes(Species, FMSY, shape = Source, fill = Source)) +
   scale_shape_manual(values = seq(21, 25)) +
   theme_classic(base_size = 16)
 
+
+# D. VALIDATE WITH TIME SERIES =====================================================
+#**** Set up time varying effort ===================================================
+# In this section I will try out and summarize different ways to get time series validation (burn in etc)
+
+# This procedure is based on the Mizer vignette
+# Read in historical F
+f_history <- as.matrix(
+  ssb_f %>% 
+    filter(Year > 1973 & Year < 2013 & !Species == "Flounder") %>% 
+    select(Year, Species, Fm) %>% 
+    spread(Species, Fm) %>%
+    select(Cod, Herring, Sprat)
+)
+
+rownames(f_history) <- 1974:2012  # If I wan the full time series, do: 1974:2012. Now I just to 10 years prior and after
+
+# Before projecting forward, we want to remove the transient dynamics.
+# Judging from the last projection, 40 yrs burn in seems ok.
+# We also start the time series at 1974 (1992-2002 for calibration)
+# That means we start the simulation to get a time series free from transients 
+# by starting from 1974-burnin
+plotBiomass(m3) + theme_classic(base_size = 14)
+
+burnin <- 40
+
+# Here I use the F at the first time step of the series, as in 'mizer'
+initial_effort <- matrix(f_history[1, ], # colMeans(f_history[1:19, ])
+                         byrow = TRUE,
+                         nrow = burnin,
+                         ncol = ncol(f_history), 
+                         dimnames = list(1934:1973)) 
+
+all_effort <- rbind(initial_effort, f_history)
+
+dimnames(all_effort)
+
+# Now project forward with the effort matrix
+# When effort is provided as an array, the t_max argument is not used, but is taken from dimensions of effort.
+# Temperature must match the time steps in length (temperature = rep(params@t_ref, times = t_max))
+# from "project" code
+time_effort <- as.numeric(dimnames(all_effort)[[1]])
+t_max <- time_effort[length(time_effort)]
+
+m4 <- project(params3_upd, 
+              dt = 0.1,
+              effort = all_effort,
+              temperature = rep(10, 2012),
+              diet_steps = 10,
+              t_max = t_max) 
+
+m4@params@linetype <- rep("solid", 6)
+
+# Full time series including burn in
+plotBiomass(m4) + theme_classic(base_size = 14)
+
+# From 1974 and forward
+plotBiomass(m4) + 
+  theme_classic(base_size = 14) +
+  xlim(1974, 2014) +
+  ylim(1, 12)
+
+
+#**** Compare with assessment data =================================================
+pred_ssb <- data.frame(getSSB(m4))
+pred_ssb$Year <- rownames(getSSB(m4))
+pred_ssb$source <- "Predicted"
+
+# Convert to long data frame (1 obs = 1 row)
+pred_ssb_l <- pred_ssb %>% 
+  filter(Year > 1973) %>% 
+  gather(Species, ssb_g.m2, 1:3)
+
+# Scale up from g/m2 to 10^6 kg / Baltic
+pred_ssb_l$SSB <- pred_ssb_l$ssb_g.m2 * (balticParams$sd25.29.32_m.2) / (1e9)
+
+pred_ssb_l <- pred_ssb_l %>% select(-ssb_g.m2)
+
+str(pred_ssb_l)
+
+# Now do observed ssb
+obs_ssb_l <- ssb_f %>%
+  filter(Year > 1973) %>% 
+  select(Species, Year, SSB)
+
+obs_ssb_l$source <- "Observed"
+
+str(obs_ssb_l)
+
+# And finally trawl survey index
+# Need to add it on secondary axis in that case, maybe I won't add it afterall
+# obs_tsb_l <- ssb_f %>%
+#   filter(Year > 1973) %>% 
+#   select(Species, Year, TSB)
+# obs_tsb_l$source <- "Survey CPUE"
+# colnames(obs_tsb_l)[3] <- "SSB" # Rename column for plotting purposes
+# str(obs_tsb_l)
+
+# Combine observed and predicted SSB
+dat <- data.frame(rbind(obs_ssb_l, pred_ssb_l))
+dat$Year <- as.integer(dat$Year)
+
+# Normalize to maximum within species
+dat <- dat %>% 
+  drop_na() %>% 
+  ungroup() %>% 
+  group_by(Species) %>% 
+  mutate(test = max(SSB)) %>% 
+  mutate(SSB_norm = SSB / max(SSB))
+
+df <- data.frame(g = rep(c("a", "b"), each = 5),
+                 y = runif(n=10))
+
+df %>% 
+  group_by(g) %>% 
+  mutate(y_norm = y/max(y))
+
+# Get mean data for calibration period
+# For some reason this doesn't work with ggplot???
+# mdat <- data.frame(filter(mean_ssb_F, !Species == "Flounder"))
+
+# Plot predicted and observed ssb by species, normalize by max within species
+ggplot(dat, aes(Year, SSB_norm, linetype = source, color = source)) +
+  facet_wrap(~ Species, ncol = 3, scales = "free") +
+  geom_rect(data = ref_time, inherit.aes = FALSE, 
+            aes(xmin = min(Year), 
+                xmax = max(Year),
+                ymin = 0,
+                ymax = 1),
+            fill  = "gray50", alpha = 0.05) +
+  geom_line(size = 1.7, alpha = 1) +
+  # geom_point(data = mdat, aes(Year, mean_SSB), size = 1.2) + This is not really working atm
+  scale_linetype_manual(values = c("solid", "twodash")) +
+  scale_color_manual(values = col) +
+  theme(aspect.ratio = 1) +
+  ylab("SSB (1000 tonnes)") +
+  theme_classic(base_size = 12) +
+  scale_y_continuous(expand = c(0, 0)) +
+  #coord_cartesian(xlim = c(1980, 2010)) + # This is the time frame used in Jacobsen et al 
+  NULL
 
 
 #**** Extra plots ==================================================================
