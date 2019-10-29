@@ -678,9 +678,9 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
 multispeciesParams <- function(object, interaction,
                     min_w = 0.001, max_w = NA, no_w = 100,
                     min_w_pp = NA, no_w_pp = NA,
-                    #n = 2/3, default from Asta
+                    n = 2/3, # default from Asta & metaanalysis
                     p = 0.7, 
-                    n = 0.7, # new value from me to fit new default calculation from Gustav 
+                    # n = 0.75, # new value from me to fit new default calculation from Gustav 
                     q = 0.8, mm = NA, r_pp = 2,
                     kappa = 1e11, lambda = (2 + q - n), w_pp_cutoff = 10,
                     min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), 
@@ -795,19 +795,20 @@ multispeciesParams <- function(object, interaction,
     #    message("Note: Because you have n != p, the default value is not very good.")
     #}  
         # Old default:       
-        # h <- ((3 * object$k_vb) / (object$alpha * f0)) * (object$w_inf ^ (1/3))
+        h <- ((3 * object$k_vb) / (object$alpha * f0)) * (object$w_inf ^ (1/3))
         # Only overwrite missing h with calculated values
-        # missing <- is.na(object$h)
+        missing <- is.na(object$h)
         
     #if (!is.null(getOption("mizer_new"))) {
         # New default:
-        age_mat <- -log(1 - (object$w_mat/object$w_inf)^(1/object$b)) / object$k_vb + object$t0
-        h <- (object$w_mat^(1 - 0.7) - 0.001^(1 - 0.7)) / age_mat / (1 - 0.7) / 0.6 / (f0 - 0.2)
+        #age_mat <- -log(1 - (object$w_mat/object$w_inf)^(1/object$b)) / object$k_vb + object$t0
+        #age_mat <- -log(1 - (object$w_mat/object$w_inf)^(1/3)) / object$k_vb + 0
+        #h <- (object$w_mat^(1 - 0.75) - 0.001^(1 - 0.75)) / age_mat / (1 - 0.75) / 0.6 / (f0 - 0.2)
 
         # Below is the code from github. Above I replace n, alpha and w_min with 
         # hard coded values
-        # age_mat <- -log(1 - (w_mat/w_inf)^(1/b)) / k_vb + species_params$t0
-        # h <- (w_mat^(1 - n) - w_min^(1 - n)) / age_mat / (1 - n) / params@species_params$alpha / (params@f0 - 0.2)
+        #age_mat <- -log(1 - (w_mat/w_inf)^(1/b)) / k_vb + species_params$t0
+        #h <- (w_mat^(1 - n) - w_min^(1 - n)) / age_mat / (1 - n) / params@species_params$alpha / (params@f0 - 0.2)
       
      #   }  
       
