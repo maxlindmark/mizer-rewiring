@@ -142,8 +142,7 @@ calibratePar_Baltic <- function(start_vector,
   
   # Increase maximum consumption rates by a factor (or species-specific factor)
   h <- params@species_params$h
-  #params@species_params$h <- h * c(1.5, 2.2, 2.2)
-  params@species_params$h <- h * 1.75
+  params@species_params$h <- h * 1.5
   
   # Remove gamma, because it needs to be recalculated using the new h. 
   params@species_params <- subset(params@species_params,
