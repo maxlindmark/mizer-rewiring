@@ -11,6 +11,8 @@
 #      
 # C. Plot fitted curves against empirical data 
 #
+# D. Save clean data frames
+#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Questions in progress marked with ***
@@ -290,3 +292,59 @@ p
 
 #ggsave("Figures/VBGE.tiff", plot = p, dpi = 300, width = 15, height = 15, units = "cm")
 
+
+# D. SAVE CLEAN DATAFRAMES FOR MAIN SCRIPTS ========================================
+# First create a prediction data frame:
+balticParams <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/params/species_params.csv"), sep = ";")
+
+age <- 0:20
+
+vbge <- data.frame(
+  Species = rep(c("Cod", "Sprat", "Herring"), each = 21),
+  age = rep(age, 3),
+  k_vb = rep(balticParams$k_vb, each = 21),
+  w_inf = rep(balticParams$w_inf, each = 21),
+  t_0 = rep(c(-0.936095, -2.97395, -3.739548), each = 21),
+  b = rep(c(3.07, 3.15, 3.14), each = 21),                
+  w_mat = rep(balticParams$w_mat, each = 21)) 
+
+# Calculate weight at age
+vbge$weight <- vbge$w_inf*(1-exp(-vbge$k_vb*(vbge$age - vbge$t_0)))^vbge$b
+
+ggplot(vbge, aes(age, weight)) + 
+  geom_line(size = 2) + 
+  facet_wrap(~Species, scales = "free_y", ncol = 3) +
+  geom_hline(data = vbge, aes(yintercept = w_mat), color = "gray30") +
+  theme_classic(base_size = 18)
+
+# Save as data frame
+#write.csv(vbge, "baltic/data/vbge_pred.csv")
+
+# Now clean up raw data
+vbgedat <- read.csv("C:/R_STUDIO_PROJECTS/mizer-rewiring-baltic/baltic/data/BITS/clean_BITS.csv", sep = ",")
+str(vbgedat)
+
+vbgedat <- vbgedat %>% filter(Species %in% c("Cod", "Herring", "Sprat"))
+
+vbgedat$Weight_g <- NA 
+
+# See weight_length-script or Appendix for these parameters
+vbgedat$Weight_g <- ifelse(vbgedat$Species == "Herring",
+                           0.0042*vbgedat$Length_cm^3.14, 
+                           vbgedat$Weight_g)
+
+vbgedat$Weight_g <- ifelse(vbgedat$Species == "Sprat",
+                           0.0041*vbgedat$Length_cm^3.15, 
+                           vbgedat$Weight_g)
+
+vbgedat$Weight_g <- ifelse(vbgedat$Species == "Cod",
+                           0.0078*vbgedat$Length_cm^3.07, 
+                           vbgedat$Weight_g)
+
+str(vbgedat)
+
+vbgedat <- vbgedat %>% select(c("AgeRings", "Weight_g", "Species", "Length_cm"))
+
+str(vbgedat)
+
+#write.csv(vbgedat, "baltic/data/vbge_data.csv")
