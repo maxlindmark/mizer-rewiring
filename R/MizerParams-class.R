@@ -539,18 +539,20 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
     # cbbPalette <- c("#000000", "#009E73", "#e79f00", "#9ad0f3", "#0072B2", "#D55E00", 
     #                 "#CC79A7", "#F0E442")
     # From http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette
-    cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", 
-                    "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-    linecolour <- rep(cbbPalette, length.out = no_sp)
+    # cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", 
+    #                 "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+    cbbPalette <- colorRampPalette(brewer.pal(5, "Dark2"))(5)
+    
+    linecolour <- rep(cbbPalette, length.out = no_sp) #ML
     names(linecolour) <- as.character(species_names)
     # ML: added algae and benthos
     linecolour <- c(linecolour, "Total" = "black", "Plankton" = "green", "Benthos" = "brown", "Algae" = "yellow",
                     "Background" = "grey")
-    linetype <-rep(c("solid", "dashed", "dotted", "dotdash", "longdash", 
-                     "twodash"), length.out = no_sp)
+    # linetype <-rep(c("solid", "dashed", "dotted", "dotdash", "longdash", 
+    #                  "twodash"), length.out = no_sp)
+    linetype <-rep("solid", length.out = no_sp) # ML
     names(linetype) <- as.character(species_names)
-    linetype <- c(linetype, "Total" = "solid", "Plankton" = "dashed", "Benthos" = "dotted", "Algae" = "dotdash",
-                  "Background" = "longdash")
+    linetype <- c(linetype, "Total" = "solid", "Plankton" = "dashed", "Benthos" = "dotted", "Algae" = "dotdash", "Background" = "longdash")
     
     # Make the new object
     # Should Z0, rrPP and ccPP have names (species names etc)?
