@@ -365,7 +365,12 @@ setClass(
         initial_n_aa = "numeric",
         lambda_alg = "numeric",
         kappa_alg = "numeric",
-        t_ref = "numeric"
+        t_ref = "numeric",
+        ea_gro = "numeric", # ML: activation energy of resource growth
+        ca_gro = "numeric", # ML: size dep of activation for growth, not relevant but needed for tempFun
+        ea_car = "numeric", # ML: activation energy of resource carrying capacity
+        ca_car = "numeric"  # ML: size dep of activation for carrying cap, not relevant but needed for tempFun
+        
     ),
     prototype = prototype(
         w = NA_real_,
@@ -381,6 +386,10 @@ setClass(
         f0 = NA_real_,
         kappa = NA_real_,
         t_ref = NA_real_,
+        ea_gro = NA_real_, # ML
+        ca_gro = NA_real_, # ML
+        ea_car = NA_real_, # ML
+        ca_car = NA_real_, # ML
         psi = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
         initial_n = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
         intake_max = array(NA,dim = c(1,1), dimnames = list(sp = NULL,w = NULL)),
@@ -541,9 +550,9 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
     # From http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette
     # cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", 
     #                 "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+    # ML: changed default palette...
     cbbPalette <- colorRampPalette(brewer.pal(5, "Dark2"))(5)
-    
-    linecolour <- rep(cbbPalette, length.out = no_sp) #ML
+    linecolour <- rep(cbbPalette, length.out = no_sp)
     names(linecolour) <- as.character(species_names)
     # ML: added algae and benthos
     linecolour <- c(linecolour, "Total" = "black", "Plankton" = "green", "Benthos" = "brown", "Algae" = "yellow",
@@ -688,6 +697,10 @@ multispeciesParams <- function(object, interaction,
                     min_w_bb = 1e-10, kappa_ben = 1e11, lambda_ben = (2 + q - n), 
                     w_bb_cutoff = 10, r_bb = 2, min_w_aa = 1e-10, kappa_alg = 1e11, 
                     lambda_alg = (2 + q - n), w_aa_cutoff = 100, r_aa = 2,
+                    ea_gro = 0, # ML
+                    ca_gro = 0, # ML
+                    ea_car = 0, # ML
+                    ca_car = 0, # ML
                     t_ref = 10,
                     f0 = 0.6, z0pre = 0.6, z0exp = n - 1,
                     store_kernel = (no_w <=100)) {
@@ -1168,6 +1181,10 @@ multispeciesParams <- function(object, interaction,
     res@lambda_alg <- lambda_alg
     res@kappa_alg <- kappa_alg
     res@t_ref <- t_ref
+    res@ea_gro <- ea_gro # ML
+    res@ca_gro <- ca_gro # ML
+    res@ea_car <- ea_car # ML
+    res@ca_car <- ca_car # ML
     #print(res@w)
     
     # If not w_min column in species_params, set to w_min of community
