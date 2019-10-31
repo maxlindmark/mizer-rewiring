@@ -15,10 +15,6 @@
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# TO DO
-# 1. Add temperature of resource params (change code)
-# 2. Continue in the code
-
 # A. LOAD LIBRARIES ================================================================
 rm(list = ls())
 
