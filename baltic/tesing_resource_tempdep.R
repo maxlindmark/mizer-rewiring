@@ -238,7 +238,6 @@ tail(getSSB(m1), 2)
 # 26 0.0003235197 4.582229 0.1581226
 # 27 0.0003894221 5.236273 0.1945952
 
-
 # Ok, biomasses are changing at 12C also when only the resource-parameters change, meaning they have an effect.
 # If the resource activation energies are set to 0, I should get the same SSB as in m1
 
