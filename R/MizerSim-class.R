@@ -130,12 +130,14 @@ setClass(
         n_pp = "array",
         n_bb = "array",
         n_aa = "array",
-        diet_comp="array",
+        diet_comp = "array",
         temperature = "matrix",
         metTempScalar = "array",
         matTempScalar = "array",
         morTempScalar = "array",
-        intTempScalar = "array"
+        intTempScalar = "array",
+        groTempScalar = "array", # ML: slot for scalars in sim object
+        carTempScalar = "array"  # ML: slot for scalars in sim object
     ),
     prototype = prototype(
         params = new("MizerParams"),
@@ -171,6 +173,12 @@ setClass(
         ),
         intTempScalar = array(
           NA, dim = c(1,1,1), dimnames = list(sp = NULL, w = NULL, temperature = NULL)
+        ),
+        groTempScalar = array(
+          NA, dim = c(1,1), dimnames = list(temperature = NULL, w = NULL)
+        ),
+        carTempScalar = array(
+          NA, dim = c(1,1), dimnames = list(temperature = NULL, w = NULL)
         )
     ),
     validity = valid_MizerSim
