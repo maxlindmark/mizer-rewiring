@@ -372,13 +372,70 @@ tail(getSSB(m7), 2)
 
 # TO DO: Test with time-varying temperature! First recap how that is constructed... then compare to a scalar that i calculate straight from the tempFun. In both cases, plot the scalar!
 
+params8 <- MizerParams(balticParams,
+                       kappa_ben = kappa_ben,
+                       kappa = kappa,
+                       w_bb_cutoff = w_bb_cutoff,
+                       w_pp_cutoff = w_pp_cutoff,
+                       r_pp = r_pp,
+                       r_bb = r_bb,
+                       ea_gro = 0.63,
+                       ea_car = -0.63)
+
+params8@species_params$ea_met <- 0
+params8@species_params$ea_int <- 0
+params8@species_params$ea_mat <- 0
+params8@species_params$ea_mor <- 0
+params8@species_params
+
+# Create a temperature-vector that is as long as t_max
+temperature <- rnorm(mean = 10, sd = 2, t_max)
+
+m8 <- project(params8,
+              temperature = temperature,
+              dt = 0.1,
+              effort = effort,
+              diet_steps = 10,
+              t_max = t_max) 
+
+tail(getSSB(m8), 2)
+# > tail(getSSB(m8), 2)
+# sp
+# time          Cod    Sprat   Herring
+# 26 0.0006575440 6.321939 0.2620813
+# 27 0.0008102771 6.731523 0.3198012
+
+# Now test if I can retrieve the scalar:
+str(m8)
+
+m8_groTempScalar <- m8@groTempScalar
+
+str(m8_groTempScalar)
+class(m8_groTempScalar)
+head(m8_groTempScalar)
+dim(m8_groTempScalar)
+
+# Ok, so I want the columns now (270, for each iteration). There are 10 identical column names (dim names) because dt = 0.1.
+
+# Now plot scalar as a function of temperature (large points):
+plot(rep(temperature, each = 1/dt), m8_groTempScalar[1, ], cex = 2)
+
+# And the equation:
+fun_groTempScalar <- tempFun(temperature = temperature, 
+                             t_ref = 10, Ea = 0.63, c_a = 0, 
+                             w = 1)
+
+str(fun_groTempScalar)
+class(fun_groTempScalar)
+
+# Add points to the plot
+points(rep(temperature, each = 1/dt),
+       rep(fun_groTempScalar[1,], each = 10), 
+       col = "red", pch = 16)
 
 
 
-
-
-
-
+# Lastly, test with time varying effort as well. Test that in the calibration script...
 
 
 
