@@ -727,19 +727,52 @@ nrow(projectTemp)
 # m4_cons: constant temperature (10C)
 # In the next section I will evalute their fit to assessment data
 
-m4 <- project(params3_upd, 
-              dt = 0.1,
-              effort = projectEffort_ct,
-              temperature = projectTemp$temperature,
-              diet_steps = 10,
-              t_max = t_max,
-              t_ref = 10) 
+# No temperature effects on the resource
+params_cons <- params3_upd
+m4_cons <- project(params_cons, 
+                   dt = 0.1,
+                   effort = projectEffort_ct,
+                   temperature = projectTemp$temperature,
+                   diet_steps = 10,
+                   t_max = t_max,
+                   t_ref = 10) 
 
 # Full time series including burn in
-plotBiomass(m4) + theme_classic(base_size = 14)
+plotBiomass(m4_cons) + theme_classic(base_size = 14)
 
 # From 1974 and forward 
-plotBiomass(m4) + 
+plotBiomass(m4_cons) + 
+  theme_classic(base_size = 14) +
+  xlim(41, 120) +
+  NULL
+
+
+# With temperature effects on the resource
+params_temp <- MizerParams(params3_upd@species_params,
+                           kappa_ben = kappa_ben,
+                           kappa = kappa,
+                           w_bb_cutoff = w_bb_cutoff,
+                           w_pp_cutoff = w_pp_cutoff,
+                           r_pp = r_pp,
+                           r_bb = r_bb,
+                           ea_gro = 0.85,
+                           ea_car = -0.425)
+
+params3_upd@species_params
+
+m4_temp <- project(params_temp, 
+                   dt = 0.1,
+                   effort = projectEffort_ct,
+                   temperature = projectTemp$temperature,
+                   diet_steps = 10,
+                   t_max = t_max,
+                   t_ref = 10) 
+
+# Full time series including burn in
+plotBiomass(m4_temp) + theme_classic(base_size = 14)
+
+# From 1974 and forward 
+plotBiomass(m4_temp) + 
   theme_classic(base_size = 14) +
   xlim(41, 120) +
   NULL
@@ -760,13 +793,22 @@ obs_ssb_l$source <- "Observed"
 
 obs_ssb_l$Year_ct <- (obs_ssb_l$Year-(1974))+(61) # 1974 is first year, t_1 needs to be one. Then +60 to match predicted
 
-#**** CONTINUE HERE! ADD MODELS FROM TWO PROJECTIONS IN A CLEAN WAY ================
-# Predicted ssb
-pred_ssb <- data.frame(getSSB(m4))
-pred_ssb$Year_ct <- as.numeric(rownames(getSSB(m4)))
-pred_ssb$Year <- pred_ssb$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-pred_ssb$source <- "Predicted"
-str(pred_ssb)
+# Predicted ssb - no temp dep resource
+pred_ssb_cons <- data.frame(getSSB(m4_cons))
+pred_ssb_cons$Year_ct <- as.numeric(rownames(getSSB(m4_cons)))
+pred_ssb_cons$Year <- pred_ssb_cons$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+pred_ssb_cons$source <- "No resource temp"
+str(pred_ssb_cons)
+
+# Predicted ssb - with temp on resource
+pred_ssb_temp <- data.frame(getSSB(m4_temp))
+pred_ssb_temp$Year_ct <- as.numeric(rownames(getSSB(m4_temp)))
+pred_ssb_temp$Year <- pred_ssb_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+pred_ssb_temp$source <- "With resource temp"
+str(pred_ssb_temp)
+
+# Combine
+pred_ssb <- rbind(pred_ssb_cons, pred_ssb_temp)
 
 # Convert to long data frame (1 obs = 1 row)
 # The first year with real effort is 1974. This is year 61 with centered time (1974-1914 +1),
@@ -802,8 +844,8 @@ dat %>% filter(Year < 2012) %>%
                 ymax = 1),
             fill  = "gray90") +
   geom_line(size = 1.5, alpha = 0.8) +
-  scale_linetype_manual(values = c("twodash", "solid")) +
-  scale_color_manual(values = rev(col[1:2])) +
+  scale_linetype_manual(values = c("solid", "twodash", "solid")) +
+  scale_color_manual(values = rev(col)) +
   theme(aspect.ratio = 1) +
   labs(y = "SSB/max(SSB)", x = "Year") +
   theme_classic(base_size = 14) +
@@ -811,37 +853,72 @@ dat %>% filter(Year < 2012) %>%
   theme(aspect.ratio = 1/2) +
   NULL
 
+
 #**** Calculate and plot correlation coefficients ==================================
 obs_df <- filter(dat, source == "Observed" & Year < 2013)
-pred_df <- filter(dat, source == "Predicted" & Year < 2013)
+pred_cons_df <- filter(dat, source == "No resource temp" & Year < 2013)
+pred_temp_df <- filter(dat, source == "With resource temp" & Year < 2013)
 
 cor_df <- data.frame(Year = obs_df$Year,
                      Obs = obs_df$SSB,
-                     Pred = pred_df$SSB,
+                     Pred_cons = pred_cons_df$SSB,
+                     Pred_temp = pred_temp_df$SSB,
                      Species = obs_df$Species)
 
-# All in one:
-cors <- ddply(cor_df, c("Species"), summarise, cor = round(cor(Pred, Obs), 2))
+# Calculate correlations between predictions from no_resource_temp and observations
+cors_con <- ddply(cor_df, c("Species"), summarise, cor = round(cor(Pred_cons, Obs), 2))
 
 # Plot correlation between predicted and observed
-ggplot(cor_df, aes(Obs, Pred, color = Year)) +
+p3 <- ggplot(cor_df, aes(Obs, Pred_cons, color = Year)) +
   facet_wrap(~ Species, ncol = 3, scales = "free") +
   geom_abline(slope = 1, intercept = 0, color = "red", size = 0.7) +
   geom_point(size = 2.5) +
   labs(y = "Predicted", x = "Observed") +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) + 
-  geom_text(data = cors, aes(label = paste("r = ", cor, sep = "")), 
-            x = Inf, y = Inf, vjust = 12, hjust = 1.1,  
+  geom_text(data = cors_con, aes(label = paste("r = ", cor, sep = "")), 
+            x = Inf, y = Inf, vjust = 20, hjust = 1.1,  
             fontface = "italic", size = 4, inherit.aes = FALSE) +
   scale_color_viridis(option = "cividis") +
   theme(aspect.ratio = 1) +
+  ggtitle("No temperature-dependence on resource") +
   NULL
+
+# Calculate correlations between predictions from resource_temp and observations
+cors_tem <- ddply(cor_df, c("Species"), summarise, cor = round(cor(Pred_temp, Obs), 2))
+
+p4 <- ggplot(cor_df, aes(Obs, Pred_temp, color = Year)) +
+  facet_wrap(~ Species, ncol = 3, scales = "free") +
+  geom_abline(slope = 1, intercept = 0, color = "red", size = 0.7) +
+  geom_point(size = 2.5) +
+  labs(y = "Predicted", x = "Observed") +
+  theme_classic(base_size = 14) +
+  scale_y_continuous(expand = c(0, 0)) + 
+  geom_text(data = cors_tem, aes(label = paste("r = ", cor, sep = "")), 
+            x = Inf, y = Inf, vjust = 20, hjust = 1.1,  
+            fontface = "italic", size = 4, inherit.aes = FALSE) +
+  scale_color_viridis(option = "cividis") +
+  theme(aspect.ratio = 1) +
+  ggtitle("With temperature-dependence on resource") +
+  NULL
+
+# Plot together
+p3/p4
+
+# Temperature-dependence does not really improve time series fit. But that does not mean 
+# temperature is not worth including
 
 
 #**** Brief summary UPDATE THIS ====================================================
 # Overall I suppose this is a fairly OK calibration (process)
 # growth rates became OK after increasing Cmax by a factor of 1.75
+
+# ssb fits really well to the average F and SSB in the calibration period. This was done using r_max.
+# recruitment looks ok to. There is some density dependence in the model (90% of r_max, r_phys = 10 * rec)
+# rec:r_max could be lower, but the important thing is they respond to F
+# They seem to do that actually more than in the data, so that's likely ok
+# Yet, the predicted dynamics are changing less compared to observed, and in general it doesn't capture regime shifts (amplitude is off). However this is not strange given that the model essentially only uses fishing as input whereas environment likely casued the gadoid outburst seen in the data. 
+
 
 # These are the default h-values:
 # > params@species_params$h
@@ -855,54 +932,3 @@ ggplot(cor_df, aes(Obs, Pred, color = Year)) +
 # [1]  31.48966 148.51985  37.07342
 
 # So the 1.7 are between the two equations, which seems OK
-
-# ssb fits really well to the average F and SSB in the calibration period. This was done using r_max.
-# recruitment looks ok to. There is some density dependence in the model (90% of r_max, r_phys = 10 * rec)
-# rec:r_max could be lower, but the important thing is they respond to F
-# They seem to do that actually more than in the data, so that's likely ok
-# Yet, the predicted dynamics are changing less compared to observed, and in general it doesn't capture regime shifts (amplitude is off). However this is not strange given that the model essentially only uses fishing as input whereas environment likely casued the gadoid outburst seen in the data. 
-
-
-#**** Extra plots ==================================================================
-# Plot SSB vs F in data
-head(ssb_f)
-
-ssb_f_2 <- ssb_f %>% 
-  filter(Year > 1973 & Year < 2013) %>% 
-  mutate(Fm_lag_1 = lag(Fm, 1),
-         Fm_lag_2 = lag(Fm, 2),
-         SSB_pred = filter(dat, source == "Predicted")$SSB) %>% 
-  select(Species, Year, SSB, SSB_pred, Fm, Fm_lag_1, Fm_lag_2) %>% 
-  gather(source, SSB, 3:4)
-
-# No lag
-ggplot(ssb_f_2, aes(Fm, SSB, color = source)) + 
-  scale_color_manual(values = col[c(1,3)]) +
-  geom_point(size = 4, alpha = 0.8) +
-  stat_smooth(method = "gam") +
-  facet_wrap(~Species, scales = "free") +
-  theme_classic(base_size = 12) +
-  scale_y_continuous(expand = c(0, 0)) +
-  NULL
-
-# Lag 1
-ggplot(ssb_f_2, aes(Fm_lag_1, SSB, color = source)) + 
-  scale_color_manual(values = col[c(1,3)]) +
-  geom_point(size = 4, alpha = 0.8) +
-  stat_smooth(method = "gam") +
-  facet_wrap(~Species, scales = "free") +
-  theme_classic(base_size = 12) +
-  scale_y_continuous(expand = c(0, 0)) +
-  NULL
-
-# Lag 2
-ggplot(ssb_f_2, aes(Fm_lag_2, SSB, color = source)) + 
-  scale_color_manual(values = col[c(1,3)]) +
-  geom_point(size = 4, alpha = 0.8) +
-  stat_smooth(method = "gam") +
-  facet_wrap(~Species, scales = "free") +
-  theme_classic(base_size = 12) +
-  scale_y_continuous(expand = c(0, 0)) +
-  NULL
-
-
