@@ -18,10 +18,6 @@
 # A. LOAD LIBRARIES ================================================================
 rm(list = ls())
 
-# When doing a fresh start I need to check I'm in the right libpath to get the right mizer version
-# .libPaths()
-# .libPaths("C:/Program Files/R/R-3.5.0/library")
-
 # Load libraries, install if needed
 library(ggplot2)
 library(devtools)
@@ -55,7 +51,7 @@ cols = c(2:4, 8) # Baltic area need special care...
 balticParams[, cols] %<>% lapply(function(x) as.numeric(as.character(x)))
 str(balticParams)
 
-# Add area of Baltic (roughly Baltic proper) as a column
+# Add area of Baltic SD 25-29+32 (roughly Baltic proper) as a column
 balticParams$sd25.29.32_m.2 <- 2.49e+11
 
 
@@ -135,7 +131,9 @@ effort = c(Cod = balticParams$AveEffort[1],
 
 
 #** 1. Find starting value for kappa ===============================================
-# Given the default model, what should kappa be to get ssb in the same order of magnitude? This is just an iterative process, since well opimize r_max to minimize residual sum of squares (RSS) between predicted and observed SSB
+# Given the default model, what should kappa be to get ssb in the same order of magnitude? 
+# This is just an iterative process, since well opimize r_max to minimize residual sum of 
+# squares (RSS) between predicted and observed SSB
 dt <- 0.1
 
 # These are the values I choose (lowest kappa with coexistence, found them iteratively).
@@ -316,8 +314,31 @@ m3 <- project(params3_upd,
 # Check dynamics and density
 plotBiomass(m3) + theme_classic(base_size = 14)
 
+spect <- plotSpectra(m3, algae = F) + 
+  scale_color_manual(values = rev(col)) +
+  theme_classic(base_size = 18) + 
+  theme(aspect.ratio = 3/4) +
+  NULL
+
+# Check feeding level
+feedlev <- plotFeedingLevel(m3) + 
+  theme_classic(base_size = 18) + 
+  theme(aspect.ratio = 3/4) +
+  NULL
+
+spect / feedlev
+
+#ggsave("baltic/figures/supp/spect_feedlev.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
 
 #**** Check growth =======================================================================
+# Check feeding level
+plotFeedingLevel(m3) + 
+  theme_classic(base_size = 16) + 
+  theme(aspect.ratio = 3/4) +
+  NULL
+#ggsave("baltic/figures/supp/feeding_level.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
 # Check growth rate are reasonable
 plotGrowthCurves(m3, max_age = 15) + 
   scale_color_manual(values = rep(col[1], 3)) +
@@ -328,13 +349,15 @@ plotGrowthCurves(m3, max_age = 15) +
   geom_hline(data = vbge_pred, aes(yintercept = w_mat), 
              color = "black", size = 0.8, linetype = 2) +
   geom_line(aes(x = Age, y = value), 
-            color = col[1], size = 1.4) +
+            color = col[5], size = 1.3, alpha = 0.8) +
   geom_line(data = subset(vbge_pred, age < 16), aes(age, weight), 
-            color = col[2], size = 1.4, linetype = "twodash") +
+            color = col[4], size = 1.3, linetype = "twodash", alpha = 0.8) +
   guides(color = FALSE, linetype = FALSE) +
-  theme_classic(base_size = 12) + 
+  theme_classic(base_size = 10) + 
   theme(aspect.ratio = 3/4) +
   NULL
+
+#ggsave("baltic/figures/VBGE_model_data.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 # They still look OK after calibration
 
@@ -350,32 +373,40 @@ ssb_eval <- data.frame(SSB = c(obs, pred),
 
 p1 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) + 
   geom_point(size = 6, alpha = 0.8) +
-  scale_fill_manual(values = col) +
+  scale_fill_manual(values = rev(col)) +
   scale_shape_manual(values = c(24, 21),
                      guide = guide_legend(override.aes = list(colour = "black", 
                                                               fill = "black",
                                                               size = 4))) + 
   labs(x = "", y = "Spawning stock biomass (millions kg)") +
-  theme_classic(base_size = 14) +
+  theme_classic(base_size = 12) +
   guides(fill = FALSE) +
-  theme(legend.position = c(0.15, .85),
+  theme(legend.position = c(.85, .2),
         legend.title = element_blank(),
-        aspect.ratio = 1)
+        aspect.ratio = 1) + 
+  annotate("text", -Inf, Inf, label = "A", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
+  NULL
 
 ssb_eval_l <- data.frame(obs = log10(obs), pred = log10(pred), Species = balticParams$species)
 
 p2 <- ggplot(ssb_eval_l, aes(obs, pred, fill = Species, shape = Species)) +
   geom_point(size = 6, alpha = 0.8) +
-  scale_fill_manual(values = col) +
+  scale_fill_manual(values = rev(col)) +
   scale_shape_manual(values = c(21, 22, 24)) +
   labs(x = "Log10(Observed SSB)", y = "Log10(Predicted SSB)") +
   geom_abline(slope = 1, intercept = 0, color = "red", linetype = 2) +
-  theme_classic(base_size = 14) +
-  theme(legend.position = c(0.15, .85),
+  theme_classic(base_size = 12) +
+  theme(legend.position = c(.85, .2),
         legend.title = element_blank(),
-        aspect.ratio = 1)
+        aspect.ratio = 1) +
+  annotate("text", -Inf, Inf, label = "B", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
+  NULL
 
 p1 + p2  
+
+#ggsave("baltic/figures/supp/SSB_fit.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 #**** Recruitment & density dependence =============================================
@@ -407,15 +438,17 @@ rec <- data.frame(Species = names(rdi),
                   "RDI/RDD" = rdi/rdd)
 
 ggplot(rec, aes(Species, RDI.RDD, color = Species, shape = Species)) +
-  scale_color_manual(values = col) +
+  scale_color_manual(values = rev(col)) +
   labs(x = "", y = "RDI / RDD") +
-  theme_classic(base_size = 14) +
+  theme_classic(base_size = 25) +
   geom_abline(intercept = 1, slope = 0, color = "gray30", 
               linetype = 2, size = 1) +
-  geom_point(size = 5) +
-  theme(legend.position = c(0.15, 0.85),
+  geom_point(size = 8) +
+  theme(legend.position = c(0.85, 0.85),
         legend.title = element_blank(),
         aspect.ratio = 1)
+
+#ggsave("baltic/figures/supp/RDI_RDD.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 # Get RDD to rmax ratio
 rdd / params3_upd@species_params$r_max
@@ -428,12 +461,15 @@ rdi / params3_upd@species_params$r_max
 # This is Jon's function 
 # Looks OK, but clear that we need size-varying theta
 plotDietComp(m3, prey = dimnames(m3@diet_comp)$prey[1:5]) + 
-  theme_classic(base_size = 14) +
+  theme_classic(base_size = 12) +
   scale_fill_manual(values = rev(col),
                     labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+  theme(aspect.ratio = 1) +
   NULL
+
+#ggsave("baltic/figures/supp/diet.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 #**** Estimate FMSY from model - compare with assessment ===========================
@@ -545,10 +581,14 @@ ggplot(herFmsy, aes(Fm, Y)) + geom_line()
 #****** All together ===============================================================
 Fmsy <- rbind(codFmsy, sprFmsy, herFmsy)
 
-ggplot(Fmsy, aes(Fm, Y, color = Species)) + 
-  geom_line() +
-  scale_color_manual(values = col) +
-  theme_classic(base_size = 14)
+fmsy1 <- ggplot(Fmsy, aes(Fm, Y, color = Species)) + 
+  geom_line(alpha = 0.8) +
+  scale_color_manual(values = rev(col)) +
+  theme_classic(base_size = 14) +
+  annotate("text", -Inf, Inf, label = "A", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
+  labs(x = "Fishing mortality [1/year]", y = "Yield") +
+  NULL
 
 # Now plot FMSY from model and assessment
 # Since FMSY is not available for the entire time period, I will take FMSY values
@@ -580,12 +620,19 @@ herassesFMSY <- data.frame(Source = c("Single Species Assessment",
 
 asses_mod_FMSY <- rbind(codassesFMSY, sprassesFMSY, herassesFMSY)
 
-ggplot(asses_mod_FMSY, aes(Species, FMSY, shape = Source, fill = Source)) + 
+fmsy2 <- ggplot(asses_mod_FMSY, aes(Species, FMSY, shape = Source, fill = Source)) + 
   geom_point(size = 6, alpha = 0.7, color = "white") +
   scale_color_manual(values = col) +
   scale_fill_manual(values = col) +
   scale_shape_manual(values = seq(21, 25)) +
-  theme_classic(base_size = 16)
+  theme_classic(base_size = 14) +
+  annotate("text", -Inf, Inf, label = "B", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
+  NULL
+
+fmsy1 / fmsy2
+
+#ggsave("baltic/figures/supp/FMSY.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 # D. VALIDATE WITH TIME SERIES =====================================================
@@ -657,7 +704,7 @@ plotEffort <- data.frame(projectEffort)
 
 plotEffort$Year <- as.numeric(as.character(rownames(projectEffort)))
 
-plotEffort %>% 
+eff <- plotEffort %>% 
   gather(Species, Effort, 1:3) %>% 
   ggplot(., aes(Year, Effort, color = Species)) +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
@@ -672,17 +719,20 @@ plotEffort %>%
                 ymin = 0,
                 ymax = 1.4),
             fill  = "gray80") +
-  geom_line(size = 1.3) +
+  geom_line(size = 1.3, alpha = 0.8) +
   theme_classic(base_size = 15) +
   scale_y_continuous(expand = c(0, 0)) +
-  scale_color_manual(values = col) +
-  theme(aspect.ratio = 3/4) +
+  scale_color_manual(values = rev(col)) +
+  theme(aspect.ratio = 3/4, legend.position = c(.2, .85),
+        legend.title = element_blank()) +
   labs(x = "Year", y = "Fishing mortality (F)") +
+  annotate("text", -Inf, Inf, label = "A", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
 #**** Set up time varying temperature ==============================================
 # Plot temperature data
-ggplot(tempDat, aes(Year.num, mean_temp)) +
+temp <- ggplot(tempDat, aes(Year.num, mean_temp)) +
   theme_classic(base_size = 15) +
   scale_y_continuous(expand = c(0, 0)) +
   theme(aspect.ratio = 3/4) +
@@ -695,7 +745,16 @@ ggplot(tempDat, aes(Year.num, mean_temp)) +
   geom_hline(yintercept = 0, size = 1, alpha = 0.8, linetype = 2) +
   geom_line(size = 1.3, col = col[1]) +
   labs(x = "Year", y = "Change in Baltic Sea SST (RCP8.5)") +
+  annotate("text", -Inf, Inf, label = "B", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
+
+# Plot effort and temperature
+
+eff / temp
+
+#ggsave("baltic/figures/supp/effort_temp.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
 
 # For calibration I use mean effort.
 # The temperature data is relative to a mean. By adding 10C, it becomes relative to 10
@@ -785,7 +844,7 @@ obs_ssb_l <- ssb_f %>%
   filter(Year > 1973) %>% 
   select(Species, Year, SSB)
 
-obs_ssb_l$source <- "Observed"
+obs_ssb_l$source <- "Stock assessment"
 
 # Centering year so that 1974 is Year_ct = 61
 #projectEffort
@@ -852,6 +911,8 @@ dat %>% filter(Year < 2012) %>%
   scale_y_continuous(expand = c(0, 0)) +
   theme(aspect.ratio = 1/2) +
   NULL
+
+#ggsave("baltic/figures/supp/time_series_pred_ssb.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 #**** Calculate and plot correlation coefficients ==================================

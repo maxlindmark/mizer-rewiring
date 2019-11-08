@@ -551,7 +551,7 @@ emptyParams <- function(object, min_w = 0.001, max_w = 1000, no_w = 100,
     # cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", 
     #                 "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
     # ML: changed default palette...
-    cbbPalette <- colorRampPalette(brewer.pal(5, "Dark2"))(5)
+    cbbPalette <- rev(colorRampPalette(brewer.pal(5, "Dark2"))(5))
     linecolour <- rep(cbbPalette, length.out = no_sp)
     names(linecolour) <- as.character(species_names)
     # ML: added algae and benthos

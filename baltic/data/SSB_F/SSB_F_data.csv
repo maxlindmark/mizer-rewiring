@@ -1,4 +1,4 @@
-Species;Year;TSB;SSB;F;AgesforMeanF;BiomassUnit_in_kg;Source
+Species;Year;TSB;SSB;Fm;AgesforMeanF;BiomassUnit_in_kg;Source
 Cod;1966;347.319;169.906;0.948;4_to_6;10^6;ICES_WGBFAS_2013
 Cod;1967;410.446;213.63;1.214;4_to_6;10^6;ICES_WGBFAS_2013
 Cod;1968;412.504;226.613;1.058;4_to_6;10^6;ICES_WGBFAS_2013

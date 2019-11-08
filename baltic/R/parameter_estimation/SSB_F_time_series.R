@@ -10,46 +10,35 @@
 #      
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Questions in progress marked with ***
-
 #======== A. LOAD LIBRARIES =========================================================
+# A. LOAD LIBRARIES ================================================================
 rm(list = ls())
 
-# Provide package names
-pkgs <- c("ggplot2", "dplyr", "tidyr", "viridis", "devtools")
-
-# Install packages
-if (length(setdiff(pkgs, rownames(installed.packages()))) > 0) {
-  install.packages(setdiff(pkgs, rownames(installed.packages())))
-}
-
-# Load all packages
-lapply(pkgs, library, character.only = TRUE)
-
-# Print package version
-script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-baltic-sea/master/R/Functions/package_info.R", ssl.verifypeer = FALSE)
-eval(parse(text = script))
-pkg_info(pkgs)
-
-# Package versions
-# 1 devtools  1.13.6
-# 2    dplyr   0.7.5
-# 3  ggplot2   3.0.0
-# 4    tidyr   0.8.1
-# 5  viridis   0.5.1
-
+# Load libraries, install if needed
+library(ggplot2)
+library(devtools)
+library(RColorBrewer)
+library(dplyr)
+library(tidyr)
+library(viridis)
 # devtools::install_github("thomasp85/patchwork")
 library(patchwork)
-# packageVersion("patchwork") # v.0.0.1
+
+# UPDATE
+# Print package versions
+# print(sessionInfo())
+# other attached packages:
+# [1] mizer_1.1 nlstools_1.0-2 FSAdata_0.3.6 FSA_0.8.22 testthat_2.0.0    
+# [6] patchwork_0.0.1 dplyr_0.8.3 viridis_0.5.1 viridisLite_0.3.0 tidyr_0.8.1       
+# [11] magrittr_1.5 RCurl_1.95-4.10 bitops_1.0-6 RColorBrewer_1.1-2 usethis_1.4.0     
+# [16] devtools_2.0.1 ggplot2_3.1.1      
 
 
 #======== B. PLOT F AND (RELATIVE) ABUNDANCE ========================================
 # Read stock assessment and survey index data. See Appendix S1.
-dat <- read.csv("Data/SSB_F/SSB_F_data.csv", sep = ";")
+dat <- read.csv("baltic/data/SSB_F/SSB_F_data.csv", sep = ";")
 
 head(dat)
-
-dat <- dat %>% rename(Fm = F) # Bad idea to call a column F in R
 
 # Create dataframes with mean SSB and F for calibration period plotting
 min_cal_yr <- 1992
@@ -62,9 +51,12 @@ ref_time <- data.frame(Year = c(min_cal_yr, max_cal_yr),
 
 mean_ssb_F <- dat %>% 
   filter(Year >= min_cal_yr & Year <= max_cal_yr) %>% 
-  group_by(Species) %>% 
-  mutate(mean_SSB = mean(SSB),
+  dplyr::group_by(Species) %>% 
+  dplyr::mutate(mean_SSB = mean(SSB),
          mean_F   = mean(Fm))
+
+# Define palette
+col <- rev(colorRampPalette(brewer.pal(5, "Dark2"))(5))
 
 # Plot trawl survey index
 tsb <- ggplot(dat, aes(Year, TSB, color = Species)) +
@@ -73,11 +65,10 @@ tsb <- ggplot(dat, aes(Year, TSB, color = Species)) +
                 xmax = max(Year),
                 ymin = min(TSB),
                 ymax = max(TSB)),
-            fill  = "black", alpha = 0.1) +
-  geom_line(size = 2) +
-  #guides(color = FALSE) +
+            fill = "black", alpha = 0.1) +
+  geom_line(size = 2, alpha = 0.8) +
   theme(aspect.ratio = 1) +
-  scale_color_viridis(discrete = TRUE) +
+  scale_color_manual(values = col) +
   theme_classic(base_size = 20) +
   scale_y_continuous(expand = c(0, 0)) +
   NULL
@@ -90,10 +81,10 @@ ssb <- ggplot(dat, aes(Year, SSB, color = Species)) +
                 ymin = 0,
                 ymax = max(SSB)),
             fill  = "black", alpha = 0.1) +
-  geom_line(size = 2) +
+  geom_line(size = 2, alpha = 0.8) +
   theme(aspect.ratio = 1) +
   ylab("SSB (10^3 tonnes)") +
-  scale_color_viridis(discrete = TRUE) +
+  scale_color_manual(values = col) +
   theme_classic(base_size = 20) +
   scale_y_continuous(expand = c(0, 0)) +
   NULL
@@ -111,16 +102,18 @@ ssb2 <- dat %>%
                 ymin = 0,
                 ymax = max(SSB)),
             fill  = "black", alpha = 0.1) +
-  geom_line(size = 1.2) +
+  geom_line(size = 1.2, alpha = 0.8) +
   geom_point(data = filter(mean_ssb_F, Species %in% c("Cod", "Sprat", "Herring")), 
              aes(Year, mean_SSB), size = 1.2) +
   theme(aspect.ratio = 1) +
   ylab("SSB (1000 tonnes)") +
-  scale_color_viridis(discrete = TRUE) +
+  scale_color_manual(values = col) +
   theme_classic(base_size = 12) +
   scale_y_continuous(expand = c(0, 0)) +
   guides(color = FALSE) +
   theme(aspect.ratio = 1) +
+  annotate("text", -Inf, Inf, label = "A", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
 f <- dat %>% 
@@ -132,20 +125,22 @@ f <- dat %>%
                 ymin = 0,
                 ymax = max(Fm)),
             fill  = "black", alpha = 0.1) +
-  geom_line(size = 1.2) +
+  geom_line(size = 1.2, alpha = 0.8) +
   geom_point(data = filter(mean_ssb_F, Species %in% c("Cod", "Sprat", "Herring")), 
              aes(Year, mean_F), size = 1.2) +
   theme(aspect.ratio = 1) +
   ylab("F") +
-  scale_color_viridis(discrete = TRUE) +
+  scale_color_manual(values = col) +
   theme_classic(base_size = 12) +
   scale_y_continuous(expand = c(0, 0)) +
   theme(aspect.ratio = 1) +
+  annotate("text", -Inf, Inf, label = "B", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-p <- ssb2 + f
+ssb2 + f
 
-ggsave("Figures/SSB_F.tiff", plot = p, dpi = 300, width = 19, height = 19, units = "cm")
+#ggsave("baltic/figures/supp/SSB_F.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 # Get mean SSB and F for Appendix and calibration data

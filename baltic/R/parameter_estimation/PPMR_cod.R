@@ -16,8 +16,6 @@
 #======== A. LOAD LIBRARIES AND READ DATA ========
 rm(list = ls())
 
-# ************ THIS IS JUST A DRAFT
-
 # Load packages
 # install.packages("ggplot2")
 # install.packages("dplyr")
@@ -216,7 +214,5 @@ dat_agg %>%
            vjust = 1, hjust = 1) +
   NULL
 
-ggsave("baltic/figures/supp/PPMR.pdf", plot = last_plot(), width = 15, height = 15, units = "cm")
-
-
+#ggsave("baltic/figures/supp/PPMR.pdf", plot = last_plot(), width = 15, height = 15, units = "cm")
 

@@ -20,10 +20,6 @@
 # A. LOAD LIBRARIES ================================================================
 rm(list = ls())
 
-# When doing a fresh start I need to check I'm in the right libpath to get the right mizer version
-# .libPaths()
-# .libPaths("C:/Program Files/R/R-3.5.0/library")
-
 # Load libraries, install if needed
 library(ggplot2)
 library(devtools)
