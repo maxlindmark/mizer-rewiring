@@ -1,21 +1,72 @@
-## IN PREP
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# 2019.11.16: Max Lindmark
+#
+# Code for analyzing the Baltic Sea mizer model. The params-object is saved in the
+# calibration_v1 code. 
+# 
+# A. Load libraries and read in data and parameters
+#
+# B. Define functions to extract stuf from mizer
+#
+# C. Individual growth trajectories in default fishing scenario and random temp-effects
+#
+# D. Temperature-driven changes in abundance size-spectra
+#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Borrow code from calibration.
-# Do variations of the following analysis:
+# A. LOAD LIBRARIES ================================================================
+rm(list = ls())
 
-# F. Vary effort given warming scenarios
-# G. Test time (temperature)-varying kappa
+# Load libraries, install if needed
+library(ggplot2)
+library(devtools)
+library(RColorBrewer)
+library(RCurl)
+library(magrittr)
+library(viridis)
+library(tidyr)
+library(dplyr)
+# devtools::install_github("thomasp85/patchwork")
+library(patchwork)
 
-# Some preliminary code for that is below
+# Install and reload local mizer package
+devtools::load_all(".")
+
+# Print package versions
+# print(sessionInfo())
+# other attached packages:
+# [1] mizer_1.1 testthat_2.0.0 patchwork_0.0.1 dplyr_0.8.1 tidyr_0.8.3       
+# [6] viridis_0.5.1 viridisLite_0.3.0 magrittr_1.5 RCurl_1.95-4.12 bitops_1.0-6      
+# [11] RColorBrewer_1.1-2 usethis_1.4.0 devtools_2.0.2 ggplot2_3.1.1  
+
+#**** Read in parameters and data ==================================================
+# Read in params object
+params <- readRDS("baltic/params/mizer_param_calib.rds")
+
+# Read in params object
+ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
+
+# Read in effort and temperature for projections
+projectEffort <- read.csv("baltic/params/projectEffort.csv")[, 2:4]
+projectTemp <- read.csv("baltic/params/projectTemp.csv")
+
+projectEffort_m <- as.matrix(projectEffort)
+rownames(projectEffort_m) <- 1:nrow(projectEffort)
+
+# Define general parameters
+t_max <- 2000
+dt <- 0.2
+t_ref <- 10
+kappa_ben = 1
+kappa = 1
+w_bb_cutoff = 20
+w_pp_cutoff = 1
+r_pp = 4
+r_bb = 4
 
 
-#**** Plot growth rates ============================================================
-# Here I need to extract the data that goes into the the plotGrowthCurves function.
-# Copy and edit the function to only extract data. Do that for multiple models and plot
-
-# 1. Changes in growth: calibration period relative to warming. 
-
-# Define new function
+# B. DEFINE FUNCTIONS ==============================================================
+# Define new function to get length at age
 getGrowth <- function(object, species,
                       max_age = 20, percentage = FALSE, print_it = TRUE) {
   if (is(object, "MizerSim")) {
@@ -48,72 +99,6 @@ getGrowth <- function(object, species,
   }    
 }
 
-# Test if correct:
-# growth_warm <- getGrowth(m6)
-# plotGrowthCurves(m6, species = "Cod") + 
-#   geom_line(data = subset(growth_warm, Species == "Cod"), aes(Age, value), color = "red", linetype = "dashed")
-
-# Get growth data for all scenarios to be compared
-# With projected temperature (until 2050)
-growth_warm <- getGrowth(m6)
-growth_warm$Scenario <- "Warm"
-
-# With constant temperature (until 2050)
-growth_con <- getGrowth(m5)
-growth_con$Scenario <- "Constant"
-
-# Only calibration scenario
-# growth_cal <- getGrowth(m4)
-# growth_cal$Scenario <- "Calibration"
-
-# Combine
-growth_df <- rbind(growth_con, growth_warm)
-
-# Plot together
-growth_df %>% filter(Age < 15) %>% 
-  ggplot(., aes(Age, value, color = Scenario, linetype = Scenario)) + 
-  geom_line(size = 1.5, alpha = 0.8) +
-  labs(y = "Size (g)") +
-  facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(expand = c(0, 0)) + 
-  scale_color_manual(values = c(brewer.pal(n = 8, name = "RdBu")[8], brewer.pal(n = 8, name = "RdBu")[1])) +
-  scale_linetype_manual(values = c("solid", "twodash")) + 
-  theme_classic(base_size = 14) +
-  theme(aspect.ratio = 3/4) +
-  NULL
-
-# Test plotting % instead:
-growth_warm <- getGrowth(m6)
-growth_warm$Scenario <- "Warm"
-
-# With constant temperature (until 2050)
-growth_con <- getGrowth(m5)
-growth_con$Scenario <- "Constant"
-
-# Now with percentage instead
-growth_df_wide <- data.frame(Age = growth_warm$Age,
-                             value = growth_warm$value / growth_con$value,
-                             Species = growth_warm$Species)
-
-growth_df_wide %>% filter(Age < 15 & Age > 0) %>% 
-  ggplot(., aes(Age, value)) + 
-  geom_hline(yintercept = 1, size = 0.5, alpha = 0.8, color = "red") +
-  geom_line(size = 1.5, alpha = 0.8, color = col[2]) +
-  labs(y = "Relative Size (Warm/Constant)") +
-  facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(limits = c(0.85, 1.05), expand = c(0, 0)) + 
-  theme_classic(base_size = 14) +
-  theme(aspect.ratio = 3/4) +
-  NULL
-
-
-#**** Plot size spectra ============================================================
-# Here I need to extract the data that goes into the the plotSpectra function.
-# Copy and edit the function to only extract data. Do that for multiple models and plot
-
-# 2. Changes in size-spectra relative to calibration period. Fig. 4 from Blanchard et al 2012, but lines don’t represent countries but species. Extract numbers at size. Plot difference. Check the @n for spectra, don't know which one for yield
-
-# Plot difference in spectra between warming and constant. 
 
 # Create getSpectra function..
 getSpectra <- function(object){
@@ -132,20 +117,193 @@ getSpectra <- function(object){
   return(specDat)
 }
 
-# Testing it's correct
-# plotSpectra(m6, plankton = F, benthos = F, algae = F) + 
-#   geom_line(data = subset(getSpectra(m6), n > 0), aes(w, n, group = species), linetype = 2, color = "red") +
-#   NULL
 
 
-# Compare spectra in m5 and m6
-warmSpec <- getSpectra(m6)
-warmSpec$Scenario <- "Warming"
+# C. TEMP-DRIVEN CHANGE IN SIZE-AT-AGE =============================================
+# for-loop to take random samples for distributions representing activation energies
+# Then compare that to a projection with a constant temperature
 
-conSpec <- getSpectra(m5)
-conSpec$Scenario <- "Constant"
+#**** Project without temp (reference) =============================================
+consTemp <- projectTemp$temperature
+consTemp[] <- 10
 
-plotSpec <- rbind(conSpec, warmSpec)
+ref <- project(params, 
+               dt = dt,
+               effort = projectEffort_m,
+               temperature = consTemp,
+               diet_steps = 10,
+               t_max = t_max,
+               t_ref = 10)   
+
+refGrowth <- getGrowth(ref)
+
+
+#**** for loop ====================================================================
+sim <- 1:100
+
+t <- c()
+tt <- c()
+groj <- c()
+growth <- c()
+data_list_g <- list()
+
+for (i in sim) {
+  
+  t <- params@species_params
+  
+  t$ea_met <- ea$met[i]
+  t$ea_int <- ea$int[i]
+  t$ea_mor <- ea$mor[i]
+  
+  t$ca_int <- -0.004 # Here we just use the fixed values
+  t$ca_met <- 0.001 # Here we just use the fixed values
+  
+  tt <- MizerParams(t, 
+                    ea_gro = ea$gro[i],
+                    ea_car = ea$car[i],
+                    kappa_ben = kappa_ben,
+                    kappa = kappa,
+                    w_bb_cutoff = w_bb_cutoff,
+                    w_pp_cutoff = w_pp_cutoff,
+                    r_pp = r_pp,
+                    r_bb = r_bb)
+  
+  proj <- project(tt, 
+                  dt = dt,
+                  effort = projectEffort_m,
+                  temperature = projectTemp$temperature,
+                  diet_steps = 10,
+                  t_max = t_max,
+                  t_ref = 10)   
+  
+  growth <- getGrowth(proj)
+  
+  growth$ea_met <- proj@params@species_params$ea_met[1]
+  growth$ea_mor <- proj@params@species_params$ea_mor[1]
+  growth$ea_int <- proj@params@species_params$ea_int[1]
+  
+  growth$ea_gro <- proj@params@ea_gro
+  growth$ea_car <- proj@params@ea_car
+  
+  growth$sim <- i
+  
+  growth$re_growth <- growth$value - refGrowth$value
+  
+  data_list_g[[i]] <- growth
+  
+}
+
+str(data_list_g)
+
+big_growth_data <- dplyr::bind_rows(data_list_g)
+
+
+#**** Plot growth rates ============================================================
+blues <- RColorBrewer::brewer.pal(n = 5, "Blues")
+reds <- RColorBrewer::brewer.pal(n = 5, "Reds")
+
+mean_dat <- big_growth_data %>%
+  dplyr::group_by(Species, Age) %>% 
+  dplyr::summarise(mean_val = mean(value))
+
+mean_dat
+
+ggplot(big_growth_data, aes(Age, value, group = factor(sim))) +
+  geom_line(size = 1, alpha = 0.05, color = "grey20") +
+  labs(y = "Size (g)") +
+  facet_wrap(~Species, scales = "free_y", ncol = 3) +
+  scale_y_continuous(expand = c(0, 0)) + 
+  scale_linetype_manual(values = c("solid", "twodash")) + 
+  guides(color = FALSE) +
+  theme_classic(base_size = 14) +
+  theme(aspect.ratio = 3/4) +
+  geom_line(data = refGrowth, aes(Age, value), color = "red", inherit.aes = FALSE,
+            size = 0.2) +
+  #geom_line(data = mean_dat, aes(Age, mean_val), color = "white", inherit.aes = FALSE,
+  #          size = 0.2) +
+  NULL
+
+
+
+
+
+# D. TEMP-DRIVEN CHANGE IN ABUNDANCE SPECTRA =======================================
+# for-loop to take random samples for distributions representing activation energies
+# Then compare that to a projection with a constant temperature
+sim <- 1:100
+
+t <- c()
+tt <- c()
+groj <- c()
+growth <- c()
+data_list_s <- list()
+
+for (i in sim) {
+  
+  t <- params@species_params
+  
+  t$ea_met <- ea$met[i]
+  t$ea_int <- ea$int[i]
+  t$ea_mor <- ea$mor[i]
+  
+  tt <- MizerParams(t, 
+                    ea_gro = ea$gro[i],
+                    ea_car = ea$car[i],
+                    kappa_ben = kappa_ben,
+                    kappa = kappa,
+                    w_bb_cutoff = w_bb_cutoff,
+                    w_pp_cutoff = w_pp_cutoff,
+                    r_pp = r_pp,
+                    r_bb = r_bb)
+  
+  proj <- project(tt, 
+                  dt = dt,
+                  effort = projectEffort_m,
+                  temperature = projectTemp$temperature,
+                  diet_steps = 10,
+                  t_max = t_max,
+                  t_ref = 10)   
+  
+  spec <- getSpectra(proj)
+  
+  spec$ea_met <- proj@params@species_params$ea_met[1]
+  spec$ea_mor <- proj@params@species_params$ea_mor[1]
+  spec$ea_int <- proj@params@species_params$ea_int[1]
+  
+  spec$ea_gro <- proj@params@ea_gro
+  spec$ea_car <- proj@params@ea_car
+  
+  spec$sim <- i
+  
+  data_list_s[[i]] <- spec
+  
+}
+
+str(data_list_s)
+
+big_spectra_data <- dplyr::bind_rows(data_list_s)
+
+str(big_spectra_data)
+
+# Now 
+
+
+#**** Plot size spectra ============================================================
+# Test plotting
+ggplot(big_spectra_data, aes(w, n, group = factor(sim))) +
+  geom_line(size = 0.5, alpha = 0.1, color = "grey50") +
+  labs(y = "Size (g)") +
+  facet_wrap(~species, scales = "free_y") +
+  scale_y_continuous(expand = c(0, 0)) + 
+  scale_linetype_manual(values = c("solid", "twodash")) + 
+  guides(color = FALSE) +
+  theme_classic(base_size = 14) +
+  theme(aspect.ratio = 3/4) +
+  scale_y_log10() +
+  scale_x_log10() +
+  NULL
+
+
 
 # Plot separately
 plotSpec %>% filter(n > 0) %>% 
@@ -159,6 +317,10 @@ plotSpec %>% filter(n > 0) %>%
   scale_y_log10() +
   scale_x_log10()  +
   NULL
+
+
+
+
 
 # Plot ratio instead
 spec_df_wide <- data.frame(w = conSpec$w,
@@ -178,7 +340,14 @@ spec_df_wide %>% filter(w < max(vbgedat$Weight_g)) %>% # Remove the large size-c
   NULL
 
 
-# F. VARY EFFORT GIVEN WARMING/NO WARMING ==========================================
+
+
+
+
+
+
+
+# E. VARY EFFORT GIVEN WARMING/NO WARMING ==========================================
 # Here I should add a layer showing effort during calibration period instead - with and without warming
 # I will do 5 sets of effort: 0.75*FMSY, 1.25FMSY, 1.5FMSY, 1.75*FSMY
 # The control is no warming + FMSY
@@ -502,103 +671,5 @@ ggplot(allYield_long, aes(Species, relYield, color = Temperature, shape = Fm)) +
   NULL
 
 
-
-# G. TEST EXTREME KAPPA AND LAMBA VALUES ===========================================
-# Project with temperatue and effort varying through time
-# This is equivalent to the m6-model with vbgecal temperature (centered to 10) and
-# historical effort
-
-params4_upd <- params3_upd
-
-params4_upd@lambda <- 2.13
-params4_upd@r_pp <- 200
-
-# 1. How can we change r_pp when it's not in @params? Only hardwired changes?
-
-# 2. Is r * (aw^b) the same as r*a*w^b ?
-
-w <- seq(1, 10, 1)
-a <- 0.1
-b <- 0.7
-r <- 4
-
-r*a*w^b
-r*(a*w^b)
-
-
-params_test <- MizerParams(params4_upd@species_params,
-                           kappa_ben = kappa_ben,
-                           kappa = kappa,
-                           w_bb_cutoff = w_bb_cutoff,
-                           w_pp_cutoff = w_pp_cutoff,
-                           r_pp = 4,
-                           r_bb = r_bb)
-
-params_test2 <- MizerParams(params4_upd@species_params,
-                            kappa_ben = kappa_ben,
-                            kappa = kappa,
-                            w_bb_cutoff = w_bb_cutoff,
-                            w_pp_cutoff = w_pp_cutoff,
-                            r_pp = 999999,
-                            r_bb = r_bb)
-
-m7a <- project(params_test2, 
-               dt = 0.1,
-               effort = projectEffort_ct,
-               temperature = projectTemp$temperature,
-               diet_steps = 10,
-               t_max = t_max,
-               t_ref = 10) 
-
-m7b <- project(params_test, 
-               dt = 0.1,
-               effort = projectEffort_ct,
-               temperature = projectTemp$temperature,
-               diet_steps = 10,
-               t_max = t_max,
-               t_ref = 10) 
-
-
-plotBiomass(m7a)
-plotBiomass(m7b)
-
-tail(getYield(m7a))
-tail(getYield(m7b))
-
-str(m7@params)
-str(m7@params@kappa)
-
-m7@params@species_params
-m7@params@kappa
-m7@params@lambda
-m7@params@rr_pp
-m7@params@r_pp
-
-# Here kappa is 6 and lambda is 2.13
-# How much are kappa & lambda predicted to change according to Barnes?
-
-# First delta-temp in time series
-max(projectTemp$temperature) - min(projectTemp$temperature)
-
-# How much does kappa and lambda change from default when delta T is 2.5?
-# Lambda
-
-# Lambda = -1.175 -0.002*T
-
-df <- data.frame(temp  = c(10, 12),
-                 m     = seq(1e-2, to = 1, length.out = 40),
-                 log_a = c(9.8, 9.7),# 9.8-(2*0.045)
-                 b     = c(-1.1, -1.104)) # -1.1-(0.002*2)
-
-
-df$B <- df$log_a + log10(df$m)*df$b
-
-ggplot(df, aes(m, B, color = factor(temp))) +
-  geom_line() + 
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  NULL
 
 

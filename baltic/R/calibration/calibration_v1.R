@@ -13,6 +13,8 @@
 #
 # D. Validate with time series
 #
+# E. Save params object for analysis
+#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # A. LOAD LIBRARIES ================================================================
@@ -969,7 +971,6 @@ p3/p4
 # Temperature-dependence does not really improve time series fit. But that does not mean 
 # temperature is not worth including
 
-
 #**** Brief summary UPDATE THIS ====================================================
 # Overall I suppose this is a fairly OK calibration (process)
 # growth rates became OK after increasing Cmax by a factor of 1.75
@@ -993,3 +994,17 @@ p3/p4
 # [1]  31.48966 148.51985  37.07342
 
 # So the 1.7 are between the two equations, which seems OK
+
+
+# D. SAVE OBJECTS FOR ANALYSIS ============================================================
+#**** Mizer params ========================================================================
+mizer_param_calib <- m4_temp@params
+str(mizer_param_calib)
+
+saveRDS(mizer_param_calib, file = "baltic/params/mizer_param_calib.rds") 
+
+#**** Temperature and effort vectors ======================================================
+write.csv(projectEffort_ct, file = "baltic/params/projectEffort.csv")
+write.csv(projectTemp, file = "baltic/params/projectTemp.csv") 
+
+
