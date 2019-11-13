@@ -276,7 +276,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     sim@matTempScalar <- matTempScalar
     sim@morTempScalar <- morTempScalar
     sim@intTempScalar <- intTempScalar
-    # ML: addings resource scalars
+    # ML: adding resource scalars
     sim@groTempScalar <- groTempScalar
     sim@carTempScalar <- carTempScalar
 
