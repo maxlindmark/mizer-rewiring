@@ -111,6 +111,15 @@ tempDat <- data.frame(temp_datRCP8.5 %>%
                         dplyr::summarize(mean_temp = mean(rel_temp_70.99Ave)) %>% 
                         dplyr::mutate(Year.num = as.numeric(as.character(Year.r))))
 
+tempDat %>% 
+  filter(Year.num < 2003 & Year.num > 1991) %>% 
+  summarize(mean_temp = mean(mean_temp))
+
+plot(tempDat$Year.r, (tempDat$mean_temp + (10 + 0.1156161)))
+
+tempDat %>% 
+  filter(Year.num < 2003 & Year.num > 1991) %>% 
+  summarize(mean_temp = mean(mean_temp + (10 + 0.1156161)))
 
 # C. CALIBRATE MODEL ================================================================
 # This will help seeing the lines..
