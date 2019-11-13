@@ -17,7 +17,7 @@
 rm(list = ls())
 
 # Load libraries, install if needed
-library(ggplot2)
+library(tidyverse)
 # devtools::install_github("thomasp85/patchwork")
 library(patchwork)
 
@@ -65,20 +65,32 @@ gro_sd <- 0.13
 gro_q <- qnorm(c(0.025, 0.975), gro_u, gro_sd)
 gro <- rnorm(n = n, gro_u, gro_sd)
 
-# Carrying capacity
+# Carrying capacity (theoretical range, based on Gilbert et al (2014), ELE)
 car <- runif(n = n, -0.83, 0)
 
-# Put them all together
+# Put them all together & rename factor levels for plotting
 ea <- data.frame(met, mor, int, gro, car)
-ea_dat <- pivot_longer(ea, 1:5, names_to = "rate", values_to = "activation_energy")
+ea_dat <- ea %>% 
+  pivot_longer(1:5, names_to = "rate", values_to = "activation_energy") %>% 
+  mutate(rate = fct_recode(rate, 
+                           "Resource\ncarrying capacity" = "car",
+                           "Resource growth rate" = "gro",
+                           "Maximum\nconsumption rate" = "int",
+                           "Metabolic rate" = "met",
+                           "Background\nmortality rate" = "mor"))
 
 # Plot samples
 ggplot(ea_dat, aes(activation_energy)) + 
   facet_wrap(~rate, scales = "free") +
   geom_histogram() +
-  theme_classic()
+  theme_classic(base_size = 14) +
+  coord_cartesian(expand = 0) +
+  labs(y = "Count", x = "Activation energy") +
+  NULL
 
-write.csv(ea, "baltic/params/samples_activation_energy.csv")
+#ggsave("baltic/figures/supp/random_activation_energies.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
+#write.csv(ea, "baltic/params/samples_activation_energy.csv")
 
 head(ea_dat)
 
