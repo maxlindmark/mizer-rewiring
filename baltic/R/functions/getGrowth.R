@@ -15,8 +15,8 @@ getGrowth <- function(object, species,
     g <- getEGrowth(sim@params, sim@n[dim(sim@n)[1], , ], 
                     sim@n_pp[dim(sim@n)[1], ], sim@n_bb[dim(sim@n)[1], ], sim@n_aa[dim(sim@n)[1], ], 
                     #sim@intTempScalar[,,1], sim@metTempScalar[,,1]) #AA
-                    sim@intTempScalar[,,length(time_temperature_dt)], #ML
-                    sim@metTempScalar[,, length(time_temperature_dt)]) #ML
+                    sim@intTempScalar[,,dim(sim@metTempScalar)[3]], #ML
+                    sim@metTempScalar[,,dim(sim@metTempScalar)[3]]) #ML
     for (j in 1:length(species)) {
       i <- idx[j]
       g_fn <- stats::approxfun(sim@params@w, g[i, ])
