@@ -111,6 +111,8 @@ bad <- project(bad_par,
 badGrowth <- getGrowth(bad)
 badGrowth$scen <- "Bad"
 
+dim(bad@temperature)[1]
+
 #**** Project with temp and good activation energies ===============================
 good_par_sp <- params@species_params
 
@@ -335,24 +337,24 @@ ggplot(df_all3, aes(Age, value, color = scen)) +
 
 # Ok, this looks correct! How about the true parameters and increasing temperature? 
 #**** Project with temp and bad activation energies increasing warm =====================
-bad5 <- project(bad_par, 
+bad5 <- project(test_par3, 
                 dt = dt,
                 effort = projectEffort_m,
-                temperature = seq(from = 9, to = 11, length.out = nrow(projectEffort_m)),
+                temperature = seq(from = 9, to = 13, length.out = nrow(projectEffort_m)),
                 diet_steps = 10,
-                t_max = t_max,
+              #  t_max = t_max,
                 t_ref = 10)   
 
 bad5Growth <- getGrowth(bad5)
 bad5Growth$scen <- "Bad"
 
 #**** Project with temp and good activation energies incresing warm ====================
-good5 <- project(good_par, 
+good5 <- project(test_par2, 
                  dt = dt,
                  effort = projectEffort_m,
-                 temperature = seq(from = 9, to = 11, length.out = nrow(projectEffort_m)),
+                 temperature = seq(from = 9, to = 13, length.out = nrow(projectEffort_m)),
                  diet_steps = 10,
-                 t_max = t_max,
+                # t_max = t_max,
                  t_ref = 10)   
 
 good5Growth <- getGrowth(good5)
@@ -367,6 +369,7 @@ p5 <- ggplot(df_all5, aes(Age, value, color = scen)) +
   theme_classic() +
   ggtitle("Increasing temp")
 
+p5
 
 #**** Go back and plot the original runs again with empirical temperature ====================
 df_all6 <- rbind(badGrowth, goodGrowth, refGrowth)
@@ -377,77 +380,7 @@ p6 <- ggplot(df_all6, aes(Age, value, color = scen)) +
   theme_classic() +
   ggtitle("Empirical temp")
 
-p4/p5/p6
-
-
-#**** How much extra years must I add to get steady state growth? ====================
-str(projectEffort_m)
-projectEffort_m2 <- data.frame(projectEffort_m)
-app <- tail(projectEffort_m2, 1)
-#projectEffort_m2 <- rbind(projectEffort_m2, rep(app, 500))
-#projectEffort_m2 <- data.frame(rbind(as.matrix(projectEffort_m2), as.matrix(rep(app, 500))))
-projectEffort_m2 <- projectEffort_m2 %>% add_row(Cod = rep(projectEffort_m2[137, 1], 500), 
-                             Herring = rep(projectEffort_m2[137, 1], 500),
-                             Sprat = rep(projectEffort_m2[137, 1], 500))
-
-str(projectEffort_m2)
-rownames(projectEffort_m2) <- 1:(nrow(projectEffort_m2))
-projectEffort_m2 <- as.matrix(projectEffort_m2)
-str(projectEffort_m2)
-str(projectEffort_m)
-projectEffort_m2
-projectEffort_m
-time_effort <- as.numeric(dimnames(projectEffort_m2)[[1]])
-t_max <- time_effort[length(time_effort)]
-t_max
-
-projectTemp$temperature
-#temperature2 <- c(projectTemp$temperature, rep(projectTemp$temperature[137], 50))
-#temperature2 <- c(projectTemp$temperature, rep(11, 50))
-#temperature2 <- rep(11, t_max)
-temperature2 <- c(projectTemp$temperature, rep(projectTemp$temperature[137], 500))
-str(temperature2)
-temperature2
-projectTemp$temperature
-
-length(temperature2)
-t_max
-
-#**** Project with temp and bad activation energies increasing warm ================
-bad7 <- project(bad_par, 
-                dt = dt,
-                effort = projectEffort_m2,
-                temperature = temperature2,
-                diet_steps = 10,
-                t_max = t_max,
-                t_ref = 10)   
-
-bad7Growth <- getGrowth(bad7)
-bad7Growth$scen <- "Bad"
-
-#**** Project with temp and good activation energies incresing warm ====================
-good7 <- project(good_par, 
-                 dt = dt,
-                 effort = projectEffort_m2,
-                 temperature = temperature2,
-                 diet_steps = 10,
-                 t_max = t_max,
-                 t_ref = 10)   
-
-good7Growth <- getGrowth(good7)
-good7Growth$scen <- "Good"
-
-# Plot all
-df_all7 <- rbind(bad7Growth, good7Growth, refGrowth)
-
-ggplot(df_all7, aes(Age, value, color = scen)) + 
-  facet_wrap(~ Species, scales = "free") +
-  geom_line(size = 1.5, alpha = 0.8) +
-  theme_classic() +
-  ggtitle("Increasing temp")
-
-# Still doesnt work with 500 additional years...
-
+p5/p6
 
 #**** How much can I perturb the constant temperature and still get predicted results? ====
 projectTemp$temperature
@@ -516,8 +449,8 @@ plotGrowthCurves
 # g is created by the getEGrowth function, which uses:
 # sim@metTempScalar[,,1]. What is the 1 here?
 str(good8@metTempScalar)
-good8@metTempScalar[,,nrow(projectEffort_m)]
-good8@metTempScalar[,,length(time_temperature_dt)]
+dim(good8@metTempScalar)[3]
+good8@metTempScalar[,,dim(good8@metTempScalar)[3]]
 
 # it's 5*137, because (from project.R):
 time_effort <- as.numeric(dimnames(projectEffort_m)[[1]])
@@ -538,6 +471,16 @@ str(TESTmetTempScalar)
 ## Does this also affect plotSpectra?
 plotSpectra
 # Does not seem like it!
+
+#**** RCONCLUSIONS =================================================================
+
+dim(good8@metTempScalar)[3]
+
+
+
+str(good8)
+
+
 
 #**** Random notes =================================================================
 # Temperature needs to be length as t_max
