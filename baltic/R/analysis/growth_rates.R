@@ -80,19 +80,19 @@ ref <- project(params,
                temperature = consTemp,
                diet_steps = 10,
                t_max = t_max,
-               t_ref = 10)   
+               t_ref = (10 + 0.1156161))   
 
 refGrowth <- getGrowth(ref)
 
 
-#**** for loop ====================================================================
-sim <- 1:100
+#**** for loop (with resource) =======================================================
+sim <- 1:200
 
 t <- c()
 tt <- c()
 groj <- c()
 growth <- c()
-data_list_g <- list()
+data_list_with_res <- list()
 
 for (i in sim) {
   
@@ -107,7 +107,7 @@ for (i in sim) {
   
   tt <- MizerParams(t, 
                     ea_gro = ea$gro[i],
-                    ea_car = ea$car[i],
+                    ea_car = ea$car[i], # -ea$gro[i] 
                     kappa_ben = kappa_ben,
                     kappa = kappa,
                     w_bb_cutoff = w_bb_cutoff,
@@ -121,7 +121,7 @@ for (i in sim) {
                   temperature = projectTemp$temperature,
                   diet_steps = 10,
                   t_max = t_max,
-                  t_ref = 10)   
+                  t_ref = (10 + 0.1156161))   
   
   growth <- getGrowth(proj)
   
@@ -134,41 +134,181 @@ for (i in sim) {
   
   growth$sim <- i
   
-  growth$re_growth <- growth$value - refGrowth$value
+  growth$re_growth <- growth$value / refGrowth$value
   
-  data_list_g[[i]] <- growth
+  data_list_with_res[[i]] <- growth
   
 }
 
-str(data_list_g)
+big_growth_data_w_r <- dplyr::bind_rows(data_list_with_res)
 
-big_growth_data <- dplyr::bind_rows(data_list_g)
+
+#**** for loop (no resource) =======================================================
+sim <- 1:200
+
+t <- c()
+tt <- c()
+groj <- c()
+growth <- c()
+data_list_no_res <- list()
+
+for (i in sim) {
+  
+  t <- params@species_params
+  
+  t$ea_met <- ea$met[i]
+  t$ea_int <- ea$int[i]
+  t$ea_mor <- ea$mor[i]
+  
+  t$ca_int <- -0.004 # Here we just use the fixed values
+  t$ca_met <- 0.001 # Here we just use the fixed values
+  
+  tt <- MizerParams(t, 
+                    ea_gro = 0,
+                    ea_car = 0,
+                    kappa_ben = kappa_ben,
+                    kappa = kappa,
+                    t_ref = (10 + 0.1156161), 
+                    w_bb_cutoff = w_bb_cutoff,
+                    w_pp_cutoff = w_pp_cutoff,
+                    r_pp = r_pp,
+                    r_bb = r_bb)
+  
+  proj <- project(tt, 
+                  dt = dt,
+                  effort = projectEffort_m,
+                  temperature = projectTemp$temperature,
+                  diet_steps = 10,
+                  t_max = t_max,
+                  t_ref = (10 + 0.1156161))   
+  
+  growth <- getGrowth(proj)
+  
+  growth$ea_met <- proj@params@species_params$ea_met[1]
+  growth$ea_mor <- proj@params@species_params$ea_mor[1]
+  growth$ea_int <- proj@params@species_params$ea_int[1]
+  
+  growth$ea_gro <- proj@params@ea_gro
+  growth$ea_car <- proj@params@ea_car
+  
+  growth$sim <- i
+  
+  growth$re_growth <- growth$value / refGrowth$value
+  
+  data_list_no_res[[i]] <- growth
+  
+}
+
+big_growth_data_no_r <- dplyr::bind_rows(data_list_no_res)
 
 
 #**** Plot growth rates ============================================================
+big_growth_data_w_r$scen <- "With resource temp. dep."
+big_growth_data_no_r$scen <- "No resource temp. dep."
+
+big_growth_data_w_r$sim <- paste("wr", big_growth_data_no_r$sim, sep = "")
+big_growth_data_no_r$sim <- paste("nr", big_growth_data_no_r$sim, sep = "")
+
+big_growth_data <- rbind(big_growth_data_w_r, big_growth_data_no_r)
+
+big_growth_data$scen <- as.factor(big_growth_data$scen)
+
 blues <- RColorBrewer::brewer.pal(n = 5, "Blues")
 reds <- RColorBrewer::brewer.pal(n = 5, "Reds")
 
+# Calculate means, max and min for plotting
 mean_dat <- big_growth_data %>%
-  dplyr::group_by(Species, Age) %>% 
-  dplyr::summarise(mean_val = mean(value))
+  dplyr::group_by(Species, Age, scen) %>% 
+  dplyr::summarise(mean_val = mean(value),
+                   max_val = max(value),
+                   min_val = min(value))
 
-mean_dat
+col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
-ggplot(big_growth_data, aes(Age, value, group = factor(sim))) +
-  geom_line(size = 1, alpha = 0.05, color = "grey20") +
+# Plot growth curves
+p1 <- ggplot(mean_dat, aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
+  geom_line(data = mean_dat, aes(Age, mean_val, color = factor(scen)),
+            inherit.aes = FALSE, size = 0.5) +
+  geom_ribbon(alpha = 0.2, color = NA) +  
   labs(y = "Size (g)") +
-  facet_wrap(~Species, scales = "free_y", ncol = 3) +
+  facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0)) + 
-  scale_linetype_manual(values = c("solid", "twodash")) + 
-  guides(color = FALSE) +
+  scale_color_manual(values = rev(col)) +
+  scale_fill_manual(values = rev(col)) +
   theme_classic(base_size = 14) +
-  theme(aspect.ratio = 3/4) +
-  geom_line(data = refGrowth, aes(Age, value), color = "red", inherit.aes = FALSE,
-            size = 0.2) +
-  #geom_line(data = mean_dat, aes(Age, mean_val), color = "white", inherit.aes = FALSE,
-  #          size = 0.2) +
+  guides(color = FALSE, fill = FALSE) +
+  geom_line(data = refGrowth, aes(Age, value), color = "black", 
+           inherit.aes = FALSE, size = 0.5, alpha = 0.5, linetype = "dashed") +
+  theme(legend.position = "bottom",
+        legend.title = element_blank()) +
   NULL
 
+# Plot relative growth curves
+rel_dat <- big_growth_data %>%
+  dplyr::group_by(Species, Age, scen) %>% 
+  dplyr::summarise(mean_val = mean(re_growth),
+                   max_val = max(re_growth),
+                   min_val = min(re_growth))
 
+p2 <- rel_dat %>% filter(Age > 0) %>% 
+ggplot(., aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
+  geom_line(data = filter(rel_dat, Age > 0), aes(Age, mean_val, color = factor(scen)),
+            inherit.aes = FALSE, size = 0.5) +
+  geom_ribbon(alpha = 0.2, color = NA) +  
+  labs(y = "Size (g)") +
+  facet_wrap(~Species, scales = "free_y") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0.95, 1.8)) + 
+  scale_color_manual(values = rev(col)) +
+  scale_fill_manual(values = rev(col)) +
+  theme_classic(base_size = 14) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank()) +
+  geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
+  NULL
+
+p1/p2
+
+#ggsave("baltic/figures/growth_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
+
+#**** Testing I can reproduce a really bad example =================================
+t <- params@species_params
+
+t$ea_met <- 0.6
+t$ea_int <- 0.3
+t$ea_mor <- 0.6
+
+t$ca_int <- -0.004 # Here we just use the fixed values
+t$ca_met <- 0.001 # Here we just use the fixed values
+
+tt <- MizerParams(t, 
+                  ea_gro = 0,
+                  ea_car = 0,
+                  kappa_ben = kappa_ben,
+                  kappa = kappa,
+                  w_bb_cutoff = w_bb_cutoff,
+                  w_pp_cutoff = w_pp_cutoff,
+                  r_pp = r_pp,
+                  r_bb = r_bb)
+
+proj <- project(tt, 
+                dt = dt,
+                effort = projectEffort_m,
+                temperature = projectTemp$temperature,
+                diet_steps = 10,
+                t_max = t_max,
+                #t_ref = (10 + 0.1156161),
+                t_ref = 10)   
+
+growth <- getGrowth(proj)
+
+refGrowth2 <- refGrowth
+refGrowth2$scen <- "ref"
+growth$scen <- "bad"
+
+kek <- rbind(refGrowth2, growth)
+
+ggplot(kek, aes(Age, value, color = scen)) +
+  geom_line() +
+  facet_wrap(~ Species, scales = "free")
 
