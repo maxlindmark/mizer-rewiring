@@ -3,7 +3,7 @@ getSpectra <- function(object){
   time_range  <- max(as.numeric(dimnames(object@n)$time))
   time_elements <- get_time_elements(object, time_range)
   n <- apply(object@n[time_elements, , ,drop = FALSE], c(2, 3), mean)
-  species <- balticParams$species
+  species <- object@params@species_params$species
   n <- n[as.character(dimnames(n)[[1]]) %in% species, , drop = FALSE]
   power <- 1
   n <- sweep(n, 2, params@w^power, "*")
