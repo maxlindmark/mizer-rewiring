@@ -72,7 +72,8 @@ r_bb = 4
 
 #**** Project without temp (reference) =============================================
 consTemp <- projectTemp$temperature
-consTemp[] <- 10
+t_ref <- (10 + 0.1156161)
+consTemp[] <- t_ref
 
 ref <- project(params, 
                dt = dt,
@@ -85,7 +86,7 @@ ref <- project(params,
 refGrowth <- getGrowth(ref)
 
 
-#**** for loop (with resource) =======================================================
+#**** for loop (with resource) =====================================================
 sim <- 1:200
 
 t <- c()
@@ -206,7 +207,7 @@ big_growth_data_no_r <- dplyr::bind_rows(data_list_no_res)
 big_growth_data_w_r$scen <- "With resource temp. dep."
 big_growth_data_no_r$scen <- "No resource temp. dep."
 
-big_growth_data_w_r$sim <- paste("wr", big_growth_data_no_r$sim, sep = "")
+big_growth_data_w_r$sim <- paste("wr", big_growth_data_w_r$sim, sep = "")
 big_growth_data_no_r$sim <- paste("nr", big_growth_data_no_r$sim, sep = "")
 
 big_growth_data <- rbind(big_growth_data_w_r, big_growth_data_no_r)
@@ -225,12 +226,15 @@ mean_dat <- big_growth_data %>%
 
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
+# Reorder factor levels
+mean_dat$Species <- factor(mean_dat$Species, levels = c("Sprat", "Herring", "Cod"))
+
 # Plot growth curves
 p1 <- ggplot(mean_dat, aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
   geom_line(data = mean_dat, aes(Age, mean_val, color = factor(scen)),
             inherit.aes = FALSE, size = 0.5) +
   geom_ribbon(alpha = 0.2, color = NA) +  
-  labs(y = "Size (g)") +
+  labs(y = "Body mass (g)") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0)) + 
   scale_color_manual(values = rev(col)) +
@@ -250,12 +254,14 @@ rel_dat <- big_growth_data %>%
                    max_val = max(re_growth),
                    min_val = min(re_growth))
 
+rel_dat$Species <- factor(rel_dat$Species, levels = c("Sprat", "Herring", "Cod"))
+
 p2 <- rel_dat %>% filter(Age > 0) %>% 
 ggplot(., aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
   geom_line(data = filter(rel_dat, Age > 0), aes(Age, mean_val, color = factor(scen)),
             inherit.aes = FALSE, size = 0.5) +
   geom_ribbon(alpha = 0.2, color = NA) +  
-  labs(y = "Size (g)") +
+  labs(y = "Body mass relative to\nconstant temperature") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0), limits = c(0.95, 1.8)) + 
   scale_color_manual(values = rev(col)) +
@@ -269,6 +275,44 @@ ggplot(., aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
 p1/p2
 
 #ggsave("baltic/figures/growth_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
+# What are the activation energies in the MAX scenarios?
+maxg <- big_growth_data %>%
+  dplyr::filter(Age > 1) %>% # Need this since all length at age 0 are the same
+  dplyr::group_by(Species, Age, scen) %>% 
+  dplyr::filter(value == max(value)) %>% 
+  droplevels()
+
+nrow(maxg)
+nrow(big_growth_data)
+length(unique(maxg$sim))
+length(unique(big_growth_data$sim))
+
+ggplot(maxg, aes(Age, value, color = sim)) + 
+  geom_line() + 
+  facet_wrap(~ Species, scales = "free")
+
+# Ok, so here the parameters are from iteration 137 and 173 for no resource and with 
+# resource temperature-dependence
+ea[136, ] # no resource
+ea[173, ] # with resource
+
+# What are the activation energies in the MIN scenarios?
+maxg <- big_growth_data %>%
+  dplyr::filter(Age > 1) %>% # Need this since all length at age 0 are the same
+  dplyr::group_by(Species, Age, scen) %>% 
+  dplyr::filter(value == min(value)) %>% 
+  droplevels()
+
+ggplot(maxg, aes(Age, value, color = sim)) + 
+  geom_line() + 
+  facet_wrap(~ Species, scales = "free")
+
+# Ok, so here the parameters are from iteration 197 and 189 for no resource and with 
+# resource temperature-dependence
+ea[197, ] # no resource
+ea[189, ] # with resource
+
 
 
 #**** Testing I can reproduce a really bad example =================================
