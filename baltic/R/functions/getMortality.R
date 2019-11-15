@@ -1,5 +1,5 @@
 # Create getMortality function..
-getSpectra <- function(object){
+getMortality <- function(object){
 m2_time <- getM2(object, time_range = dim(object@effort)[1], intakeScalar = object@intTempScalar[,,dim(object@effort)[1]], drop = FALSE)
 m2 <- apply(m2_time, c(2, 3), mean)
 m2 <- m2[as.character(dimnames(m2)[[1]]) %in% object@params@species_params$species, , 
