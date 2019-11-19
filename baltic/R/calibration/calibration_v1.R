@@ -38,9 +38,9 @@ devtools::load_all(".")
 # Print package versions
 # print(sessionInfo())
 # other attached packages:
-# [1] mizer_1.1 testthat_2.0.0 patchwork_0.0.1 dplyr_0.8.1 tidyr_0.8.3       
-# [6] viridis_0.5.1 viridisLite_0.3.0 magrittr_1.5 RCurl_1.95-4.12 bitops_1.0-6      
-# [11] RColorBrewer_1.1-2 usethis_1.4.0 devtools_2.0.2 ggplot2_3.1.1  
+# mizer_1.1          testthat_2.3.0     patchwork_0.0.1    dplyr_0.8.3        tidyr_1.0.0        
+#  viridis_0.5.1      viridisLite_0.3.0  magrittr_1.5       RCurl_1.95-4.12   
+# bitops_1.0-6       RColorBrewer_1.1-2 devtools_2.2.1     usethis_1.5.1      ggplot2_3.2.1
 
 
 # B. READ DATA =====================================================================
@@ -56,6 +56,8 @@ str(balticParams)
 # Add area of Baltic SD 25-29+32 (roughly Baltic proper) as a column
 balticParams$sd25.29.32_m.2 <- 2.49e+11
 
+# Read in activation energy data frame
+ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
 
 #**** VBGE growth ==================================================================
 # Read in vbge predictions
@@ -115,11 +117,18 @@ tempDat %>%
   filter(Year.num < 2003 & Year.num > 1991) %>% 
   summarize(mean_temp = mean(mean_temp))
 
-plot(tempDat$Year.r, (tempDat$mean_temp + (10 + 0.1156161)))
+# The temperature time series shows the deviation from the average between 1970-1999.
+# I want to add a certain constant to the temperature so that the time series is around 0
+# at around 10C (arbitrary temperature)
 
-tempDat %>% 
-  filter(Year.num < 2003 & Year.num > 1991) %>% 
-  summarize(mean_temp = mean(mean_temp + (10 + 0.1156161)))
+plot(tempDat$Year.r, (tempDat$mean_temp + (10 + 0.11)))
+
+tempDat %>% filter(Year.num > 1991 & Year.num < 2003) %>% 
+  summarize(mean_T = mean(tempDat$mean_temp + (9.57)))
+
+# 9.57 will be the new t_ref now...
+t_ref <- 9.57
+
 
 # C. CALIBRATE MODEL ================================================================
 # This will help seeing the lines..
@@ -158,13 +167,14 @@ params <- MizerParams(balticParams,
                       w_bb_cutoff = w_bb_cutoff,
                       w_pp_cutoff = w_pp_cutoff,
                       r_pp = r_pp,
-                      r_bb = r_bb)
+                      r_bb = r_bb,
+                      t_ref = t_ref)
 
 # Project model
 t_max <- 800
 
 m1 <- project(params,
-              temperature = rep(10, t_max),
+              temperature = rep(t_ref, t_max),
               dt = dt,
               effort = effort,
               diet_steps = 10,
@@ -195,11 +205,10 @@ plotGrowthCurves(m1, max_age = 15) +
 
 
 #** 2. Tune growth rate ============================================================
-# We start by increasing the constant in the maximum consumption rate by a factor of 1.75
-# If growth is more reasonable, tune down kappa (higher consumption allows for lower kappa to get coexistence).
+# We start by increasing the constant in the maximum consumption rate by a factor of 1.5
+# If growth is more reasonable, you may tune down kappa (higher consumption allows for 
+# lower kappa to get coexistence).
 params2 <- params
-kappa_ben <- 1
-kappa <- 1
 
 # Increase maximum consumption rates by a factor 1.5
 params2@species_params$h <- params@species_params$h * 1.5
@@ -214,14 +223,15 @@ params2_upd <- MizerParams(params2@species_params,
                            w_bb_cutoff = w_bb_cutoff,
                            w_pp_cutoff = w_pp_cutoff,
                            r_pp = r_pp,
-                           r_bb = r_bb)
+                           r_bb = r_bb,
+                           t_ref = t_ref)
 
 # Project model
 t_max <- 250
 
 m2 <- project(params2_upd,
               dt = dt,
-              temperature = rep(10, t_max),
+              temperature = rep(t_ref, t_max),
               effort = effort,
               diet_steps = 10,
               t_max = t_max) 
@@ -273,7 +283,7 @@ eval(parse(text = script))
 script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/FunctionsForOptim.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
-# With only r_max to be optimized, and three species, this function takes 7 minutes on my laptop
+# With only r_max to be optimized, and three species, this function takes 5 minutes on my macbook pro (2019)
 # It takes ~1.5 minutes when dt = 0.2
 # Note also that I have NOT turned off warnings from creating mizerParams objects, so they will printed in the console.
 # If this code takes to long to run, I will do it in a different script and store the .Rdata
@@ -300,24 +310,34 @@ system.time(optim_resultNC <- optim(
 # optimized r_max in case I don't want to run optim again:
 # with allometric erepro (and h-scaling factor = 1.5):
 # > exp(optim_resultNC$`par`)
-# [1] 0.003937455 9.493599952 1.046058740
+# [1] 0.004722962 3.701064423 0.421188308
 
 # Compare with rescaled North Sea r_max (default)
 balticParams$r_max
 exp(optim_resultNC$`par`)
 
 # Now update Rmax
-params3_upd <- params2_upd
+params3_sp <- params2_upd@species_params
 
 # This is the final set of parameters I use after calibration has been done
-params3_upd@species_params$r_max <- exp(optim_resultNC$`par`)
+params3_sp$r_max <- exp(optim_resultNC$`par`)
 
+params3_upd <- MizerParams(params3_sp,
+                           kappa_ben = kappa_ben,
+                           kappa = kappa,
+                           w_bb_cutoff = w_bb_cutoff,
+                           w_pp_cutoff = w_pp_cutoff,
+                           r_pp = r_pp,
+                           r_bb = r_bb,
+                           t_ref = t_ref)
+  
+  
 # Project model with optimized r_max
 t_max <- 65
 
 m3 <- project(params3_upd,
               dt = dt,
-              temperature = rep(10, t_max),
+              temperature = rep(t_ref, t_max),
               effort = effort,
               diet_steps = 10,
               t_max = t_max) 
@@ -343,17 +363,10 @@ spect / feedlev
 
 
 #**** Check growth =======================================================================
-# Check feeding level
-plotFeedingLevel(m3) + 
-  theme_classic(base_size = 16) + 
-  theme(aspect.ratio = 3/4) +
-  NULL
-#ggsave("baltic/figures/supp/feeding_level.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
-
 # Check growth rate are reasonable
 plotGrowthCurves(m3, max_age = 15) + 
   scale_color_manual(values = rep(col[1], 3)) +
-  facet_wrap(~ Species, scales = "free", ncol = 3) +
+  facet_wrap(~ Species, scales = "free", ncol = 1) +
   geom_point(data = subset(vbge_data, age < 16), 
              aes(age, Weight_g), size = 2, fill = "gray50", 
              color = "white", shape = 21, alpha = 0.1) +
@@ -365,7 +378,7 @@ plotGrowthCurves(m3, max_age = 15) +
             color = col[4], size = 1.3, linetype = "twodash", alpha = 0.8) +
   guides(color = FALSE, linetype = FALSE) +
   theme_classic(base_size = 10) + 
-  theme(aspect.ratio = 3/4) +
+  theme(aspect.ratio = 1/2) +
   NULL
 
 #ggsave("baltic/figures/VBGE_model_data.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
@@ -473,6 +486,7 @@ rdi / params3_upd@species_params$r_max
 # Looks OK, but clear that we need size-varying theta
 plotDietComp(m3, prey = dimnames(m3@diet_comp)$prey[1:5]) + 
   theme_classic(base_size = 12) +
+#  facet_wrap(~ species) +
   scale_fill_manual(values = rev(col),
                     labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
@@ -528,6 +542,11 @@ ggplot(codFmsy, aes(Fm, Y)) + geom_line()
 
 
 #****** Sprat ======================================================================
+# Mean F in calibration time
+effort = c(Cod = balticParams$AveEffort[1], 
+           Herring = balticParams$AveEffort[3], 
+           Sprat = balticParams$AveEffort[2])
+
 # Create empty data holder
 sprFmsy <- c()
 Y <- c()
@@ -559,6 +578,11 @@ ggplot(sprFmsy, aes(Fm, Y)) + geom_line()
 
 
 #****** Herring ====================================================================
+# Mean F in calibration time
+effort = c(Cod = balticParams$AveEffort[1], 
+           Herring = balticParams$AveEffort[3], 
+           Sprat = balticParams$AveEffort[2])
+
 # Create empty data holder
 herFmsy <- c()
 Y <- c()
@@ -649,15 +673,15 @@ fmsy1 / fmsy2
 # D. VALIDATE WITH TIME SERIES =====================================================
 #**** Set up time varying effort ===================================================
 # First I need to set-up the matricies holding time series of temperature and effort
-# Note also that t_max is taken from the effort-array and not the argument in 
-# project, and temperature needs to have the same length as t_max, I here center
+# Note also that t_max is taken from the effort-array when used and not the argument 
+# in project, and temperature needs to have the same length as t_max, I here center
 # effort to start at 1 and the actual year. I go back to normal scale when plotting
 
 # This procedure is based on the Mizer vignette
 # Read in historical F
 f_history <- as.matrix(
   ssb_f %>% 
-    filter(Year > 1973 & Year < 2013 & !Species == "Flounder") %>% 
+    filter(Year > 1973 & Year < 2013) %>% 
     select(Year, Species, Fm) %>% 
     spread(Species, Fm) %>%
     select(Cod, Herring, Sprat)
@@ -694,11 +718,13 @@ t_future <- 2050-2012
 
 projectEffort_fwr_df <- data.frame(all_effort[1:t_future,])
 
-# Add in the medians of the multispecies assessments. 
-# Can also consider taking MSY's from the model
-projectEffort_fwr_df[, 1] <- 0.55  # Cod
-projectEffort_fwr_df[, 2] <- 0.3   # Herring
-projectEffort_fwr_df[, 3] <- 0.285 # Sprat
+# Add in the means of the multispecies assessments + size spectrum model.
+# We don't really need to use assessment estimates, but since we do when calibrating
+# the model, they should perhaps be influencing here
+# Can also consider taking MSY's from the size spectrum model
+projectEffort_fwr_df[, 1] <- asses_mod_FMSY %>% filter(Species == "Cod") %>% summarize(medFMSY = mean(FMSY))  # Cod
+projectEffort_fwr_df[, 2] <- asses_mod_FMSY %>% filter(Species == "Herring") %>% summarize(medFMSY = mean(FMSY)) # Herring
+projectEffort_fwr_df[, 3] <- asses_mod_FMSY %>% filter(Species == "Sprat") %>% summarize(medFMSY = mean(FMSY)) #0.285 # Sprat
 
 projectEffort_fwr <- as.matrix(projectEffort_fwr_df)
 rownames(projectEffort_fwr) <- 2013:2050
@@ -717,7 +743,7 @@ plotEffort$Year <- as.numeric(as.character(rownames(projectEffort)))
 
 eff <- plotEffort %>% 
   gather(Species, Effort, 1:3) %>% 
-  ggplot(., aes(Year, Effort, color = Species)) +
+  ggplot(., aes(Year, Effort, color = Species, linetype = Species)) +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
             aes(xmin = 1974, 
                 xmax = 2012,
@@ -730,7 +756,7 @@ eff <- plotEffort %>%
                 ymin = 0,
                 ymax = 1.4),
             fill  = "gray80") +
-  geom_line(size = 1.3, alpha = 0.8) +
+  geom_line(size = 1.2, alpha = 0.8) +
   theme_classic(base_size = 15) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_color_manual(values = rev(col)) +
@@ -754,7 +780,7 @@ temp <- ggplot(tempDat, aes(Year.num, mean_temp)) +
                 ymax = 1.8),
             fill  = "gray90") +
   geom_hline(yintercept = 0, size = 1, alpha = 0.8, linetype = 2) +
-  geom_line(size = 1.3, col = col[1]) +
+  geom_line(size = 1.2, col = "gray20") +
   labs(x = "Year", y = "Change in Baltic Sea SST (RCP8.5)") +
   annotate("text", -Inf, Inf, label = "B", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
@@ -766,10 +792,9 @@ eff / temp
 
 #ggsave("baltic/figures/supp/effort_temp.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
-
-# For calibration I use mean effort.
-# The temperature data is relative to a mean. By adding 10C, it becomes relative to 10
-tempDat$mean_temp_scaled <- tempDat$mean_temp + 10
+# The temperature data is relative to a mean (1970-1999). By adding t_ref here, the mean 
+# temperature in the calibration time period becomes 10C, which is both reasonable and arbitrary
+tempDat$mean_temp_scaled <- tempDat$mean_temp + m3@params@t_ref
 
 # Now I need to match year for temperature and effort
 projectEffort # Non-centered complete effort array
@@ -794,55 +819,73 @@ nrow(projectTemp)
 #**** Project with temperatue and effort varying through time ======================
 # Here I want to create two models
 # m4_temp: time series with temperature + nice parameters for temperature
-# m4_cons: constant temperature (10C)
+# m4_cons: constant temperature (t_ref, i.e. no temperature effect!)
+# NOTE! This is not a good method when comparing the models as they will
+# essentially have different starting values. It's ok now though because
+# I want to see if they differ in their fit to assessment data, not to understand
+# the effect of temperature per se
 # In the next section I will evalute their fit to assessment data
 
 # No temperature effects on the resource
 params_cons <- params3_upd
-m4_cons <- project(params_cons, 
-                   dt = 0.1,
-                   effort = projectEffort_ct,
-                   temperature = projectTemp$temperature,
-                   diet_steps = 10,
-                   t_max = t_max,
-                   t_ref = 10) 
+
+m4_noRes <- project(params_cons, 
+                    dt = 0.1,
+                    effort = projectEffort_ct,
+                    temperature = projectTemp$temperature,
+                    diet_steps = 10,
+                    t_max = t_max) 
 
 # Full time series including burn in
-plotBiomass(m4_cons) + theme_classic(base_size = 14)
+plotBiomass(m4_noRes) + theme_classic(base_size = 14)
 
 # From 1974 and forward 
-plotBiomass(m4_cons) + 
+plotBiomass(m4_noRes) + 
   theme_classic(base_size = 14) +
   xlim(41, 120) +
   NULL
 
-
 # With temperature effects on the resource
-params_temp <- MizerParams(params3_upd@species_params,
-                           kappa_ben = kappa_ben,
-                           kappa = kappa,
-                           w_bb_cutoff = w_bb_cutoff,
-                           w_pp_cutoff = w_pp_cutoff,
-                           r_pp = r_pp,
-                           r_bb = r_bb,
-                           ea_gro = 0.85,
-                           ea_car = -0.425)
+params_w_res <- MizerParams(params3_upd@species_params,
+                            kappa_ben = kappa_ben,
+                            kappa = kappa,
+                            w_bb_cutoff = w_bb_cutoff,
+                            w_pp_cutoff = w_pp_cutoff,
+                            r_pp = r_pp,
+                            r_bb = r_bb,
+                            ea_gro = mean(ea$gro),
+                            ea_car = mean(ea$car),
+                            t_ref = t_ref)
 
-params3_upd@species_params
-
-m4_temp <- project(params_temp, 
-                   dt = 0.1,
-                   effort = projectEffort_ct,
-                   temperature = projectTemp$temperature,
-                   diet_steps = 10,
-                   t_max = t_max,
-                   t_ref = 10) 
+m4_wiRes <- project(params_w_res, 
+                    dt = 0.1,
+                    effort = projectEffort_ct,
+                    temperature = projectTemp$temperature,
+                    diet_steps = 10,
+                    t_max = t_max) 
 
 # Full time series including burn in
-plotBiomass(m4_temp) + theme_classic(base_size = 14)
+plotBiomass(m4_wiRes) + theme_classic(base_size = 14)
 
 # From 1974 and forward 
-plotBiomass(m4_temp) + 
+plotBiomass(m4_wiRes) + 
+  theme_classic(base_size = 14) +
+  xlim(41, 120) +
+  NULL
+
+# No temperature effect at all
+m4_consTemp <- project(params_w_res, 
+                       dt = 0.1,
+                       effort = projectEffort_ct,
+                       temperature = rep(t_ref, nrow(projectEffort_ct)),
+                       diet_steps = 10,
+                       t_max = t_max) 
+
+# Full time series including burn in
+plotBiomass(m4_consTemp) + theme_classic(base_size = 14)
+
+# From 1974 and forward 
+plotBiomass(m4_consTemp) + 
   theme_classic(base_size = 14) +
   xlim(41, 120) +
   NULL
@@ -864,21 +907,28 @@ obs_ssb_l$source <- "Stock assessment"
 obs_ssb_l$Year_ct <- (obs_ssb_l$Year-(1974))+(61) # 1974 is first year, t_1 needs to be one. Then +60 to match predicted
 
 # Predicted ssb - no temp dep resource
-pred_ssb_cons <- data.frame(getSSB(m4_cons))
-pred_ssb_cons$Year_ct <- as.numeric(rownames(getSSB(m4_cons)))
-pred_ssb_cons$Year <- pred_ssb_cons$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-pred_ssb_cons$source <- "No resource temp"
-str(pred_ssb_cons)
+pred_ssb_noResT <- data.frame(getSSB(m4_noRes))
+pred_ssb_noResT$Year_ct <- as.numeric(rownames(getSSB(m4_noRes)))
+pred_ssb_noResT$Year <- pred_ssb_noResT$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+pred_ssb_noResT$source <- "No resource temp"
+str(pred_ssb_noResT)
 
 # Predicted ssb - with temp on resource
-pred_ssb_temp <- data.frame(getSSB(m4_temp))
-pred_ssb_temp$Year_ct <- as.numeric(rownames(getSSB(m4_temp)))
-pred_ssb_temp$Year <- pred_ssb_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-pred_ssb_temp$source <- "With resource temp"
-str(pred_ssb_temp)
+pred_ssb_wiResT <- data.frame(getSSB(m4_wiRes))
+pred_ssb_wiResT$Year_ct <- as.numeric(rownames(getSSB(m4_wiRes)))
+pred_ssb_wiResT$Year <- pred_ssb_wiResT$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+pred_ssb_wiResT$source <- "With resource temp"
+str(pred_ssb_wiResT)
+
+# Predicted ssb - no temperature at all
+pred_ssb_cons <- data.frame(getSSB(m4_consTemp))
+pred_ssb_cons$Year_ct <- as.numeric(rownames(getSSB(m4_consTemp)))
+pred_ssb_cons$Year <- pred_ssb_cons$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+pred_ssb_cons$source <- "Constant temp"
+str(pred_ssb_cons)
 
 # Combine
-pred_ssb <- rbind(pred_ssb_cons, pred_ssb_temp)
+pred_ssb <- rbind(pred_ssb_noResT, pred_ssb_wiResT, pred_ssb_cons)
 
 # Convert to long data frame (1 obs = 1 row)
 # The first year with real effort is 1974. This is year 61 with centered time (1974-1914 +1),
@@ -896,16 +946,25 @@ dat <- data.frame(rbind(obs_ssb_l, pred_ssb_l))
 dat$Year <- as.integer(dat$Year)
 
 # Normalize to maximum within species
-dat <- dat %>% 
+dat2 <- dat %>% 
   drop_na() %>% 
   ungroup() %>% 
-  dplyr::group_by(Species) %>% 
+  dplyr::filter(Year < 2012) %>% 
+  dplyr::group_by(Species, source) %>% 
   dplyr::mutate(test = max(SSB)) %>% 
   dplyr::mutate(SSB_norm = SSB / max(SSB))
 
+dat %>% 
+  filter(source == "No resource temp" & Species == "Cod") %>% 
+  summarize(max = max(SSB_norm))
+
 # Plot predicted and observed ssb by species, normalize by max within species
-dat %>% filter(Year < 2012) %>% 
-  ggplot(., aes(Year, SSB_norm, linetype = source, color = source)) +
+# Reorder factor levels
+dat$source <- factor(dat$source, levels = c("Constant temp", "No resource temp", "With resource temp", "Stock assessment"))
+
+dat2 %>% filter(Year < 2012) %>% 
+  #ggplot(., aes(Year, SSB_norm, linetype = source, color = source, alpha = source)) +
+  ggplot(., aes(Year, SSB, linetype = source, color = source, alpha = source)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
             aes(xmin = min(Year), 
@@ -913,11 +972,13 @@ dat %>% filter(Year < 2012) %>%
                 ymin = 0,
                 ymax = 1),
             fill  = "gray90") +
-  geom_line(size = 1.5, alpha = 0.8) +
-  scale_linetype_manual(values = c("solid", "twodash", "solid")) +
-  scale_color_manual(values = rev(col)) +
+  geom_line(size = 1.5) +
+  scale_linetype_manual(values = c("twodash", "dashed", "dotted", "solid")) +
+  scale_color_manual(values = c(rev(col)[1:3], "gray30")) +
+  scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.5)) +
   theme(aspect.ratio = 1) +
-  labs(y = "SSB/max(SSB)", x = "Year") +
+  #labs(y = "SSB/max(SSB)", x = "Year") +
+  labs(y = "Spawning stock biomass", x = "Year") +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) +
   theme(aspect.ratio = 1/2) +
@@ -927,21 +988,25 @@ dat %>% filter(Year < 2012) %>%
 
 
 #**** Calculate and plot correlation coefficients ==================================
-obs_df <- filter(dat, source == "Observed" & Year < 2013)
-pred_cons_df <- filter(dat, source == "No resource temp" & Year < 2013)
-pred_temp_df <- filter(dat, source == "With resource temp" & Year < 2013)
+obs_df <- filter(dat, source == "Stock assessment" & Year < 2013)
+#pred_cons_df <- filter(dat, source == "Constant temp" & Year < 2013)
+pred_wTempR_df <- filter(dat, source == "With resource temp" & Year < 2013)
+#pred_nTempR_df <- filter(dat, source == "No resource temp" & Year < 2013)
 
+# Since the temperature-scenarios are so similar, I'm just calculating the correlations
+# for the scenario with temperature-dependent resources
 cor_df <- data.frame(Year = obs_df$Year,
                      Obs = obs_df$SSB,
-                     Pred_cons = pred_cons_df$SSB,
-                     Pred_temp = pred_temp_df$SSB,
+                     #pred_cons = pred_cons_df$SSB,
+                     pred_wTempR = pred_wTempR_df$SSB,
+                     #pred_nTempR = pred_nTempR_df$SSB,
                      Species = obs_df$Species)
 
-# Calculate correlations between predictions from no_resource_temp and observations
-cors_con <- ddply(cor_df, c("Species"), summarise, cor = round(cor(Pred_cons, Obs), 2))
+# Calculate correlations between predictions from _resource_temp and observations
+cors_con <- ddply(cor_df, c("Species"), summarise, cor = round(cor(pred_wTempR, Obs), 2))
 
 # Plot correlation between predicted and observed
-p3 <- ggplot(cor_df, aes(Obs, Pred_cons, color = Year)) +
+ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
   facet_wrap(~ Species, ncol = 3, scales = "free") +
   geom_abline(slope = 1, intercept = 0, color = "red", size = 0.7) +
   geom_point(size = 2.5) +
@@ -949,33 +1014,14 @@ p3 <- ggplot(cor_df, aes(Obs, Pred_cons, color = Year)) +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) + 
   geom_text(data = cors_con, aes(label = paste("r = ", cor, sep = "")), 
-            x = Inf, y = Inf, vjust = 20, hjust = 1.1,  
+            x = Inf, y = Inf, vjust = 25, hjust = 1.1,  
             fontface = "italic", size = 4, inherit.aes = FALSE) +
   scale_color_viridis(option = "cividis") +
   theme(aspect.ratio = 1) +
   ggtitle("No temperature-dependence on resource") +
   NULL
 
-# Calculate correlations between predictions from resource_temp and observations
-cors_tem <- ddply(cor_df, c("Species"), summarise, cor = round(cor(Pred_temp, Obs), 2))
-
-p4 <- ggplot(cor_df, aes(Obs, Pred_temp, color = Year)) +
-  facet_wrap(~ Species, ncol = 3, scales = "free") +
-  geom_abline(slope = 1, intercept = 0, color = "red", size = 0.7) +
-  geom_point(size = 2.5) +
-  labs(y = "Predicted", x = "Observed") +
-  theme_classic(base_size = 14) +
-  scale_y_continuous(expand = c(0, 0)) + 
-  geom_text(data = cors_tem, aes(label = paste("r = ", cor, sep = "")), 
-            x = Inf, y = Inf, vjust = 20, hjust = 1.1,  
-            fontface = "italic", size = 4, inherit.aes = FALSE) +
-  scale_color_viridis(option = "cividis") +
-  theme(aspect.ratio = 1) +
-  ggtitle("With temperature-dependence on resource") +
-  NULL
-
-# Plot together
-p3/p4
+#ggsave("baltic/figures/supp/obs_pred_corr.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 # Temperature-dependence does not really improve time series fit. But that does not mean 
 # temperature is not worth including
@@ -1007,7 +1053,7 @@ p3/p4
 
 # D. SAVE OBJECTS FOR ANALYSIS ============================================================
 #**** Mizer params ========================================================================
-mizer_param_calib <- m4_temp@params
+mizer_param_calib <- params3_upd
 str(mizer_param_calib)
 
 saveRDS(mizer_param_calib, file = "baltic/params/mizer_param_calib.rds") 
