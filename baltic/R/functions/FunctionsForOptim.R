@@ -9,7 +9,10 @@ no_size_groups = 100
 dt = 0.1
 
 # How many years to run the model for each optimiser round.
-tmax = 200 
+t_max = 200 
+
+# Reference temperature (rescaled projection, see calibration.v1)
+t_ref <- 9.57
 
 # Fishing mortality for calibrations. This is overall mean for calibration period, see abundance_F_time series
 effort = c(Cod = 0.899, Herring = 0.340, Sprat = 0.306)
@@ -87,9 +90,9 @@ errorSSB <- function(model_run, meansteps = meansteps.par){
 
 # Function to run model ============================================================
 
-run_model <- function(params, tmax, effort) {
+run_model <- function(params, t_max, effort) {
   
-  model_run <- project(params, t_max = tmax, effort = effort, dt = dt)
+  model_run <- project(params, t_max = t_max, effort = effort, dt = dt)
   
   return (model_run)
   
@@ -133,12 +136,13 @@ calibratePar_Baltic <- function(start_vector,
   params <- MizerParams(modelParams, 
                         no_w = no_size_groups,
                         store_kernel = F,
-                        kappa_ben = 1,
-                        kappa = 1,
+                        kappa_ben = 2,
+                        kappa = 2,
                         w_bb_cutoff = 20,
                         w_pp_cutoff = 1,
                         r_pp = 4,
-                        r_bb = 4)
+                        r_bb = 4,
+                        t_ref = t_ref)
   
   # Increase maximum consumption rates by a factor (or species-specific factor)
   h <- params@species_params$h
@@ -152,25 +156,26 @@ calibratePar_Baltic <- function(start_vector,
   params_upd <- MizerParams(params@species_params,
                             no_w = no_size_groups,
                             store_kernel = F,
-                            kappa_ben = 1,
-                            kappa = 1,
+                            kappa_ben = 2,
+                            kappa = 2,
                             w_bb_cutoff = 20,
                             w_pp_cutoff = 1,
                             r_pp = 4,
-                            r_bb = 4)
+                            r_bb = 4,
+                            t_ref = t_ref)
   
   params_upd@species_params
   
   print("two step")
   
-  # Run the model for tmax years with the updated parameters 
-  model_run <- run_model(params_upd, tmax, effort)
+  # Run the model for t_max years with the updated parameters 
+  model_run <- run_model(params_upd, t_max, effort)
   
   #-----------------#
   print("three step")
   
   # Get ssb error (see definition above)
-  errorSSB <- errorSSB(model_run, tmax)
+  errorSSB <- errorSSB(model_run, t_max)
   print("errorSSB")
   print(errorSSB)
   
