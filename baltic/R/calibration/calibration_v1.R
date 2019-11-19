@@ -724,7 +724,7 @@ projectEffort_fwr_df <- data.frame(all_effort[1:t_future,])
 # Can also consider taking MSY's from the size spectrum model
 projectEffort_fwr_df[, 1] <- asses_mod_FMSY %>% filter(Species == "Cod") %>% summarize(medFMSY = mean(FMSY))  # Cod
 projectEffort_fwr_df[, 2] <- asses_mod_FMSY %>% filter(Species == "Herring") %>% summarize(medFMSY = mean(FMSY)) # Herring
-projectEffort_fwr_df[, 3] <- asses_mod_FMSY %>% filter(Species == "Sprat") %>% summarize(medFMSY = mean(FMSY)) #0.285 # Sprat
+projectEffort_fwr_df[, 3] <- asses_mod_FMSY %>% filter(Species == "Sprat") %>% summarize(medFMSY = mean(FMSY)) # Sprat
 
 projectEffort_fwr <- as.matrix(projectEffort_fwr_df)
 rownames(projectEffort_fwr) <- 2013:2050
@@ -786,9 +786,45 @@ temp <- ggplot(tempDat, aes(Year.num, mean_temp)) +
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-# Plot effort and temperature
+# # Plot temperature data as implemented in model
+# consTemp$mean_temp_normal <- consTemp$mean_temp + t_ref
+# consTemp$mean_temp_normal_ref <- ifelse(consTemp$Year.num > 1996,
+#                                         t_ref,
+#                                         consTemp$mean_temp_normal)
+# 
+# consTemp2 <- data.frame(Year.num = rep(consTemp$Year.num, 2),
+#                         Temperature = c(consTemp$mean_temp_normal_ref, consTemp$mean_temp_normal),
+#                         Scenario = rep(c("Contant temperature", "Warming"), each = length(consTemp$mean_temp_normal)))
 
-eff / temp
+# ggplot(tempScen, aes(Year, Temperature, color = Scenario, linetype = Scenario)) +
+#   geom_line(alpha = 0.8, size = 1.2) +
+#   theme_classic(base_size = 25) +
+#   scale_color_manual(values = rev(col)) +
+#   theme(legend.position=c(.2,.75)) +
+#   NULL
+
+# temp_model <- ggplot(consTemp2, aes(Year.num, Temperature, color = Scenario, linetype = Scenario)) +
+#   theme_classic(base_size = 15) +
+#   scale_y_continuous(expand = c(0, 0)) +
+#   theme(aspect.ratio = 3/4) +
+#   # geom_rect(data = ref_time, inherit.aes = FALSE, 
+#   #           aes(xmin = min(Year), 
+#   #               xmax = max(Year),
+#   #               ymin = -0.9,
+#   #               ymax = 1.8),
+#   #           fill  = "gray90") +
+#   #geom_hline(yintercept = 0, size = 1, alpha = 0.8, linetype = 2) +
+#   geom_line(size = 1.2, col = "gray20") +
+#   labs(x = "Year", y = "Change in Baltic Sea SST (RCP8.5)") +
+#   annotate("text", -Inf, Inf, label = "B", size = 4, 
+#            fontface = "bold", hjust = -0.5, vjust = 1.3) +
+#   theme(legend.position = "bottom") +
+#   NULL
+# 
+# temp_model
+
+# Plot effort and the two temperature-series temperature
+eff / temp # / temp_model
 
 #ggsave("baltic/figures/supp/effort_temp.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
@@ -833,8 +869,7 @@ m4_noRes <- project(params_cons,
                     dt = 0.1,
                     effort = projectEffort_ct,
                     temperature = projectTemp$temperature,
-                    diet_steps = 10,
-                    t_max = t_max) 
+                    diet_steps = 10) 
 
 # Full time series including burn in
 plotBiomass(m4_noRes) + theme_classic(base_size = 14)
@@ -861,8 +896,7 @@ m4_wiRes <- project(params_w_res,
                     dt = 0.1,
                     effort = projectEffort_ct,
                     temperature = projectTemp$temperature,
-                    diet_steps = 10,
-                    t_max = t_max) 
+                    diet_steps = 10) 
 
 # Full time series including burn in
 plotBiomass(m4_wiRes) + theme_classic(base_size = 14)
@@ -878,8 +912,7 @@ m4_consTemp <- project(params_w_res,
                        dt = 0.1,
                        effort = projectEffort_ct,
                        temperature = rep(t_ref, nrow(projectEffort_ct)),
-                       diet_steps = 10,
-                       t_max = t_max) 
+                       diet_steps = 10) 
 
 # Full time series including burn in
 plotBiomass(m4_consTemp) + theme_classic(base_size = 14)
@@ -920,7 +953,7 @@ pred_ssb_wiResT$Year <- pred_ssb_wiResT$Year_ct + (1914-1) # 1914 is so that 60 
 pred_ssb_wiResT$source <- "With resource temp"
 str(pred_ssb_wiResT)
 
-# Predicted ssb - no temperature at all
+# Predicted ssb - no temperature at all after calibration (t_ref)
 pred_ssb_cons <- data.frame(getSSB(m4_consTemp))
 pred_ssb_cons$Year_ct <- as.numeric(rownames(getSSB(m4_consTemp)))
 pred_ssb_cons$Year <- pred_ssb_cons$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
@@ -953,10 +986,6 @@ dat2 <- dat %>%
   dplyr::group_by(Species, source) %>% 
   dplyr::mutate(test = max(SSB)) %>% 
   dplyr::mutate(SSB_norm = SSB / max(SSB))
-
-dat %>% 
-  filter(source == "No resource temp" & Species == "Cod") %>% 
-  summarize(max = max(SSB_norm))
 
 # Plot predicted and observed ssb by species, normalize by max within species
 # Reorder factor levels
@@ -1025,31 +1054,6 @@ ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
 
 # Temperature-dependence does not really improve time series fit. But that does not mean 
 # temperature is not worth including
-
-#**** Brief summary UPDATE THIS ====================================================
-# Overall I suppose this is a fairly OK calibration (process)
-# growth rates became OK after increasing Cmax by a factor of 1.75
-
-# ssb fits really well to the average F and SSB in the calibration period. This was done using r_max.
-# recruitment looks ok to. There is some density dependence in the model (90% of r_max, r_phys = 10 * rec)
-# rec:r_max could be lower, but the important thing is they respond to F
-# They seem to do that actually more than in the data, so that's likely ok
-# Yet, the predicted dynamics are changing less compared to observed, and in general it doesn't capture regime shifts (amplitude is off). However this is not strange given that the model essentially only uses fishing as input whereas environment likely casued the gadoid outburst seen in the data. 
-
-
-# These are the default h-values:
-# > params@species_params$h
-# [1] 20.733625  6.598427  6.875000
-
-# These are the values increased by a factor of 1.75
-# > params2@species_params$h
-# [1] 31.10044 14.51654 15.12500
-
-# These are the values with Gustav's new equation
-# [1]  31.48966 148.51985  37.07342
-
-# So the 1.7 are between the two equations, which seems OK
-
 
 # D. SAVE OBJECTS FOR ANALYSIS ============================================================
 #**** Mizer params ========================================================================

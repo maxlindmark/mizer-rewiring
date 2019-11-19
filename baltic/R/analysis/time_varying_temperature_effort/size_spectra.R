@@ -31,9 +31,9 @@ devtools::load_all(".")
 # Print package versions
 # print(sessionInfo())
 # other attached packages:
-# [1] mizer_1.1 testthat_2.0.0 patchwork_0.0.1 dplyr_0.8.1 tidyr_0.8.3       
-# [6] viridis_0.5.1 viridisLite_0.3.0 magrittr_1.5 RCurl_1.95-4.12 bitops_1.0-6      
-# [11] RColorBrewer_1.1-2 usethis_1.4.0 devtools_2.0.2 ggplot2_3.1.1  
+# mizer_1.1          testthat_2.3.0     patchwork_0.0.1    dplyr_0.8.3        tidyr_1.0.0        
+# viridis_0.5.1      viridisLite_0.3.0  magrittr_1.5       RCurl_1.95-4.12   
+# bitops_1.0-6       RColorBrewer_1.1-2 devtools_2.2.1     usethis_1.5.1      ggplot2_3.2.1 
 
 # Load function for extracting numbers-at-age
 func <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/getSpectra.R", ssl.verifypeer = FALSE)
@@ -59,20 +59,15 @@ projectEffort_m <- as.matrix(projectEffort)
 rownames(projectEffort_m) <- 1:nrow(projectEffort)
 
 # Define general parameters
-t_max <- 2000
 dt <- 0.2
-t_ref <- (10 + 0.1156161)
-kappa_ben <- 1
-kappa <- 1
-w_bb_cutoff <- 20
-w_pp_cutoff <- 1
-r_pp <- 4
-r_bb <- 4
+t_ref <- params@t_ref
+kappa_ben <- params@kappa_ben
+kappa <- params@kappa
+w_bb_cutoff <- 20 # Not stored in mizerParams output
+w_pp_cutoff <- 1 # Not stored in mizerParams outputs
+r_pp <- 4 # Not stored in mizerParams output
+r_bb <- 4 # Not stored in mizerParams output
 
-
-# B. TEMP-DRIVEN CHANGE IN ABUNDANCE-AT-WEIGHT =====================================
-# for-loop to take random samples for distributions representing activation energies
-# Then compare that to a projection with a constant temperature
 
 #**** Update species params ========================================================
 t <- params@species_params
@@ -92,7 +87,8 @@ pars_no_res <- MizerParams(t,
                            w_bb_cutoff = w_bb_cutoff,
                            w_pp_cutoff = w_pp_cutoff,
                            r_pp = r_pp,
-                           r_bb = r_bb)
+                           r_bb = r_bb,
+                           t_ref = t_ref)
 
 pars_with_res <- MizerParams(t, 
                              ea_gro = mean(ea$gro),
@@ -102,20 +98,26 @@ pars_with_res <- MizerParams(t,
                              w_bb_cutoff = w_bb_cutoff,
                              w_pp_cutoff = w_pp_cutoff,
                              r_pp = r_pp,
-                             r_bb = r_bb)
+                             r_bb = r_bb,
+                             t_ref = t_ref)
 
+# Define temperature-scenarios
+consTemp <- projectTemp$temperature
+start <- 1997-1914
+consTemp[start:137] <- t_ref
+
+
+# B. TEMP-DRIVEN CHANGE IN ABUNDANCE-AT-WEIGHT =====================================
+# for-loop to take random samples for distributions representing activation energies
+# Then compare that to a projection with a constant temperature
 
 #**** Project reference scenario ===================================================
-consTemp <- projectTemp$temperature
-consTemp[] <- t_ref
-
 ref <- project(pars_with_res, 
                dt = dt,
                effort = projectEffort_m,
                temperature = consTemp,
                diet_steps = 10,
-               t_max = t_max,
-               t_ref = t_ref)
+               t_max = t_max)
 
 refSpect <- getSpectra(ref)
 
@@ -124,7 +126,6 @@ refSpect <- getSpectra(ref)
 sim <- seq(0.8, 1.2, 0.1) # Factor for scaling fishing mortality
 iter <- seq(from = 1, to = length(sim))
 
-projectEffort_new <- projectEffort_m
 tt <- c()
 groj <- c()
 spect <- c()
@@ -133,7 +134,9 @@ data_list_with_res <- list()
 # The projected fishing mortality starts at row 100
 
 for (i in iter) {
-  
+
+  projectEffort_new <- projectEffort_m
+    
   projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
   
   proj <- project(pars_with_res, 
@@ -141,8 +144,7 @@ for (i in iter) {
                   effort = projectEffort_new,
                   temperature = projectTemp$temperature,
                   diet_steps = 10,
-                  t_max = t_max,
-                  t_ref = t_ref)   
+                  t_max = t_max)   
   
   # Apply getSpectra function to get abundance at size
   spect <- getSpectra(proj)
@@ -169,7 +171,6 @@ big_spect_data_w_r <- dplyr::bind_rows(data_list_with_res)
 
 
 #**** for loop through different fishin effort (with temp dep resource) ============
-projectEffort_new <- projectEffort_m
 tt <- c()
 groj <- c()
 spect <- c()
@@ -178,6 +179,8 @@ data_list_no_res <- list()
 # The projected fishing mortality starts at row 100
 
 for (i in iter) {
+
+  projectEffort_new <- projectEffort_m
   
   projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
   
@@ -189,8 +192,7 @@ for (i in iter) {
                   effort = projectEffort_new,
                   temperature = projectTemp$temperature,
                   diet_steps = 10,
-                  t_max = t_max,
-                  t_ref = t_ref)   
+                  t_max = t_max)   
   
   # Apply getSpectra function to get abundance at size
   spect <- getSpectra(proj)
@@ -237,7 +239,6 @@ big_spect_data_no_r <- dplyr::bind_rows(data_list_no_res)
 
 
 #**** for loop through different fishing effort (constant temperature) =============
-projectEffort_new <- projectEffort_m
 tt <- c()
 groj <- c()
 spect <- c()
@@ -246,6 +247,8 @@ data_list_con_temp <- list()
 # The projected fishing mortality starts at row 100
 
 for (i in iter) {
+
+  projectEffort_new <- projectEffort_m
   
   projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
   
@@ -253,8 +256,7 @@ for (i in iter) {
                   dt = dt,
                   effort = projectEffort_new,
                   temperature = consTemp,
-                  diet_steps = 10,
-                  t_ref = t_ref)   
+                  diet_steps = 10)   
   
   # Apply getSpectra function to get abundance at size
   spect <- getSpectra(proj)
@@ -307,7 +309,6 @@ pal <- viridis(n = 5, option = "cividis")
 pal[3] <- RColorBrewer::brewer.pal(n = 5, "Dark2")[4]
 
 # Plot all together
-
 plotdf <- select(proj@params@species_params, species, w_mat)
 
 # Plot relative spectra
@@ -370,16 +371,14 @@ tt <- project(pars_with_res,
               effort = projectEffort_m,
               temperature = projectTemp$temperature,
               diet_steps = 10,
-              t_max = t_max,
-              t_ref = t_ref)   
+              t_max = t_max)   
 
 zz <- project(pars_no_res, 
               dt = dt,
               effort = projectEffort_m,
               temperature = projectTemp$temperature,
               diet_steps = 10,
-              t_max = t_max,
-              t_ref = t_ref)   
+              t_max = t_max)   
 
 str(ref@effort)
 
@@ -389,18 +388,6 @@ tail(getSSB(zz), 2)
 tail(getSSB(tt), 2)
 # ref - constant temp - FMSy fishing
 tail(getSSB(ref), 2)
-
-# Ok, this fits with the spectra plot... SSB increases. So why does it not do that in the yield-script?
-
-big_spect_data %>% filter(Fm == 1 & n > 0.0001) %>% 
-  ggplot(., aes(log10(w), re_spec, color = scen)) + 
-  geom_line(size = 0.8) +
-  theme_classic() +
-  scale_x_log10() +
-  facet_wrap(~species, scales = "free", nrow = 3) + 
-  NULL
-
-big_spect_data %>% filter(re_spec > 1 & species == "Herring" & scen == "With resource temp. dep." & Fm == 1)
 
 
 # #**** Plot predation mortality =====================================================

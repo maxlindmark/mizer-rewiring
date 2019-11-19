@@ -31,9 +31,9 @@ devtools::load_all(".")
 # Print package versions
 # print(sessionInfo())
 # other attached packages:
-# [1] mizer_1.1 testthat_2.0.0 patchwork_0.0.1 dplyr_0.8.1 tidyr_0.8.3       
-# [6] viridis_0.5.1 viridisLite_0.3.0 magrittr_1.5 RCurl_1.95-4.12 bitops_1.0-6      
-# [11] RColorBrewer_1.1-2 usethis_1.4.0 devtools_2.0.2 ggplot2_3.1.1  
+# mizer_1.1          testthat_2.3.0     patchwork_0.0.1    dplyr_0.8.3        tidyr_1.0.0        
+# viridis_0.5.1      viridisLite_0.3.0  magrittr_1.5       RCurl_1.95-4.12   
+# bitops_1.0-6       RColorBrewer_1.1-2 devtools_2.2.1     usethis_1.5.1      ggplot2_3.2.1     
 
 # Load function for extracting size-at-age
 func <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/getGrowth.R", ssl.verifypeer = FALSE)
@@ -55,15 +55,39 @@ projectEffort_m <- as.matrix(projectEffort)
 rownames(projectEffort_m) <- 1:nrow(projectEffort)
 
 # Define general parameters
-t_max <- 2000
 dt <- 0.2
-t_ref <- (10 + 0.1156161)
-kappa_ben <- 1
-kappa <- 1
-w_bb_cutoff <- 20
-w_pp_cutoff <- 1
-r_pp <- 4
-r_bb <- 4
+t_ref <- params@t_ref
+kappa_ben <- params@kappa_ben
+kappa <- params@kappa
+w_bb_cutoff <- 20 # Not stored in mizerParams output
+w_pp_cutoff <- 1 # Not stored in mizerParams outputs
+r_pp <- 4 # Not stored in mizerParams output
+r_bb <- 4 # Not stored in mizerParams output
+
+# Define temperature-scenarios
+consTemp <- projectTemp$temperature
+
+# The time series starts in 1914. From 1997 (mid point in calibration time), we want
+# to fix the temperature at the mean of the calibration, i.e. t_ref. This insures
+# we get comparable starting values for the models so that temperature is the only
+# "treatment"
+start <- 1997-1914
+consTemp[start:137] <- t_ref
+
+# Plot
+col <- RColorBrewer::brewer.pal("Dark2", n = 5)
+tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
+                       Scenario = rep(c("warming", "no warming"), each = length(consTemp)),
+                       Year = 1:length(consTemp) + 1913)
+
+ggplot(tempScen, aes(Year, Temperature, color = Scenario, linetype = Scenario)) +
+  geom_line(alpha = 0.8, size = 1.2) +
+  theme_classic(base_size = 25) +
+  scale_color_manual(values = rev(col)) +
+  theme(legend.position=c(.2,.75)) +
+  NULL
+
+#ggsave("baltic/figures/supp/temperature_scenarios.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 # B. TEMP-DRIVEN CHANGE IN SIZE-AT-AGE =============================================
@@ -71,16 +95,12 @@ r_bb <- 4
 # Then compare that to a projection with a constant temperature
 
 #**** Project without temp (reference) =============================================
-consTemp <- projectTemp$temperature
-consTemp[] <- t_ref
-
 ref <- project(params, 
                dt = dt,
                effort = projectEffort_m,
                temperature = consTemp,
                diet_steps = 10,
-               t_max = t_max,
-               t_ref = t_ref)   
+               t_max = t_max)   
 
 refGrowth <- getGrowth(ref)
 
@@ -113,15 +133,15 @@ for (i in sim) {
                     w_bb_cutoff = w_bb_cutoff,
                     w_pp_cutoff = w_pp_cutoff,
                     r_pp = r_pp,
-                    r_bb = r_bb)
+                    r_bb = r_bb,
+                    t_ref = t_ref)
   
   proj <- project(tt, 
                   dt = dt,
                   effort = projectEffort_m,
                   temperature = projectTemp$temperature,
                   diet_steps = 10,
-                  t_max = t_max,
-                  t_ref = t_ref)   
+                  t_max = t_max)   
   
   growth <- getGrowth(proj)
   
@@ -168,19 +188,18 @@ for (i in sim) {
                     ea_car = 0,
                     kappa_ben = kappa_ben,
                     kappa = kappa,
-                    t_ref = t_ref, 
                     w_bb_cutoff = w_bb_cutoff,
                     w_pp_cutoff = w_pp_cutoff,
                     r_pp = r_pp,
-                    r_bb = r_bb)
+                    r_bb = r_bb,
+                    t_ref = t_ref)
   
   proj <- project(tt, 
                   dt = dt,
                   effort = projectEffort_m,
                   temperature = projectTemp$temperature,
                   diet_steps = 10,
-                  t_max = t_max,
-                  t_ref = t_ref)   
+                  t_max = t_max)   
   
   growth <- getGrowth(proj)
   
@@ -213,9 +232,6 @@ big_growth_data <- rbind(big_growth_data_w_r, big_growth_data_no_r)
 
 big_growth_data$scen <- as.factor(big_growth_data$scen)
 
-blues <- RColorBrewer::brewer.pal(n = 5, "Blues")
-reds <- RColorBrewer::brewer.pal(n = 5, "Reds")
-
 # Calculate means, max and min for plotting
 mean_dat <- big_growth_data %>%
   dplyr::group_by(Species, Age, scen) %>% 
@@ -232,7 +248,7 @@ mean_dat$Species <- factor(mean_dat$Species, levels = c("Sprat", "Herring", "Cod
 p1 <- ggplot(mean_dat, aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
   geom_line(data = mean_dat, aes(Age, mean_val, color = factor(scen)),
             inherit.aes = FALSE, size = 0.5) +
-  geom_ribbon(alpha = 0.2, color = NA) +  
+  geom_ribbon(alpha = 0.15, color = NA) +  
   labs(y = "Body mass (g)") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0)) + 
@@ -241,7 +257,7 @@ p1 <- ggplot(mean_dat, aes(x = Age, ymin = min_val, ymax = max_val, fill = facto
   theme_classic(base_size = 14) +
   guides(color = FALSE, fill = FALSE) +
   geom_line(data = refGrowth, aes(Age, value), color = "black", 
-           inherit.aes = FALSE, size = 0.5, alpha = 0.5, linetype = "dashed") +
+           inherit.aes = FALSE, size = 0.5, alpha = 0.7, linetype = "dashed") +
   theme(legend.position = "bottom",
         legend.title = element_blank()) +
   NULL
@@ -259,10 +275,10 @@ p2 <- rel_dat %>% filter(Age > 0) %>%
 ggplot(., aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
   geom_line(data = filter(rel_dat, Age > 0), aes(Age, mean_val, color = factor(scen)),
             inherit.aes = FALSE, size = 0.5) +
-  geom_ribbon(alpha = 0.2, color = NA) +  
+  geom_ribbon(alpha = 0.15, color = NA) +  
   labs(y = "Body mass relative to\nconstant temperature") +
   facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(expand = c(0, 0), limits = c(0.95, 1.8)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0.85, 1.8)) + 
   scale_color_manual(values = rev(col)) +
   scale_fill_manual(values = rev(col)) +
   theme_classic(base_size = 14) +
@@ -293,8 +309,8 @@ ggplot(maxg, aes(Age, value, color = sim)) +
 
 # Ok, so here the parameters are from iteration 137 and 173 for no resource and with 
 # resource temperature-dependence
-ea[136, ] # no resource
-ea[173, ] # with resource
+ea[136, ] # no resource temp dep
+ea[173, ] # with resource temp dep
 
 # What are the activation energies in the MIN scenarios?
 maxg <- big_growth_data %>%
@@ -313,13 +329,13 @@ ea[197, ] # no resource
 ea[189, ] # with resource
 
 
-
 #**** Testing I can reproduce a really bad example =================================
+# (even without negative effects on carrying capacity)
 t <- params@species_params
 
-t$ea_met <- 0.6
+t$ea_met <- 0.8
 t$ea_int <- 0.3
-t$ea_mor <- 0.6
+t$ea_mor <- 0.8
 
 t$ca_int <- -0.004 # Here we just use the fixed values
 t$ca_met <- 0.001 # Here we just use the fixed values
@@ -332,15 +348,15 @@ tt <- MizerParams(t,
                   w_bb_cutoff = w_bb_cutoff,
                   w_pp_cutoff = w_pp_cutoff,
                   r_pp = r_pp,
-                  r_bb = r_bb)
+                  r_bb = r_bb,
+                  t_ref = t_ref)
 
 proj <- project(tt, 
                 dt = dt,
                 effort = projectEffort_m,
                 temperature = projectTemp$temperature,
                 diet_steps = 10,
-                t_max = t_max,
-                t_ref = t_ref)   
+                t_max = t_max)   
 
 growth <- getGrowth(proj)
 
