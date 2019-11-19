@@ -44,7 +44,7 @@ eval(parse(text = func))
 # Read in params object
 params <- readRDS("baltic/params/mizer_param_calib.rds")
 
-# Read in params object
+# Read in activation energy data frame
 ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
 
 # Read in effort and temperature for projections
@@ -57,13 +57,13 @@ rownames(projectEffort_m) <- 1:nrow(projectEffort)
 # Define general parameters
 t_max <- 2000
 dt <- 0.2
-t_ref <- 10
-kappa_ben = 1
-kappa = 1
-w_bb_cutoff = 20
-w_pp_cutoff = 1
-r_pp = 4
-r_bb = 4
+t_ref <- (10 + 0.1156161)
+kappa_ben <- 1
+kappa <- 1
+w_bb_cutoff <- 20
+w_pp_cutoff <- 1
+r_pp <- 4
+r_bb <- 4
 
 
 # B. TEMP-DRIVEN CHANGE IN SIZE-AT-AGE =============================================
@@ -72,7 +72,6 @@ r_bb = 4
 
 #**** Project without temp (reference) =============================================
 consTemp <- projectTemp$temperature
-t_ref <- (10 + 0.1156161)
 consTemp[] <- t_ref
 
 ref <- project(params, 
@@ -81,7 +80,7 @@ ref <- project(params,
                temperature = consTemp,
                diet_steps = 10,
                t_max = t_max,
-               t_ref = (10 + 0.1156161))   
+               t_ref = t_ref)   
 
 refGrowth <- getGrowth(ref)
 
@@ -122,7 +121,7 @@ for (i in sim) {
                   temperature = projectTemp$temperature,
                   diet_steps = 10,
                   t_max = t_max,
-                  t_ref = (10 + 0.1156161))   
+                  t_ref = t_ref)   
   
   growth <- getGrowth(proj)
   
@@ -169,7 +168,7 @@ for (i in sim) {
                     ea_car = 0,
                     kappa_ben = kappa_ben,
                     kappa = kappa,
-                    t_ref = (10 + 0.1156161), 
+                    t_ref = t_ref, 
                     w_bb_cutoff = w_bb_cutoff,
                     w_pp_cutoff = w_pp_cutoff,
                     r_pp = r_pp,
@@ -181,7 +180,7 @@ for (i in sim) {
                   temperature = projectTemp$temperature,
                   diet_steps = 10,
                   t_max = t_max,
-                  t_ref = (10 + 0.1156161))   
+                  t_ref = t_ref)   
   
   growth <- getGrowth(proj)
   
@@ -341,8 +340,7 @@ proj <- project(tt,
                 temperature = projectTemp$temperature,
                 diet_steps = 10,
                 t_max = t_max,
-                #t_ref = (10 + 0.1156161),
-                t_ref = 10)   
+                t_ref = t_ref)   
 
 growth <- getGrowth(proj)
 
