@@ -14,12 +14,10 @@ tempFun <- function(temperature, t_ref, Ea, c_a, w) # default are 0 for now as d
   return(temperatureScalar)
 }
 
-tempFun(temperature = c(5:15), t_ref = 10, Ea = 0, c_a = 0, w = c(1:10))
-
-tempFun(temperature = c(5:15), t_ref = 10, Ea = 0.63, c_a = 0, w = c(1:10))
-tempFun(temperature = c(5:15), t_ref = 10, Ea = 0.63, c_a = 0, w = c(1))
-
-tempFun(temperature = c(5:15), t_ref = 10, Ea = 0.63, c_a = -0.02, w = c(1:10))
+# tempFun(temperature = c(5:15), t_ref = 10, Ea = 0, c_a = 0, w = c(1:10))
+# tempFun(temperature = c(5:15), t_ref = 10, Ea = 0.63, c_a = 0, w = c(1:10))
+# tempFun(temperature = c(5:15), t_ref = 10, Ea = 0.63, c_a = 0, w = c(1))
+# tempFun(temperature = c(5:15), t_ref = 10, Ea = 0.63, c_a = -0.02, w = c(1:10))
 
 
 
