@@ -1009,7 +1009,7 @@ dat %>% filter(Year < 2012) %>%
   scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.5)) +
   theme(aspect.ratio = 1) +
   #labs(y = "SSB/max(SSB)", x = "Year") +
-  labs(y = "Spawning stock biomass\n(1000 tonnes)", x = "Year") +
+  labs(y = "Spawning stock biomass (1000 tonnes)", x = "Year") +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) +
   theme(aspect.ratio = 1/2) +
