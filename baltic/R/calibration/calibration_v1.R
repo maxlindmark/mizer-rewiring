@@ -377,7 +377,7 @@ plotGrowthCurves(m3, max_age = 15) +
   geom_line(data = subset(vbge_pred, age < 16), aes(age, weight), 
             color = col[4], size = 1.3, linetype = "twodash", alpha = 0.8) +
   guides(color = FALSE, linetype = FALSE) +
-  theme_classic(base_size = 10) + 
+  theme_classic(base_size = 14) + 
   theme(aspect.ratio = 1/2) +
   NULL
 
@@ -402,8 +402,8 @@ p1 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) +
                      guide = guide_legend(override.aes = list(colour = "black", 
                                                               fill = "black",
                                                               size = 4))) + 
-  labs(x = "", y = "Spawning stock biomass (millions kg)") +
-  theme_classic(base_size = 12) +
+  labs(x = "", y = "Spawning stock biomass\n(1000 tonnes)") +
+  theme_classic(base_size = 14) +
   guides(fill = FALSE) +
   theme(legend.position = c(.85, .2),
         legend.title = element_blank(),
@@ -420,7 +420,7 @@ p2 <- ggplot(ssb_eval_l, aes(obs, pred, fill = Species, shape = Species)) +
   scale_shape_manual(values = c(21, 22, 24)) +
   labs(x = "Log10(Observed SSB)", y = "Log10(Predicted SSB)") +
   geom_abline(slope = 1, intercept = 0, color = "red", linetype = 2) +
-  theme_classic(base_size = 12) +
+  theme_classic(base_size = 14) +
   theme(legend.position = c(.85, .2),
         legend.title = element_blank(),
         aspect.ratio = 1) +
@@ -485,13 +485,15 @@ rdi / params3_upd@species_params$r_max
 # This is Jon's function 
 # Looks OK, but clear that we need size-varying theta
 plotDietComp(m3, prey = dimnames(m3@diet_comp)$prey[1:5]) + 
-  theme_classic(base_size = 12) +
+  (prey)
+  theme_classic(base_size = 14) +
 #  facet_wrap(~ species) +
   scale_fill_manual(values = rev(col),
                     labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
-  theme(aspect.ratio = 1) +
+  theme(aspect.ratio = 1,
+        legend.position = "bottom") +
   NULL
 
 #ggsave("baltic/figures/supp/diet.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
@@ -931,7 +933,7 @@ obs_ssb_l <- ssb_f %>%
   filter(Year > 1973) %>% 
   select(Species, Year, SSB)
 
-obs_ssb_l$source <- "Stock assessment"
+obs_ssb_l$Scenario <- "Stock assessment"
 
 # Centering year so that 1974 is Year_ct = 61
 #projectEffort
@@ -943,21 +945,21 @@ obs_ssb_l$Year_ct <- (obs_ssb_l$Year-(1974))+(61) # 1974 is first year, t_1 need
 pred_ssb_noResT <- data.frame(getSSB(m4_noRes))
 pred_ssb_noResT$Year_ct <- as.numeric(rownames(getSSB(m4_noRes)))
 pred_ssb_noResT$Year <- pred_ssb_noResT$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-pred_ssb_noResT$source <- "No resource temp"
+pred_ssb_noResT$Scenario <- "No resource temp"
 str(pred_ssb_noResT)
 
 # Predicted ssb - with temp on resource
 pred_ssb_wiResT <- data.frame(getSSB(m4_wiRes))
 pred_ssb_wiResT$Year_ct <- as.numeric(rownames(getSSB(m4_wiRes)))
 pred_ssb_wiResT$Year <- pred_ssb_wiResT$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-pred_ssb_wiResT$source <- "With resource temp"
+pred_ssb_wiResT$Scenario <- "With resource temp"
 str(pred_ssb_wiResT)
 
 # Predicted ssb - no temperature at all after calibration (t_ref)
 pred_ssb_cons <- data.frame(getSSB(m4_consTemp))
 pred_ssb_cons$Year_ct <- as.numeric(rownames(getSSB(m4_consTemp)))
 pred_ssb_cons$Year <- pred_ssb_cons$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-pred_ssb_cons$source <- "Constant temp"
+pred_ssb_cons$Scenario <- "Constant temp"
 str(pred_ssb_cons)
 
 # Combine
@@ -989,11 +991,11 @@ dat2 <- dat %>%
 
 # Plot predicted and observed ssb by species, normalize by max within species
 # Reorder factor levels
-dat$source <- factor(dat$source, levels = c("Constant temp", "No resource temp", "With resource temp", "Stock assessment"))
+dat$Scenario <- factor(dat$Scenario, levels = c("Constant temp", "No resource temp", "With resource temp", "Stock assessment"))
 
-dat2 %>% filter(Year < 2012) %>% 
+dat %>% filter(Year < 2012) %>% 
   #ggplot(., aes(Year, SSB_norm, linetype = source, color = source, alpha = source)) +
-  ggplot(., aes(Year, SSB, linetype = source, color = source, alpha = source)) +
+  ggplot(., aes(Year, SSB, linetype = Scenario, color = Scenario, alpha = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
             aes(xmin = min(Year), 
@@ -1007,7 +1009,7 @@ dat2 %>% filter(Year < 2012) %>%
   scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.5)) +
   theme(aspect.ratio = 1) +
   #labs(y = "SSB/max(SSB)", x = "Year") +
-  labs(y = "Spawning stock biomass", x = "Year") +
+  labs(y = "Spawning stock biomass\n(1000 tonnes)", x = "Year") +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) +
   theme(aspect.ratio = 1/2) +
@@ -1043,11 +1045,12 @@ ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) + 
   geom_text(data = cors_con, aes(label = paste("r = ", cor, sep = "")), 
-            x = Inf, y = Inf, vjust = 25, hjust = 1.1,  
+            x = Inf, y = Inf, vjust = 16, hjust = 1.1,  
             fontface = "italic", size = 4, inherit.aes = FALSE) +
   scale_color_viridis(option = "cividis") +
-  theme(aspect.ratio = 1) +
-  ggtitle("No temperature-dependence on resource") +
+  theme(aspect.ratio = 1, 
+        legend.position = "bottom",
+        legend.text = element_text(size = 8)) +
   NULL
 
 #ggsave("baltic/figures/supp/obs_pred_corr.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")

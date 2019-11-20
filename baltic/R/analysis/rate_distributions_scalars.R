@@ -129,8 +129,8 @@ temp <- tempDat$mean_temp_scaled
 index <- seq(1:length(temp))
 
 ea_loop <- ea_dat %>% 
-  group_by(rate) %>% 
-  summarize(max_ea = max(activation_energy),
+  dplyr::group_by(rate) %>% 
+  dplyr::summarize(max_ea = max(activation_energy),
             min_ea = min(activation_energy),
             mean_ea = mean(activation_energy))
 
@@ -178,9 +178,9 @@ dat2$rate <- factor(dat2$rate, levels = c("Maximum\nconsumption rate", "Metaboli
 
 ggplot(dat2, aes(x = temp, ymin = min, ymax = max, fill = rate)) + 
   geom_ribbon(alpha = 0.8, fill = "gray75") +
-  geom_line(data = dat2, aes(temp, mean), color = "black", linetype = "dashed") +
+  geom_line(data = dat2, aes(temp, mean), color = "black", linetype = "dashed", size = 1) +
   facet_wrap(~rate, scales = "free") +
-  theme_classic() +
+  theme_classic(base_size = 16) +
   guides(fill = FALSE) +
   labs(x = expression(paste("Temperature [", degree*C, "]")),
        y = "Rate scalars") +

@@ -106,7 +106,7 @@ ssb2 <- dat %>%
   geom_point(data = filter(mean_ssb_F, Species %in% c("Cod", "Sprat", "Herring")), 
              aes(Year, mean_SSB), size = 1.2) +
   theme(aspect.ratio = 1) +
-  ylab("SSB (1000 tonnes)") +
+  ylab("Spawning stock biomass\n(1000 tonnes)") +
   scale_color_manual(values = col) +
   theme_classic(base_size = 12) +
   scale_y_continuous(expand = c(0, 0)) +

@@ -135,19 +135,19 @@ m_cons_temp <- project(pars_with_res,
 no_resource_temp <- data.frame(getYield(m_no_resource_temp))
 no_resource_temp$Year_ct <- as.numeric(rownames(getYield(m_no_resource_temp)))
 no_resource_temp$Year <- no_resource_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-no_resource_temp$source <- "No resource temp"
+no_resource_temp$Scenario <- "No resource temp"
 
 # Predicted yield - with temp on resource
 with_resource_temp <- data.frame(getYield(m_with_resource_temp))
 with_resource_temp$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp)))
 with_resource_temp$Year <- with_resource_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-with_resource_temp$source <- "With resource temp"
+with_resource_temp$Scenario <- "With resource temp"
 
 # Predicted yield - constant temperature at all
 cons_temp <- data.frame(getYield(m_cons_temp))
 cons_temp$Year_ct <- as.numeric(rownames(getYield(m_cons_temp)))
 cons_temp$Year <- cons_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-cons_temp$source <- "Constant temperature"
+cons_temp$Scenario <- "Constant temperature"
 
 # Combine
 yield <- rbind(no_resource_temp, with_resource_temp, cons_temp)
@@ -163,75 +163,20 @@ yield_l <- yield %>%
 yield_l$Yield <- yield_l$yield_g.m2 * 2.49e+11 / (1e9) # See calibration document
 yield_l <- yield_l %>% select(-yield_g.m2)
 
-# Plot predicted and observed ssb by species, normalize by max within species
-
+# Plot predicted and observed yield by species, normalize by max within species
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
 yield_l %>% filter(Year > 2002) %>% 
-  ggplot(., aes(Year, Yield, color = source, linetype = source)) +
+  ggplot(., aes(Year, Yield, color = Scenario, linetype = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_line(size = 1.3, alpha = 0.8) +
   scale_color_manual(values = rev(col)) +
   scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.5)) +
   theme(aspect.ratio = 1) +
-  labs(y = "Yield", x = "Year") +
+  labs(y = "Yield (1000 tonnes)", x = "Year") +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) +
-  theme(aspect.ratio = 1/2
-        #,legend.position = "bottom"
-        ) +
-  #guides(col = guide_legend(nrow = 3, byrow = TRUE)) +
+  theme(aspect.ratio = 1/2) +
   NULL
 
-#ggsave("baltic/figures/time_series_pred_yield.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
-
-
-
-
-
-
-#**** Plot size-spectra ============================================================
-options(scipen = 10000) # Set higher level before using scientific notation over normal
-
-big_yield_data_w_r$scen <- "With resource temp. dep."
-big_yield_data_no_r$scen <- "No resource temp. dep."
-big_yield_data_con_temp$scen <- "Constant temp."
-
-big_yield_data_w_r$sim <- paste("wr", big_yield_data_w_r$sim, sep = "")
-big_yield_data_no_r$sim <- paste("nr", big_yield_data_no_r$sim, sep = "")
-big_yield_data_con_temp$sim <- paste("ct", big_yield_data_con_temp$sim, sep = "")
-
-big_yield_data <- rbind(big_yield_data_w_r, big_yield_data_no_r, big_yield_data_con_temp)
-
-big_yield_data$scen <- as.factor(big_yield_data$scen)
-
-# Reorder factor levels
-big_spect_data$species <- factor(big_spect_data$species, levels = c("Sprat", "Herring", "Cod"))
-
-# Define colors
-pal <- viridis(n = 5, option = "cividis")
-pal[3] <- RColorBrewer::brewer.pal(n = 5, "Dark2")[4]
-
-# Plot spectra
-
-col <- RColorBrewer::brewer.pal("Dark2", n = 5)
-big_spect_data %>% 
-  filter(n > 0 & w > 0.001 & Fm == 1) %>%
-  ggplot(., aes(w, n, color = factor(scen), group = sim, 
-                linetype = factor(scen), alpha = factor(scen))) + 
-  geom_line(size = 0.8) + 
-  scale_colour_manual(values = rev(col)) +
-  scale_alpha_manual(values = c(0.7, 0.7, 1, 0.7, 0.7)) +
-  scale_linetype_manual(values = c("solid", "longdash", "dotted")) +
-  facet_wrap(~ species, scales = "free", nrow = 3) +
-  theme_classic(base_size = 13) +
-  scale_x_log10() +
-  labs(x ="Body mass (g)",
-       y = "Abundance",
-       color = "FMSY\nscaling\nfactor", 
-       alpha = "FMSY\nscaling\nfactor", 
-       linetype = "FMSY\nscaling\nfactor") +
-  NULL
-
-#ggsave("baltic/figures/yield_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
-
+#ggsave("baltic/figures/supp/time_series_pred_yield.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")

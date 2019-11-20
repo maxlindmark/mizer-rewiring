@@ -81,10 +81,11 @@ tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
                        Year = 1:length(consTemp) + 1913)
 
 ggplot(tempScen, aes(Year, Temperature, color = Scenario, linetype = Scenario)) +
-  geom_line(alpha = 0.8, size = 1.2) +
+  geom_line(alpha = 0.8, size = 1.4) +
   theme_classic(base_size = 25) +
   scale_color_manual(values = rev(col)) +
-  theme(legend.position=c(.2,.75)) +
+  theme(legend.position=c(.2,.75),
+        aspect.ratio = 3/4) +
   NULL
 
 #ggsave("baltic/figures/supp/temperature_scenarios.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")

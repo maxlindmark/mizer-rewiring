@@ -12,8 +12,6 @@
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#### DRAFT
-
 # A. LOAD LIBRARIES ================================================================
 rm(list = ls())
 
@@ -280,7 +278,7 @@ for(i in index) {
 
 sprFmsy <- dplyr::bind_rows(data_list)
 
-sprFmsy$species <- "sprat"
+sprFmsy$species <- "Sprat"
 
 ggplot(sprFmsy, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
@@ -290,12 +288,14 @@ col <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 
 Fmsy <- rbind(codFmsy, sprFmsy, herFmsy)
 
+Fmsy$species <- factor(Fmsy$species, levels = c("Sprat", "Herring", "Cod"))
+
 Fmsy %>% filter(biomass > 0.001) %>% 
   ggplot(., aes(Fm, biomass, linetype = type, color = scen)) + 
   geom_line(alpha = 0.6, size = 1.2) +
   facet_wrap(~ species, scales = "free") +
   scale_color_manual(values = rev(col)) +
-  theme_classic(base_size = 10) +
+  theme_classic(base_size = 12) +
   labs(x = "Fishing mortality [1/year]", y = "Biomass",
        color = "Scenario",
        linetype = "Metric") +
@@ -327,6 +327,7 @@ refYield <- data.frame(Yield = c(getYield(ref)[dim(ref@effort)[1], 1],
 
 
 # #**** for loop through different fishin effort (with temp dep resource) ============
+data_list <- list()
 eff <- seq(0.8, 1.2, 0.05) # Factor for scaling fishing mortality
 temp <- seq(0.8, 1.2, 0.05)
 temp_eff <- expand.grid(data.frame(eff = eff, temp = temp))
@@ -378,13 +379,14 @@ big_yield_data$Species <- factor(big_yield_data$Species, levels = c("Sprat", "He
 ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
   geom_tile(color = NA) +
   facet_grid(~ Species, scales = "free") +
-  theme_classic(base_size = 10) +
+  theme_classic(base_size = 12) +
   scale_fill_viridis(option = "cividis") +
   labs(x = "Temperature relative to\nRCP8.5 projection",
        y = "Fishing mortality relative\nto averag FMSY",
        fill = "Yield relative to\naverageFMSY +\nconstant temp.") +
   coord_cartesian(expand = 0) +
-  theme(aspect.ratio = 3/4) +
+  theme(aspect.ratio = 3/4,
+        legend.position = "bottom") +
   NULL
 
 #ggsave("baltic/figures/yield_heat.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")

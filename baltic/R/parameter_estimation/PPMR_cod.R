@@ -17,9 +17,6 @@
 rm(list = ls())
 
 # Load packages
-# install.packages("ggplot2")
-# install.packages("dplyr")
-# install.packages("tidyr")
 
 # packageVersion("patchwork")
 library(ggplot2)   # v3.0.0
@@ -212,6 +209,7 @@ dat_agg %>%
   annotate("text", label = "mean PPMR=426\nsd PPMR=5.63", 
            x = Inf, y = Inf, size = 4.5, col = "blue",
            vjust = 1, hjust = 1) +
+  labs(y = "Count")
   NULL
 
 #ggsave("baltic/figures/supp/PPMR.pdf", plot = last_plot(), width = 15, height = 15, units = "cm")
