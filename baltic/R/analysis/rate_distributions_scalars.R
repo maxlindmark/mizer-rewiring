@@ -9,7 +9,9 @@
 #
 # B. Sample and save as .csv for analysis...
 #
-# C. Plot distributions
+# C. Plot temperature scalars
+#
+# D. Plot distributions
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -18,15 +20,16 @@ rm(list = ls())
 
 # Load libraries, install if needed
 library(tidyverse)
+library(RCurl)
 # devtools::install_github("thomasp85/patchwork")
 library(patchwork)
 
 # Print package versions
 # print(sessionInfo())
 # other attached packages:
-# [1] mizer_1.1 testthat_2.0.0 patchwork_0.0.1 dplyr_0.8.1 tidyr_0.8.3       
-# [6] viridis_0.5.1 viridisLite_0.3.0 magrittr_1.5 RCurl_1.95-4.12 bitops_1.0-6      
-# [11] RColorBrewer_1.1-2 usethis_1.4.0 devtools_2.0.2 ggplot2_3.1.1  
+# patchwork_0.0.1 RCurl_1.95-4.12 bitops_1.0-6    forcats_0.4.0   stringr_1.4.0   
+# dplyr_0.8.3     purrr_0.3.3     readr_1.3.1     tidyr_1.0.0     tibble_2.1.3   
+# ggplot2_3.2.1   tidyverse_1.2.1
 
 # Define function for shading densities
 funcShaded <- function(x, lower_bound) {
@@ -80,8 +83,12 @@ ea_dat <- ea %>%
                            "Background\nmortality rate" = "mor"))
 
 # Plot samples
+# Reorder levels
+ea_dat$rate2 <- factor(ea_dat$rate, levels = c("Maximum\nconsumption rate", "Metabolic rate", "Background\nmortality rate", 
+                                              "Resource growth rate", "Resource\ncarrying capacity"))
+
 ggplot(ea_dat, aes(activation_energy)) + 
-  facet_wrap(~rate, scales = "free") +
+  facet_wrap(~rate2, scales = "free") +
   geom_histogram() +
   theme_classic(base_size = 14) +
   coord_cartesian(expand = 0) +
@@ -95,8 +102,95 @@ ggplot(ea_dat, aes(activation_energy)) +
 head(ea_dat)
 
 
-# C. PLOT DISTRIBUTIONS ============================================================
-#**** Metabolism ==================================================================
+# C. PLOT TEMP SCALARS =============================================================
+script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/tempFun.R", ssl.verifypeer = FALSE)
+eval(parse(text = script))
+
+# Read in temperature data
+temp_datRCP8.5 <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/data/Climate/Test_RCP8.5_from_graph.csv"), sep = ";", stringsAsFactors = FALSE)
+
+# Calculate average temperature by year
+tempDat <- data.frame(temp_datRCP8.5 %>% 
+                        dplyr::filter(year < 2050.5) %>% 
+                        dplyr::mutate(Year.r = factor(round(year, digits = 0))) %>% 
+                        dplyr::group_by(Year.r) %>% 
+                        dplyr::summarize(mean_temp = mean(rel_temp_70.99Ave)) %>% 
+                        dplyr::mutate(Year.num = as.numeric(as.character(Year.r))))
+
+t_ref <- 9.57
+
+tempDat$mean_temp_scaled <- tempDat$mean_temp + t_ref
+
+# For loop through scalars
+data_list <- c()
+scalDat <- c()
+#temp <- seq(10, 12, 0.1)
+temp <- tempDat$mean_temp_scaled
+index <- seq(1:length(temp))
+
+ea_loop <- ea_dat %>% 
+  group_by(rate) %>% 
+  summarize(max_ea = max(activation_energy),
+            min_ea = min(activation_energy),
+            mean_ea = mean(activation_energy))
+
+df <- data.frame(max_ea = rep(ea_loop$max_ea, each = length(temp)),
+                 min_ea = rep(ea_loop$min_ea, each = length(temp)),
+                 mean_ea = rep(ea_loop$mean_ea, each = length(temp)),
+                 rate = rep(ea_loop$rate, each = length(temp)),
+                 temp = temp)
+
+scalMin <- data.frame(scal = as.numeric(tempFun(temperature = df$temp, 
+                                                t_ref = 10, 
+                                                Ea = df$min_ea, 
+                                                c_a = 0, 
+                                                w = 10)),
+                      temp = df$temp,
+                      rate = df$rate,
+                      val = "min")
+
+scalMean <- data.frame(scal = as.numeric(tempFun(temperature = df$temp, 
+                                                 t_ref = 10, 
+                                                 Ea = df$mean_ea, 
+                                                 c_a = 0, 
+                                                 w = 10)),
+                       temp = df$temp,
+                       rate = df$rate,
+                       val = "mean")
+
+scalMax <- data.frame(scal = as.numeric(tempFun(temperature = df$temp, 
+                                                t_ref = 10, 
+                                                Ea = df$max_ea, 
+                                                c_a = 0, 
+                                                w = 10)),
+                      temp = df$temp,
+                      rate = df$rate,
+                      val = "max")
+
+dat <- rbind(scalMin, scalMean, scalMax)
+
+dat2 <- pivot_wider(data = dat, names_from = val, values_from = scal)
+
+# Plot mean min and max
+col <- rev(RColorBrewer::brewer.pal("Dark2", n = 5))
+dat2$rate <- factor(dat2$rate, levels = c("Maximum\nconsumption rate", "Metabolic rate", "Background\nmortality rate", 
+                                          "Resource growth rate", "Resource\ncarrying capacity"))
+
+ggplot(dat2, aes(x = temp, ymin = min, ymax = max, fill = rate)) + 
+  geom_ribbon(alpha = 0.8, fill = "gray75") +
+  geom_line(data = dat2, aes(temp, mean), color = "black", linetype = "dashed") +
+  facet_wrap(~rate, scales = "free") +
+  theme_classic() +
+  guides(fill = FALSE) +
+  labs(x = expression(paste("Temperature [", degree*C, "]")),
+       y = "Rate scalars") +
+  NULL
+
+#ggsave("baltic/figures/supp/random_rate_scalar.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
+
+# D. PLOT DISTRIBUTIONS ============================================================
+#**** Metabolism ===================================================================
 m <- met_u
 std <- met_sd
 
