@@ -6,8 +6,8 @@ m2 <- m2[as.character(dimnames(m2)[[1]]) %in% object@params@species_params$speci
          drop = FALSE]
 
 mortDat <- data.frame(value = c(m2),
-                       Species = dimnames(m2)[[1]],
-                       w = rep(object@params@w, each = length(object@params@species_params$species)))
+                      Species = dimnames(m2)[[1]],
+                      w = rep(object@params@w, each = length(object@params@species_params$species)))
 
 mortDat <- mortDat %>% arrange(Species)
 

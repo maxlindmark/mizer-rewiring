@@ -123,8 +123,8 @@ for (i in sim) {
   t$ea_int <- ea$int[i]
   t$ea_mor <- ea$mor[i]
   
-  t$ca_int <- -0.004 # Here we just use the fixed values
-  t$ca_met <- 0.001 # Here we just use the fixed values
+  #t$ca_int <- -0.004 # Here we just use the fixed values
+  #t$ca_met <- 0.001 # Here we just use the fixed values
   
   tt <- MizerParams(t, 
                     ea_gro = ea$gro[i],
@@ -181,8 +181,8 @@ for (i in sim) {
   t$ea_int <- ea$int[i]
   t$ea_mor <- ea$mor[i]
   
-  t$ca_int <- -0.004 # Here we just use the fixed values
-  t$ca_met <- 0.001 # Here we just use the fixed values
+  #t$ca_int <- -0.004 # Here we just use the fixed values
+  #t$ca_met <- 0.001 # Here we just use the fixed values
   
   tt <- MizerParams(t, 
                     ea_gro = 0,
@@ -263,6 +263,42 @@ p1 <- ggplot(mean_dat, aes(x = Age, ymin = min_val, ymax = max_val, fill = facto
         legend.title = element_blank()) +
   NULL
 
+p1 <- big_growth_data %>% filter(Age > 0 & Age < 16) %>% 
+  ggplot(., aes(x = Age, y = value, color = factor(scen), group = sim)) +
+  geom_line(size = 0.5, alpha = 0.03) +
+  labs(y = "Body mass (g)") +
+  facet_wrap(~Species, scales = "free_y") +
+  scale_y_continuous(expand = c(0, 0)) + 
+  scale_color_manual(values = rev(col)) +
+  theme_classic(base_size = 14) +
+  guides(color = FALSE, fill = FALSE) +
+  geom_line(data = filter(refGrowth, Age < 16), aes(Age, value), color = "black", 
+            inherit.aes = FALSE, size = 0.5, alpha = 0.7, linetype = "dashed") +
+  theme(legend.position = "bottom",
+        legend.title = element_blank()) +
+  NULL
+
+p1
+
+# Testing relative growth rates are correct (seems like larger difference there than in actual growth rates)
+# big_growth_data %>% 
+#   filter(Age > 0 & Age < 16 & Species == "Cod") %>% 
+#   ggplot(., aes(x = Age, y = value, color = factor(scen), group = sim)) +
+#   geom_line(size = 0.5, alpha = 0.03) +
+#   labs(y = "Body mass (g)") +
+#   scale_y_continuous(expand = c(0, 0)) + 
+#   scale_color_manual(values = rev(col)) +
+#   theme_classic(base_size = 14) +
+#   guides(color = FALSE, fill = FALSE) +
+#   geom_line(data = filter(refGrowth, Age < 16 & Species == "Cod"), aes(Age, value), color = "black", 
+#             inherit.aes = FALSE, size = 0.5, alpha = 0.7, linetype = "dashed") +
+#   theme(legend.position = "bottom",
+#         legend.title = element_blank()) +
+#   ylim(400, 1100) +
+#   xlim(3, 4) +
+#   NULL
+  
+
 # Plot relative growth curves
 rel_dat <- big_growth_data %>%
   dplyr::group_by(Species, Age, scen) %>% 
@@ -279,7 +315,7 @@ ggplot(., aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
   geom_ribbon(alpha = 0.15, color = NA) +  
   labs(y = "Body mass relative to\nconstant temperature") +
   facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(expand = c(0, 0), limits = c(0.85, 1.8)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0.95, 2.2)) + 
   scale_color_manual(values = rev(col)) +
   scale_fill_manual(values = rev(col)) +
   theme_classic(base_size = 14) +
@@ -288,6 +324,26 @@ ggplot(., aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
   geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
   NULL
 
+p2 <- big_growth_data %>% filter(Age > 0 & Age < 16) %>% 
+  ggplot(., aes(x = Age, y = re_growth, color = factor(scen), group = sim)) +
+  geom_line(alpha = 0.05, size = 0.5) +
+  geom_line(data = filter(rel_dat, Age > 0 & Age < 16), aes(Age, mean_val, color = factor(scen)),
+            inherit.aes = FALSE, size = 1, linetype = 2) +
+  labs(y = "Body mass relative to\nconstant temperature") +
+  facet_wrap(~Species, scales = "free_y") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0.95, 2.2)) + 
+  scale_color_manual(values = rev(col)) +
+  scale_fill_manual(values = rev(col)) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  theme_classic(base_size = 14) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank()) +
+  geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
+  NULL
+
+p2
+
+# Plot together
 p1/p2
 
 #ggsave("baltic/figures/growth_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
@@ -311,7 +367,7 @@ ggplot(maxg, aes(Age, value, color = sim)) +
 # Ok, so here the parameters are from iteration 137 and 173 for no resource and with 
 # resource temperature-dependence
 ea[136, ] # no resource temp dep
-ea[173, ] # with resource temp dep
+ea[62, ] # with resource temp dep
 
 # What are the activation energies in the MIN scenarios?
 maxg <- big_growth_data %>%
@@ -327,7 +383,7 @@ ggplot(maxg, aes(Age, value, color = sim)) +
 # Ok, so here the parameters are from iteration 197 and 189 for no resource and with 
 # resource temperature-dependence
 ea[197, ] # no resource
-ea[189, ] # with resource
+ea[197, ] # with resource
 
 
 #**** Testing I can reproduce a really bad example =================================

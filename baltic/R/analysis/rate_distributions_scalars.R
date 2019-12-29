@@ -46,19 +46,19 @@ set.seed(4361)
 n <- 200
 
 # Metabolic rate (Lindmark et al (in prep))
-met_u <- 0.57
-met_sd <- 0.018
+met_u <- 0.62
+met_sd <- 0.03
 met_q <- qnorm(c(0.025, 0.975), met_u, met_sd)
 met <- rnorm(n = n, met_u, met_sd)
 
 # Background Mortality (assumed to be = metabolic rate)
-mor_u <- 0.57
-mor_sd <- 0.018
+mor_u <- 0.62
+mor_sd <- 0.03
 mor <- rnorm(n = n, mor_u, mor_sd)
 
 # Maximum consumption rate (Lindmark et al (in prep))
-int_u <- 0.52
-int_sd <- 0.03
+int_u <- 0.67
+int_sd <- 0.08
 int_q <- qnorm(c(0.025, 0.975), int_u, int_sd)
 int <- rnorm(n = n, int_u, int_sd)
 
@@ -69,7 +69,7 @@ gro_q <- qnorm(c(0.025, 0.975), gro_u, gro_sd)
 gro <- rnorm(n = n, gro_u, gro_sd)
 
 # Carrying capacity (theoretical range, based on Gilbert et al (2014), ELE)
-car <- runif(n = n, -0.83, 0)
+car <- runif(n = n, -0.8, 0)
 
 # Put them all together & rename factor levels for plotting
 ea <- data.frame(met, mor, int, gro, car)
@@ -85,7 +85,7 @@ ea_dat <- ea %>%
 # Plot samples
 # Reorder levels
 ea_dat$rate2 <- factor(ea_dat$rate, levels = c("Maximum\nconsumption rate", "Metabolic rate", "Background\nmortality rate", 
-                                              "Resource growth rate", "Resource\ncarrying capacity"))
+                                               "Resource growth rate", "Resource\ncarrying capacity"))
 
 ggplot(ea_dat, aes(activation_energy)) + 
   facet_wrap(~rate2, scales = "free") +
