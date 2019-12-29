@@ -124,6 +124,16 @@ ref <- project(pars_with_res,
 refSpect <- getSpectra(ref)
 refMort <- getMortality(ref)
 
+# testing mortality is correct
+plot(ref)
+ggplot(refMort, aes(w, value, linetype = Species)) + 
+  geom_line(size = 1) + 
+  theme_bw(base_size = 13) +
+  scale_x_log10() +
+  theme(legend.position = "bottom",
+        aspect.ratio = 1/2) +
+  NULL
+
 # Create a little function to get the same structure as mortality... Clean up later
 FL_df <- function(object){
   
@@ -483,23 +493,21 @@ big_spect_data %>%
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
-  #scale_colour_viridis(option = "cividis", discrete = T) +
   scale_colour_manual(values = rev(pal)) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
-  #scale_y_log10(breaks = sim) +
   scale_x_log10() +
   theme(legend.position = "bottom",
         aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
-       y = "Relative abundance (warming/no warming)",
+       y = "Predation mortality",
        color = "Scenario") +
   NULL
 
-# Relative mortality
+# Relative mortality (filter really low values!)
 big_spect_data %>% 
-  filter(Fm == 1 & re_mort < 2 & scen %in% c("No resource temp. dep.", 
-                               "With resource temp. dep.")) %>%
+  filter(Fm == 1 & mort > 0.075 & scen %in% c("No resource temp. dep.",
+                                                             "With resource temp. dep.")) %>%
   ggplot(., aes(w, re_mort, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
@@ -511,15 +519,14 @@ big_spect_data %>%
   theme(legend.position = "bottom",
         aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
-       y = "Relative mortality (warming/no warming)",
+       y = "Relative predation mortality (warming/no warming)",
        color = "Scenario") +
   NULL
-
 #ggsave("baltic/figures/mort_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 #**** Plot feeding level ===========================================================
-# Absolute mortality
+# Absolute feeding level
 big_spect_data %>% 
   filter(Fm == 1 & scen %in% c("No resource temp. dep.",
                                "With resource temp. dep.")) %>%

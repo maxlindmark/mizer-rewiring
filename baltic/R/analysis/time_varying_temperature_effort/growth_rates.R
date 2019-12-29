@@ -36,7 +36,9 @@ devtools::load_all(".")
 # bitops_1.0-6       RColorBrewer_1.1-2 devtools_2.2.1     usethis_1.5.1      ggplot2_3.2.1     
 
 # Load function for extracting size-at-age
-func <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/getGrowth.R", ssl.verifypeer = FALSE)
+func <- 
+  getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/getGrowth.R", 
+         ssl.verifypeer = FALSE)
 eval(parse(text = func))
 
 
@@ -394,8 +396,8 @@ t$ea_met <- 0.8
 t$ea_int <- 0.3
 t$ea_mor <- 0.8
 
-t$ca_int <- -0.004 # Here we just use the fixed values
-t$ca_met <- 0.001 # Here we just use the fixed values
+#t$ca_int <- -0.004 # Here we just use the fixed values
+#t$ca_met <- 0.001 # Here we just use the fixed values
 
 tt <- MizerParams(t, 
                   ea_gro = 0,
@@ -427,3 +429,4 @@ ggplot(kek, aes(Age, value, color = scen)) +
   geom_line() +
   facet_wrap(~ Species, scales = "free")
 
+# The activation energy must be much lower for Cmax for it to be negative...
