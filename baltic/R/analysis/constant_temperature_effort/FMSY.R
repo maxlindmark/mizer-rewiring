@@ -42,6 +42,13 @@ func <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rew
 eval(parse(text = func))
 
 #**** Read in parameters and data ==================================================
+## TESTING TRAIT MODEL ## 
+# params_trait <- set_trait_model(no_sp = 10, min_w_inf = 10, max_w_inf = 1e5)
+# simTrat <- project(params_trait, t_max=75, effort = 1)
+# plot(simTrat)
+# tail(getSSB(simTrat)) / tail(getYield(simTrat))
+## END TEST, YIELD CAN BE LARGER THAN SSB... ## 
+
 # Read in params object
 params <- readRDS("baltic/params/mizer_param_calib.rds")
 
@@ -112,7 +119,7 @@ consTemp[start:137] <- t_ref
 # NOTE: Here we use constant temperatures and therefore the results may not be 
 # exactly translateable to the time-varying effort and temperature projections.
 
-F_range <- seq(0.2, 1.4, 0.2) # Can decrease step later, becomes too slow now
+F_range <- seq(0.2, 1.4, 0.01) # Can decrease step later, becomes too slow now
 t_max <- 100
 index <- 1:length(F_range)
 
@@ -285,29 +292,70 @@ ggplot(sprFmsy, aes(Fm, biomass, linetype = type, color = scen)) + geom_line()
 
 #**** All together =================================================================
 col <- RColorBrewer::brewer.pal(n = 5, "Dark2")
+col <- RColorBrewer::brewer.pal(n = 3, "Set1")[1:2]
 
 Fmsy <- rbind(codFmsy, sprFmsy, herFmsy)
 
 Fmsy$species <- factor(Fmsy$species, levels = c("Sprat", "Herring", "Cod"))
 
-Fmsy %>% filter(biomass > 0.001) %>% 
+# Get size-spectrum FMSY for all species:
+Fmsy_sum <- Fmsy %>% 
+  filter(type == "yield") %>% 
+  group_by(species, scen) %>% 
+  filter(biomass == max(biomass))
+
+Fmsy %>% 
+  filter(biomass > 0.001) %>% 
   ggplot(., aes(Fm, biomass, linetype = type, color = scen)) + 
   geom_line(alpha = 0.6, size = 1.2) +
   facet_wrap(~ species, scales = "free") +
-  scale_color_manual(values = rev(col)) +
+  scale_color_manual(values = rev(col), labels = c("T_ref", "T_ref + 2C")) +
   theme_classic(base_size = 12) +
   labs(x = "Fishing mortality [1/year]", y = "Biomass",
        color = "Scenario",
        linetype = "Metric") +
   theme(aspect.ratio = 3/4,
         legend.position = "bottom") +
+  geom_segment(data = filter(Fmsy_sum, scen == "warm"), linetype = 1, 
+               aes(x = Fm, xend = Fm, y = 0, yend = c(0.45, 0.8, 0.45)), arrow = arrow(length = unit(0.3, "cm")), col = col[1]) +
+  geom_segment(data = filter(Fmsy_sum, scen == "cold"), linetype = 1, 
+               aes(x = Fm, xend = Fm, y = 0, yend = c(0.45, 0.8, 0.45)), arrow = arrow(length = unit(0.3, "cm")), col = col[2]) +
   NULL
 
 #ggsave("baltic/figures/FMSY_warm_cold.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
+## IN THE GROWTH FIGURE, SHOULD I ALSO DO A 0 ACTIVATION ENERGY AS A CONTRAST? THATS THE NULL ACTUALLY!!!
+
+plotYield(w) + xlim(50, 75)
+plotBiomass(w) + xlim(50, 75)
+
+tail(getBiomass(w), 10)
+tail(getSSB(w), 10)
+tail(getYield(w), 10)
+
+test_eff <- effort
+test_eff[1:3] <- 1
+
+test <- project(pars_with_res,
+               dt = dt,
+               effort = test_eff,
+               temperature = rep(pars_with_res@t_ref, t_max),
+               diet_steps = 10,
+               t_max = t_max)
+
+plot(test)
+tail(getSSB(w), 10)
+tail(getYield(w), 10)
+
+
 # C. HEATMAP EFFORT~TEMPERATURE FOR LOOP ===========================================
-baseEffort <- projectEffort_m[137, ]
+baseEffort <- projectEffort_m[137, ] # This is the average of assessed and ssm FMSY
+
+simFMSY <- projectEffort_m[137, ] # This is the average of assessed and ssm FMSY
+simFMSY[] <- c(0.4, 0.52, 0.92)
+baseEffort <- simFMSY
+
 baseTemp <- t_ref
 t_max <- 100
 
@@ -380,9 +428,10 @@ ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
   geom_tile(color = NA) +
   facet_grid(~ Species, scales = "free") +
   theme_classic(base_size = 12) +
-  scale_fill_viridis(option = "cividis") +
+  scale_fill_viridis() +
   labs(x = "Temperature relative to\nRCP8.5 projection",
-       y = "Fishing mortality relative\nto averag FMSY",
+       #y = "Fishing mortality relative\nto average FMSY",
+       y = "Fishing mortality relative\nto MSSM FMSY",
        fill = "Yield relative to\naverageFMSY +\nconstant temp.") +
   coord_cartesian(expand = 0) +
   theme(aspect.ratio = 3/4,
@@ -390,5 +439,6 @@ ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
   NULL
 
 #ggsave("baltic/figures/yield_heat.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+#ggsave("baltic/figures/yield_heat_ssmFMSY.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
  

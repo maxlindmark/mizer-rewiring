@@ -166,7 +166,9 @@ yield_l <- yield_l %>% select(-yield_g.m2)
 # Plot predicted and observed yield by species, normalize by max within species
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
-yield_l %>% filter(Year > 2002) %>% 
+yield_l %>% 
+  #filter(Year > 2002) %>% 
+  filter(Year > 2015) %>% 
   ggplot(., aes(Year, Yield, color = Scenario, linetype = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_line(size = 1.3, alpha = 0.8) +

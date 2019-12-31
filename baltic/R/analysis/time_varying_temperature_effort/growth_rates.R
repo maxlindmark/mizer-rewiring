@@ -78,8 +78,10 @@ consTemp[start:137] <- t_ref
 
 # Plot
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
+col <- RColorBrewer::brewer.pal("Set1", n = 3)[1:2]
+
 tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
-                       Scenario = rep(c("warming", "no warming"), each = length(consTemp)),
+                       Scenario = rep(c("no warming", "warming"), each = length(consTemp)),
                        Year = 1:length(consTemp) + 1913)
 
 ggplot(tempScen, aes(Year, Temperature, color = Scenario, linetype = Scenario)) +
@@ -125,9 +127,6 @@ for (i in sim) {
   t$ea_int <- ea$int[i]
   t$ea_mor <- ea$mor[i]
   
-  #t$ca_int <- -0.004 # Here we just use the fixed values
-  #t$ca_met <- 0.001 # Here we just use the fixed values
-  
   tt <- MizerParams(t, 
                     ea_gro = ea$gro[i],
                     ea_car = ea$car[i], # -ea$gro[i] 
@@ -166,6 +165,61 @@ for (i in sim) {
 big_growth_data_w_r <- dplyr::bind_rows(data_list_with_res)
 
 
+#**** for loop (with resource - no physiological scaling) ==========================
+sim <- 1:200
+
+t <- c()
+tt <- c()
+groj <- c()
+growth <- c()
+data_list_with_res_no_phys <- list()
+
+for (i in sim) {
+  
+  t <- params@species_params
+  
+  t$ea_met <- 0
+  t$ea_int <- 0
+  t$ea_mor <- 0
+
+  tt <- MizerParams(t, 
+                    ea_gro = ea$gro[i],
+                    ea_car = ea$car[i], # -ea$gro[i] 
+                    kappa_ben = kappa_ben,
+                    kappa = kappa,
+                    w_bb_cutoff = w_bb_cutoff,
+                    w_pp_cutoff = w_pp_cutoff,
+                    r_pp = r_pp,
+                    r_bb = r_bb,
+                    t_ref = t_ref)
+  
+  proj <- project(tt, 
+                  dt = dt,
+                  effort = projectEffort_m,
+                  temperature = projectTemp$temperature,
+                  diet_steps = 10,
+                  t_max = t_max)   
+  
+  growth <- getGrowth(proj)
+  
+  growth$ea_met <- proj@params@species_params$ea_met[1]
+  growth$ea_mor <- proj@params@species_params$ea_mor[1]
+  growth$ea_int <- proj@params@species_params$ea_int[1]
+  
+  growth$ea_gro <- proj@params@ea_gro
+  growth$ea_car <- proj@params@ea_car
+  
+  growth$sim <- i
+  
+  growth$re_growth <- growth$value / refGrowth$value
+  
+  data_list_with_res_no_phys[[i]] <- growth
+  
+}
+
+big_growth_data_w_r_n_p <- dplyr::bind_rows(data_list_with_res_no_phys)
+
+
 #**** for loop (no resource) =======================================================
 sim <- 1:200
 
@@ -182,9 +236,6 @@ for (i in sim) {
   t$ea_met <- ea$met[i]
   t$ea_int <- ea$int[i]
   t$ea_mor <- ea$mor[i]
-  
-  #t$ca_int <- -0.004 # Here we just use the fixed values
-  #t$ca_met <- 0.001 # Here we just use the fixed values
   
   tt <- MizerParams(t, 
                     ea_gro = 0,
@@ -227,11 +278,13 @@ big_growth_data_no_r <- dplyr::bind_rows(data_list_no_res)
 #**** Plot growth rates ============================================================
 big_growth_data_w_r$scen <- "With resource temp. dep."
 big_growth_data_no_r$scen <- "No resource temp. dep."
+big_growth_data_w_r_n_p$scen <- "With resource temp. dep. no. phys"
 
 big_growth_data_w_r$sim <- paste("wr", big_growth_data_w_r$sim, sep = "")
 big_growth_data_no_r$sim <- paste("nr", big_growth_data_no_r$sim, sep = "")
+big_growth_data_w_r_n_p$sim <- paste("wr_np", big_growth_data_w_r_n_p$sim, sep = "")
 
-big_growth_data <- rbind(big_growth_data_w_r, big_growth_data_no_r)
+big_growth_data <- rbind(big_growth_data_w_r, big_growth_data_no_r, big_growth_data_w_r_n_p)
 
 big_growth_data$scen <- as.factor(big_growth_data$scen)
 
@@ -246,6 +299,7 @@ col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
 # Reorder factor levels
 mean_dat$Species <- factor(mean_dat$Species, levels = c("Sprat", "Herring", "Cod"))
+big_growth_data$Species <- factor(big_growth_data$Species, levels = c("Sprat", "Herring", "Cod"))
 
 # Plot growth curves
 p1 <- ggplot(mean_dat, aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
@@ -328,15 +382,15 @@ ggplot(., aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
 
 p2 <- big_growth_data %>% filter(Age > 0 & Age < 16) %>% 
   ggplot(., aes(x = Age, y = re_growth, color = factor(scen), group = sim)) +
-  geom_line(alpha = 0.05, size = 0.5) +
+  geom_line(alpha = 0.075, size = 0.5) +
   geom_line(data = filter(rel_dat, Age > 0 & Age < 16), aes(Age, mean_val, color = factor(scen)),
             inherit.aes = FALSE, size = 1, linetype = 2) +
   labs(y = "Body mass relative to\nconstant temperature") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0), limits = c(0.95, 2.2)) + 
-  scale_color_manual(values = rev(col)) +
-  scale_fill_manual(values = rev(col)) +
+  scale_color_manual(values = rev(col), labels = c("Metabolism", "Metabolism + Resource", "Resource")) +
   guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  guides(linetype = FALSE) +
   theme_classic(base_size = 14) +
   theme(legend.position = "bottom",
         legend.title = element_blank()) +
@@ -347,8 +401,8 @@ p2
 
 # Plot together
 p1/p2
-
 #ggsave("baltic/figures/growth_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
 
 # What are the activation energies in the MAX scenarios?
 maxg <- big_growth_data %>%

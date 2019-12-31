@@ -1,4 +1,3 @@
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # 2019.11.16: Max Lindmark
 #
 # Code for analyzing the Baltic Sea mizer model. The params-object is saved in the
@@ -114,7 +113,7 @@ consTemp[start:137] <- t_ref
 # Then compare that to a projection with a constant temperature
 
 #**** Project reference scenario ===================================================
-ref <- project(pars_with_res, 
+ref <- project(pars_no_res, 
                dt = dt,
                effort = projectEffort_m,
                temperature = consTemp,
@@ -123,6 +122,8 @@ ref <- project(pars_with_res,
 
 refSpect <- getSpectra(ref)
 refMort <- getMortality(ref)
+
+refSpect
 
 # testing mortality is correct
 plot(ref)
@@ -221,6 +222,7 @@ big_spect_data_w_r <- dplyr::bind_rows(data_list_with_res)
 
 # plot(mort$w, refMort$w)
 # abline(0, 1, col = "red")
+
 
 #**** for loop through different fishing effort (with temp dep resource) ============
 tt <- c()
@@ -419,12 +421,35 @@ big_spect_data %>%
 
 #ggsave("baltic/figures/spectra_FM_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
+
+# No fishing and absolute spectra
+pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
+
+p1 <- big_spect_data %>% 
+  filter(n > 0 & Fm == 1) %>%
+  ggplot(., aes(w, n, color = species, linetype = factor(scen))) + 
+  geom_line(size = 1) + 
+  scale_colour_manual(values = rev(pal)) +
+  theme_classic(base_size = 13) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme(legend.position = "bottom") +
+  labs(x ="Body mass (g)",
+       y = "Relative abundance (warming/no warming)",
+       color = "Species",
+       linetype = "Scenario") +
+  NULL
+
+p1
+
+#ggsave("baltic/figures/spectra_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
 # No fishing and relative spectra
 pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 
-big_spect_data %>% 
+p2 <- big_spect_data %>% 
   filter(n > 0 & Fm == 1 & scen %in% c("No resource temp. dep.",
-                               "With resource temp. dep.")) %>%
+                                       "With resource temp. dep.")) %>%
   ggplot(., aes(w, re_spec, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
@@ -444,23 +469,9 @@ big_spect_data %>%
 
 #ggsave("baltic/figures/spectra_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
+# Plot relative and absolute in the same plot!
+p1/p2 
 
-# No fishing and absolute spectra
-pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
-
-big_spect_data %>% 
-  filter(n > 0 & Fm == 1) %>%
-  ggplot(., aes(w, n, color = species, linetype = factor(scen))) + 
-  geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal)) +
-  theme_classic(base_size = 13) +
-  scale_x_log10() +
-  scale_y_log10() +
-  theme(legend.position = "bottom") +
-  labs(x ="Body mass (g)",
-       y = "Relative abundance (warming/no warming)",
-       color = "Species") +
-  NULL
 
 # Plot spectra
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
@@ -638,7 +649,7 @@ consMort$scen <- "constant"
 
 mortdat <- rbind(consMort, warmMort)
 
-# More of less identical predation mortality
+# More or less identical predation mortality
 ggplot(mortdat, aes(w, value, color = scen, linetype = scen)) +
   geom_line() +
   scale_x_log10() +
@@ -646,4 +657,68 @@ ggplot(mortdat, aes(w, value, color = scen, linetype = scen)) +
 
 # plotM2(ref)
 # plotM2(proj)
+
+## Testing if I get the same change in spectra when scaling h directly, not via temperature
+ref2 <- project(pars_no_res, 
+                dt = dt,
+                effort = projectEffort_m,
+                temperature = consTemp,
+                diet_steps = 10,
+                t_max = t_max)
+
+ref2Spect <- getSpectra(ref2)
+
+# Create new mizer params object
+test_pars <- pars_no_res@species_params
+test_pars$h <- pars_no_res@species_params$h * 1.1
+
+test_pars2 <- MizerParams(test_pars, 
+                          ea_gro = 0,
+                          ea_car = 0, 
+                          kappa_ben = kappa_ben,
+                          kappa = kappa,
+                          w_bb_cutoff = w_bb_cutoff,
+                          w_pp_cutoff = w_pp_cutoff,
+                          r_pp = r_pp,
+                          t_ref = t_ref)
+
+test <- project(pars_with_res, 
+                dt = dt,
+                effort = projectEffort_m,
+                temperature = consTemp,
+                diet_steps = 10,
+                t_max = t_max)   
+
+testSpect <- getSpectra(test)
+
+# Calculate relative spectra
+testSpect$re_spec <- testSpect$n / ref2Spect$n
+
+head(testSpect)
+head(ref2Spect)
+
+# Plot spectra
+testSpect %>% 
+  filter(n > 0 ) %>%
+  ggplot(., aes(w, re_spec)) + 
+  geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
+  geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
+  geom_line(size = 1) + 
+  scale_colour_manual(values = rev(pal)) +
+  facet_wrap(~ species, scales = "free", nrow = 3) +
+  theme_classic(base_size = 13) +
+  scale_x_log10() +
+  theme(legend.position = "bottom",
+        aspect.ratio = 1/2) +
+  labs(x ="Body mass (g)",
+       y = "Relative abundance (warming/no warming)",
+       color = "Scenario") +
+  NULL
+
+# Yes! It happens also when i ONLY change h... but how this affects SSB and such depends on the
+# large fish abundance in the population
+
+tail(getSSB(test))
+tail(getSSB(ref2))
+
 
