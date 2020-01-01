@@ -108,7 +108,10 @@ ref <- project(params,
                t_max = t_max)   
 
 refGrowth <- getGrowth(ref)
+refMeanWeight <- getMeanWeight(ref)
+refPropLarge <- getProportionOfLargeFish(ref)
 
+tail(refMeanWeight)
 
 #**** for loop (with resource) =====================================================
 sim <- 1:200
