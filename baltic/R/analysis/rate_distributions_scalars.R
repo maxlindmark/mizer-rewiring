@@ -57,14 +57,14 @@ mor_sd <- 0.03
 mor <- rnorm(n = n, mor_u, mor_sd)
 
 # Maximum consumption rate (Lindmark et al (in prep))
-int_u <- 0.67
+int_u <- 0.69
 int_sd <- 0.08
 int_q <- qnorm(c(0.025, 0.975), int_u, int_sd)
 int <- rnorm(n = n, int_u, int_sd)
 
 # Resource turnover rate (# van Savage et al (2004) AmNat. 95% of area within 0.56-1.14)
-gro_u <- 0.8
-gro_sd <- 0.13
+gro_u <- 0.73
+gro_sd <- 0.1
 gro_q <- qnorm(c(0.025, 0.975), gro_u, gro_sd)
 gro <- rnorm(n = n, gro_u, gro_sd)
 
@@ -72,11 +72,14 @@ gro <- rnorm(n = n, gro_u, gro_sd)
 car <- runif(n = n, -0.8, 0)
 
 # Put them all together & rename factor levels for plotting
-ea <- data.frame(met, mor, int, gro, car)
+#ea <- data.frame(met, mor, int, gro, car) # This is with uniform carrying capacity
+ea <- data.frame(met, mor, int, gro, -gro) # This is carrying = - growth
+
 ea_dat <- ea %>% 
   pivot_longer(1:5, names_to = "rate", values_to = "activation_energy") %>% 
   mutate(rate = fct_recode(rate, 
-                           "Resource\ncarrying capacity" = "car",
+                           #"Resource\ncarrying capacity" = "car",
+                           "Resource\ncarrying capacity" = "X.gro",
                            "Resource growth rate" = "gro",
                            "Maximum\nconsumption rate" = "int",
                            "Metabolic rate" = "met",
