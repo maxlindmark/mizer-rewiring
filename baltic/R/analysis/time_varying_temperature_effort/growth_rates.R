@@ -6,7 +6,10 @@
 # 
 # A. Load libraries and read in data and parameters
 #
-# B. Individual growth trajectories in default fishing scenario and random temp-effects
+# B. Simulate and extract individual growth trajectories in default fishing scenario 
+# and random temp-effects
+#
+# C. Plot
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -41,6 +44,18 @@ func <-
          ssl.verifypeer = FALSE)
 eval(parse(text = func))
 
+# Load function for extracting mean weight by species
+func <- 
+  getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/getSpeciesMeanWeight.R", 
+         ssl.verifypeer = FALSE)
+eval(parse(text = func))
+
+# Load function for extracting raincloud plot
+func <- 
+  getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/raincloudPlot.R", 
+         ssl.verifypeer = FALSE)
+eval(parse(text = func))
+
 
 #**** Read in parameters and data ==================================================
 # Read in params object
@@ -48,6 +63,7 @@ params <- readRDS("baltic/params/mizer_param_calib.rds")
 
 # Read in activation energy data frame
 ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
+ea <- ea %>% dplyr::rename("car" = "X.gro")
 
 # Read in effort and temperature for projections
 projectEffort <- read.csv("baltic/params/projectEffort.csv")[, 2:4]
@@ -71,8 +87,7 @@ consTemp <- projectTemp$temperature
 
 # The time series starts in 1914. From 1997 (mid point in calibration time), we want
 # to fix the temperature at the mean of the calibration, i.e. t_ref. This insures
-# we get comparable starting values for the models so that temperature is the only
-# "treatment"
+# we get comparable starting values for the models so that temperature is the only "treatment"
 start <- 1997-1914
 consTemp[start:137] <- t_ref
 
@@ -95,7 +110,7 @@ ggplot(tempScen, aes(Year, Temperature, color = Scenario, linetype = Scenario)) 
 #ggsave("baltic/figures/supp/temperature_scenarios.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
-# B. TEMP-DRIVEN CHANGE IN SIZE-AT-AGE =============================================
+# B. SIMULATE TEMP-DRIVEN CHANGE IN SIZE-AT-AGE ====================================
 # for-loop to take random samples for distributions representing activation energies
 # Then compare that to a projection with a constant temperature
 
@@ -109,9 +124,8 @@ ref <- project(params,
 
 refGrowth <- getGrowth(ref)
 refMeanWeight <- getMeanWeight(ref)
-refPropLarge <- getProportionOfLargeFish(ref)
+refSpeciesMeanWeight <- getSpeciesMeanWeight(ref)[nrow(projectEffort_m), ] 
 
-tail(refMeanWeight)
 
 #**** for loop (with resource) =====================================================
 sim <- 1:200
@@ -121,6 +135,7 @@ tt <- c()
 groj <- c()
 growth <- c()
 data_list_with_res <- list()
+mean_weight_list_with_res <- list()
 
 for (i in sim) {
   
@@ -163,9 +178,15 @@ for (i in sim) {
   
   data_list_with_res[[i]] <- growth
   
+  mean_weight_list_with_res[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
+  
 }
 
 big_growth_data_w_r <- dplyr::bind_rows(data_list_with_res)
+big_mean_weight_data_w_r <- dplyr::bind_rows(mean_weight_list_with_res)
+big_mean_weight_data_w_r <- big_mean_weight_data_w_r %>% 
+  dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
+big_mean_weight_data_w_r$species <- rep(ref@params@species_params$species, 200)
 
 
 #**** for loop (with resource - no physiological scaling) ==========================
@@ -176,6 +197,7 @@ tt <- c()
 groj <- c()
 growth <- c()
 data_list_with_res_no_phys <- list()
+mean_weight_list_with_res_no_phys <- list()
 
 for (i in sim) {
   
@@ -218,9 +240,15 @@ for (i in sim) {
   
   data_list_with_res_no_phys[[i]] <- growth
   
+  mean_weight_list_with_res_no_phys[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
+  
 }
 
 big_growth_data_w_r_n_p <- dplyr::bind_rows(data_list_with_res_no_phys)
+big_mean_weight_data_w_r_n_p <- dplyr::bind_rows(mean_weight_list_with_res_no_phys)
+big_mean_weight_data_w_r_n_p <- big_mean_weight_data_w_r_n_p %>% 
+  dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
+big_mean_weight_data_w_r_n_p$species <- rep(ref@params@species_params$species, 200)
 
 
 #**** for loop (no resource) =======================================================
@@ -231,6 +259,7 @@ tt <- c()
 groj <- c()
 growth <- c()
 data_list_no_res <- list()
+mean_weight_list_no_res <- list()
 
 for (i in sim) {
   
@@ -273,12 +302,19 @@ for (i in sim) {
   
   data_list_no_res[[i]] <- growth
   
+  mean_weight_list_no_res[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
+  
 }
 
 big_growth_data_no_r <- dplyr::bind_rows(data_list_no_res)
+big_mean_weight_data_no_r <- dplyr::bind_rows(mean_weight_list_no_res)
+big_mean_weight_data_no_r <- big_mean_weight_data_no_r %>% 
+  dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
+big_mean_weight_data_no_r$species <- rep(ref@params@species_params$species, 200)
 
 
-#**** Plot growth rates ============================================================
+# B. PLOT ==========================================================================
+#** Plot growth rates ==============================================================
 big_growth_data_w_r$scen <- "With resource temp. dep."
 big_growth_data_no_r$scen <- "No resource temp. dep."
 big_growth_data_w_r_n_p$scen <- "With resource temp. dep. no. phys"
@@ -391,12 +427,13 @@ p2 <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
   labs(y = "Body mass relative to\nconstant temperature") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0), limits = c(0.95, 2.2)) + 
-  scale_color_manual(values = rev(col), labels = c("Metabolism", "Metabolism + Resource", "Resource")) +
+  scale_color_manual(values = rev(col), 
+                     labels = c("Metabolism", "Metabolism + Resource", "Resource"),
+                     name = "Scenario") +
   guides(colour = guide_legend(override.aes = list(alpha = 1))) +
   guides(linetype = FALSE) +
   theme_classic(base_size = 14) +
-  theme(legend.position = "bottom",
-        legend.title = element_blank()) +
+  theme(legend.position = "bottom") +
   geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
   NULL
 
@@ -407,6 +444,84 @@ p1/p2
 #ggsave("baltic/figures/growth_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
+
+#** Plot mean weights by species ===================================================
+big_mean_weight_data_w_r$scen <- "With resource temp. dep."
+big_mean_weight_data_no_r$scen <- "No resource temp. dep."
+big_mean_weight_data_w_r_n_p$scen <- "With resource temp. dep. no. phys"
+
+big_mean_weight_data <- rbind(big_mean_weight_data_w_r, 
+                              big_mean_weight_data_no_r,
+                              big_mean_weight_data_w_r_n_p)
+
+big_mean_weight_data$scen <- as.factor(big_mean_weight_data$scen)
+
+# Reorder factor levels
+big_mean_weight_data$species <- factor(big_mean_weight_data$species, levels = c("Sprat", "Herring", "Cod"))
+
+# Define palette
+col <- rev(RColorBrewer::brewer.pal("Dark2", n = 5))
+
+# Get reference mean weight
+ref_w <- data.frame(species = c("Cod", "Sprat", "Herring"),
+                    mean_weight = refSpeciesMeanWeight)
+
+# 
+big_mean_weight_data$scen2 <- ""
+
+big_mean_weight_data$scen2 <- ifelse(big_mean_weight_data$scen == "No resource temp. dep.",
+                                     " ",
+                                     big_mean_weight_data$scen2)
+
+big_mean_weight_data$scen2 <- ifelse(big_mean_weight_data$scen == "With resource temp. dep. no. phys",
+                                     "  ",
+                                     big_mean_weight_data$scen2)
+
+unique(big_mean_weight_data$scen)
+
+# Plot
+ggplot(big_mean_weight_data, aes(x = scen2, y = mean_weight, fill = scen2, colour = scen2)) +
+  facet_wrap(~ species, scales = "free", nrow = 1) +
+  coord_flip() +
+  scale_color_manual(values = col) +
+  scale_fill_manual(values = col, 
+                    labels = c("Metabolism", "Metabolism + Resource", "Resource"),
+                    name = "Scenario") +
+  #geom_flat_violin(position = position_nudge(x = .25, y = 0), adjust = 2, trim = FALSE, alpha = 0.7) +
+  geom_point(position = position_jitter(width = .15), size = 1.1, alpha = 0.7, shape = 21, color = "white") +
+  geom_boxplot(aes(x = scen2, y = mean_weight),
+               outlier.shape = NA, alpha = 0.2, width = .2, color = "black", size = 0.5) +
+  guides(colour = FALSE) +
+  theme_classic(base_size = 14) +
+  theme(aspect.ratio = 3/4) +
+  labs(x = "", y = "Mean weight [g]") +
+  geom_hline(data = ref_w, aes(yintercept = mean_weight), linetype = 2) +
+  guides(fill = guide_legend(override.aes = list(alpha = 0.8))) +
+  theme(legend.position = "bottom") +
+  NULL
+
+#ggsave("baltic/figures/mean_weight.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
+
+# ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
+#   facet_wrap(~ species, scales = "free", nrow = 3) +
+#   coord_flip() +
+#   scale_color_manual(values = col) +
+#   scale_fill_manual(values = col, name = "Scenario") +
+#   geom_point(position = position_jitter(width = .15), size = 1.1, alpha = 0.7, shape = 21, color = "white") +
+#   geom_boxplot(aes(x = scen, y = mean_weight),
+#                outlier.shape = NA, alpha = 0.2, width = .2, color = "black", size = 0.5) +
+#   guides(colour = FALSE) +
+#   theme_classic(base_size = 14) +
+#   theme(aspect.ratio = 3/4) +
+#   labs(y = "", x = "Mean weight [g") +
+#   geom_hline(data = ref_w, aes(yintercept = mean_weight), linetype = 2) +
+#   guides(fill = guide_legend(override.aes = list(alpha = 0.8))) +
+#   #theme(legend.position = "bottom") +
+#   NULL
+
+
+#**** Some tests ===================================================================
 # What are the activation energies in the MAX scenarios?
 maxg <- big_growth_data %>%
   dplyr::filter(Age > 1) %>% # Need this since all length at age 0 are the same
@@ -443,7 +558,6 @@ ggplot(maxg, aes(Age, value, color = sim)) +
 # resource temperature-dependence
 ea[197, ] # no resource
 ea[197, ] # with resource
-
 
 #**** Testing I can reproduce a really bad example =================================
 # (even without negative effects on carrying capacity)

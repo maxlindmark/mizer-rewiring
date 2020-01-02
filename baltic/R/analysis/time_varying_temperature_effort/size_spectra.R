@@ -51,6 +51,7 @@ params <- readRDS("baltic/params/mizer_param_calib.rds")
 
 # Read in params object
 ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
+ea <- ea %>% dplyr::rename("car" = "X.gro")
 
 # Read in effort and temperature for projections
 projectEffort <- read.csv("baltic/params/projectEffort.csv")[, 2:4]
@@ -93,6 +94,7 @@ pars_no_res <- MizerParams(t,
 
 pars_with_res <- MizerParams(t, 
                              ea_gro = mean(ea$gro),
+                             #ea_car = mean(ea$car), # -ea$gro[i]
                              ea_car = mean(ea$car), # -ea$gro[i] 
                              kappa_ben = kappa_ben,
                              kappa = kappa,
@@ -425,74 +427,64 @@ big_spect_data %>%
 # No fishing and absolute spectra
 pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 
+unique(big_spect_data$scen)
+
 p1 <- big_spect_data %>% 
   filter(n > 0 & Fm == 1) %>%
-  ggplot(., aes(w, n, color = species, linetype = factor(scen))) + 
+  ggplot(., aes(w, n, color = factor(scen), linetype = scen)) + 
   geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal)) +
+  scale_colour_manual(values = rev(pal), 
+                      labels = c("No warming", 
+                                 "Physiology",
+                                 "Physiology + Resource"),
+                      name = "Scenario") +
   theme_classic(base_size = 13) +
   scale_x_log10() +
+  guides(linetype = FALSE) +
   scale_y_log10() +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 8)) +
+  facet_wrap(~species, scales = "free", nrow = 3) +
   labs(x ="Body mass (g)",
-       y = "Relative abundance (warming/no warming)",
-       color = "Species",
-       linetype = "Scenario") +
+       y = "Abundance") +
   NULL
 
 p1
 
-#ggsave("baltic/figures/spectra_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 # No fishing and relative spectra
 pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 
+unique(big_spect_data$scen)
+
 p2 <- big_spect_data %>% 
-  filter(n > 0 & Fm == 1 & scen %in% c("No resource temp. dep.",
-                                       "With resource temp. dep.")) %>%
+  filter(n > 0 & Fm == 1 & scen %in% c("No resource temp. dep.", "With resource temp. dep.")) %>%
   ggplot(., aes(w, re_spec, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
   #scale_colour_viridis(option = "cividis", discrete = T) +
-  scale_colour_manual(values = rev(pal)) +
+  scale_colour_manual(values = rev(pal[3:4]), 
+                      labels = c("Physiology",
+                                 "Physiology + Resource"),
+                      name = "") +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
   #scale_y_log10(breaks = sim) +
   scale_x_log10() +
   theme(legend.position = "bottom",
-        aspect.ratio = 1/2) +
+        legend.text = element_text(size = 8)) +
   labs(x ="Body mass (g)",
        y = "Relative abundance (warming/no warming)",
        color = "Scenario") +
   NULL
 
-#ggsave("baltic/figures/spectra_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+p2
 
 # Plot relative and absolute in the same plot!
-p1/p2 
+p1+p2 
 
-
-# Plot spectra
-col <- RColorBrewer::brewer.pal("Dark2", n = 5)
-big_spect_data %>% 
-  filter(n > 0 & w > 0.001 & Fm == 1) %>%
-  ggplot(., aes(w, n, color = factor(scen), group = sim, 
-                linetype = factor(scen), alpha = factor(scen))) + 
-  geom_line(size = 0.8) + 
-  scale_colour_manual(values = rev(col)) +
-  scale_alpha_manual(values = c(0.7, 0.7, 1, 0.7, 0.7)) +
-  scale_linetype_manual(values = c("solid", "longdash", "dotted")) +
-  facet_wrap(~ species, scales = "free", nrow = 3) +
-  theme_classic(base_size = 13) +
-  scale_x_log10() +
-  geom_vline(data = plotdf, aes(xintercept = w_mat), color = "grey10", linetype = "dotted") +
-  labs(x ="Body mass (g)",
-       y = "Abundance",
-       color = "FMSY\nscaling\nfactor", 
-       alpha = "FMSY\nscaling\nfactor", 
-       linetype = "FMSY\nscaling\nfactor") +
-  NULL
+#ggsave("baltic/figures/spectra_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 #**** Plot mortality ===============================================================
@@ -518,12 +510,13 @@ big_spect_data %>%
 # Relative mortality (filter really low values!)
 big_spect_data %>% 
   filter(Fm == 1 & mort > 0.075 & scen %in% c("No resource temp. dep.",
-                                                             "With resource temp. dep.")) %>%
+                                              "With resource temp. dep.")) %>%
   ggplot(., aes(w, re_mort, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal)) +
+  scale_colour_manual(values = rev(pal), 
+                      labels = c("Physiology", "Physiology + Resource")) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
   scale_x_log10() +
@@ -533,7 +526,7 @@ big_spect_data %>%
        y = "Relative predation mortality (warming/no warming)",
        color = "Scenario") +
   NULL
-#ggsave("baltic/figures/mort_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+#ggsave("baltic/figures/supp/mort_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 #**** Plot feeding level ===========================================================
@@ -544,7 +537,8 @@ big_spect_data %>%
   ggplot(., aes(w, feedingLevel, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal)) +
+  scale_colour_manual(values = rev(pal), 
+                      labels = c("Physiology", "Physiology + Resource")) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
   scale_x_log10() +
@@ -580,7 +574,8 @@ big_spect_data %>%
   ggplot(., aes(w, re_feedingLevel, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal)) +
+  scale_colour_manual(values = rev(pal), 
+                      labels = c("Physiology", "Physiology + Resource")) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
   scale_x_log10() +
@@ -592,7 +587,7 @@ big_spect_data %>%
        color = "Scenario") +
   NULL
 
-#ggsave("baltic/figures/feedingLevel_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+#ggsave("baltic/figures/supp/feedingLevel_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 #** More tests =====================================================================
@@ -654,6 +649,8 @@ ggplot(mortdat, aes(w, value, color = scen, linetype = scen)) +
   geom_line() +
   scale_x_log10() +
   NULL
+
+
 
 # plotM2(ref)
 # plotM2(proj)

@@ -123,11 +123,18 @@ tempDat %>%
 
 plot(tempDat$Year.r, (tempDat$mean_temp + (10 + 0.11)))
 
-tempDat %>% filter(Year.num > 1991 & Year.num < 2003) %>% 
-  summarize(mean_T = mean(tempDat$mean_temp + (9.57)))
+plot(tempDat$Year.r, (tempDat$mean_temp + (9.57)))
+
+tempDat %>% 
+  #dplyr::mutate(rel_T = mean_temp + 9.57) %>%
+  dplyr::mutate(rel_T = mean_temp + 10.12) %>% 
+  dplyr::filter(Year.num > 1991 & Year.num < 2003) %>% 
+  dplyr::summarize(mean_T = mean(rel_T))
 
 # 9.57 will be the new t_ref now...
 t_ref <- 9.57
+
+## Need to change T_ref then.
 
 
 # C. CALIBRATE MODEL ================================================================

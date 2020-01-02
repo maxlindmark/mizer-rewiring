@@ -54,6 +54,7 @@ params <- readRDS("baltic/params/mizer_param_calib.rds")
 
 # Read in params object
 ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
+ea <- ea %>% dplyr::rename("car" = "X.gro")
 
 # Read in effort and temperature for projections
 projectEffort <- read.csv("baltic/params/projectEffort.csv")[, 2:4]
@@ -438,7 +439,7 @@ ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
         legend.position = "bottom") +
   NULL
 
-#ggsave("baltic/figures/yield_heat.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
-#ggsave("baltic/figures/yield_heat_ssmFMSY.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+#ggsave("baltic/figures/supp/yield_heat.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+#ggsave("baltic/figures/supp/yield_heat_ssmFMSY.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
  

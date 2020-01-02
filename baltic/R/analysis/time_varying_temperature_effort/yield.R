@@ -45,6 +45,7 @@ params <- readRDS("baltic/params/mizer_param_calib.rds")
 
 # Read in params object
 ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
+ea <- ea %>% dplyr::rename("car" = "X.gro")
 
 # Read in effort and temperature for projections
 projectEffort <- read.csv("baltic/params/projectEffort.csv")[, 2:4]
@@ -168,17 +169,22 @@ col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
 yield_l %>% 
   #filter(Year > 2002) %>% 
-  filter(Year > 2015) %>% 
+  #filter(Year > 2015) %>% 
+  filter(Year > 2010) %>% 
   ggplot(., aes(Year, Yield, color = Scenario, linetype = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_line(size = 1.3, alpha = 0.8) +
-  scale_color_manual(values = rev(col)) +
+  scale_color_manual(values = rev(col),
+                     labels = c("No warming", 
+                                "Physiology",
+                                "Physiology + Resource")) +
   scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.5)) +
   theme(aspect.ratio = 1) +
   labs(y = "Yield (1000 tonnes)", x = "Year") +
+  guides(linetype = FALSE) +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) +
   theme(aspect.ratio = 1/2) +
   NULL
 
-#ggsave("baltic/figures/supp/time_series_pred_yield.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+#ggsave("baltic/figures/time_series_pred_yield.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
