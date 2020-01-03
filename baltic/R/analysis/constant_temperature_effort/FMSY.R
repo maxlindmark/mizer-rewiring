@@ -421,6 +421,7 @@ for (i in iter) {
 
 str(data_list)
 
+# Add data 
 big_yield_data <- dplyr::bind_rows(data_list)
 
 big_yield_data$Species <- factor(big_yield_data$Species, levels = c("Sprat", "Herring", "Cod"))
