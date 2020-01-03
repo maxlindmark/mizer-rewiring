@@ -179,7 +179,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
     
     time_temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
-    x_axis <- seq(length.out=(t_max/dt),from =1)   # = time vector
+    x_axis <- seq(length.out=(t_max/dt),from = 1)   # = time vector
     # need smoothing?
     # myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
     # temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
@@ -192,10 +192,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     morTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     intTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     
-    # ML: Create temperature scalars for resource parameters
-    groTempScalar <- array(NA, dim = c(length(params@w_full), length(temperature_dt)), dimnames = list(params@w_full,temperature_dt))
-    carTempScalar <- array(NA, dim = c(length(params@w_full), length(temperature_dt)), dimnames = list(params@w_full,temperature_dt))
-    
+    # ML: Create temperature scalars for resource parameters (note weight should be for plankton, w_full)
+    groTempScalar <- array(NA, dim = c(length(params@w_full), length(temperature_dt)), dimnames = list(params@w_full, temperature_dt))
+    carTempScalar <- array(NA, dim = c(length(params@w_full), length(temperature_dt)), dimnames = list(params@w_full, temperature_dt))
     
 # for(iSpecies in as.numeric(params@species_params$species)) # version with deactivation cost
 #     {
@@ -246,6 +245,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     # ML: Populate the scalars for resource growth and carrying capacity using the tempFun as above 
     # but no loop needed. The temperature-parameters for the resource will be stored in params for 
     # now, it does not make so much sence to make it species_param.
+    #str(metTempScalar)
+    #str(groTempScalar)
+    
     groTempScalar[] <- tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
                                Ea = params@ea_gro, 
                                c_a = params@ca_gro, 
@@ -280,6 +282,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     sim@groTempScalar <- groTempScalar
     sim@carTempScalar <- carTempScalar
 
+    #plot(sim@metTempScalar[1,1,])
+    #plot(sim@groTempScalar[1,])
+    
     # Set initial population
     sim@n[1,,] <- initial_n 
     sim@n_pp[1,] <- initial_n_pp
@@ -358,7 +363,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         m2_background <- getPlanktonMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, 
                                          intakeScalar = sim@intTempScalar[,,i_time], pred_rate = pred_rate)
 
-        #Calculate mortality of the benthos spectrum 
+        # Calculate mortality of the benthos spectrum 
         m2_benthos <- getBenthosMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, 
                                          pred_rate = pred_rate)
         m2_algae <- getAlgalMort(sim@params, n = n, n_pp = n_pp, n_bb = n_bb, n_aa = n_aa, 
@@ -437,9 +442,17 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # n_pp <- tmp - (tmp - n_pp) * exp(-(sim@params@rr_pp + m2_background) * dt)
         # I only select the first column (weight) since it will be the same for all sizes in this function.
         
-        tmp <- ((sim@params@rr_pp*groTempScalar[, 1]) * (sim@params@cc_pp*carTempScalar[, 1]) / 
-                  ((sim@params@rr_pp*groTempScalar[, 1]) + m2_background))
-        n_pp <- tmp - (tmp - n_pp) * exp(-((sim@params@rr_pp*groTempScalar[, 1]) + m2_background) * dt)
+        # ML:
+        # For some reason the effort_dt is of a different length than temperature... so I get subscript out of bounds... 
+        # Will therefore match it in size as the effort
+        # dim(effort_dt)[1]
+        # i_time = 681
+        # groTempScalar[2, 1]
+        # str(groTempScalar)
+        
+        tmp <- ((sim@params@rr_pp*groTempScalar[1, i_time]) * (sim@params@cc_pp*carTempScalar[1, i_time]) / 
+                  ((sim@params@rr_pp*groTempScalar[1, i_time]) + m2_background))
+        n_pp <- tmp - (tmp - n_pp) * exp(-((sim@params@rr_pp*groTempScalar[1, i_time]) + m2_background) * dt)
         
         ##AAsp####
         # Dynamics of benthic spectrum uses a semi-chemostat model 
@@ -447,9 +460,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # ML: scaling rr_bb and cc_bb at each time step. Below is the original code:
         # tmp <- (sim@params@rr_bb * sim@params@cc_bb / (sim@params@rr_bb + m2_benthos))
         # n_bb <- tmp - (tmp - n_bb) * exp(-(sim@params@rr_bb + m2_benthos) * dt)
-        tmp <- ((sim@params@rr_bb*groTempScalar[, 1]) * (sim@params@cc_bb*carTempScalar[, 1]) / 
-                  ((sim@params@rr_bb*groTempScalar[, 1]) + m2_benthos))
-        n_bb <- tmp - (tmp - n_bb) * exp(-((sim@params@rr_bb*groTempScalar[, 1]) + m2_benthos) * dt)
+        tmp <- ((sim@params@rr_bb*groTempScalar[1, i_time]) * (sim@params@cc_bb*carTempScalar[1, i_time]) / 
+                  ((sim@params@rr_bb*groTempScalar[1, i_time]) + m2_benthos))
+        n_bb <- tmp - (tmp - n_bb) * exp(-((sim@params@rr_bb*groTempScalar[1, i_time]) + m2_benthos) * dt)
         
         n_bb[sim@params@initial_n_bb == 0] <- 0 # destroy what's below (and above) threshold sizes
         
@@ -458,9 +471,9 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # ML: scaling rr_pp and cc_pp at each time step. Below is the original code:
         # tmp <- (sim@params@rr_aa * sim@params@cc_aa / (sim@params@rr_aa + m2_algae))
         # n_aa <- tmp - (tmp - n_aa) * exp(-(sim@params@rr_aa + m2_algae) * dt)
-        tmp <- ((sim@params@rr_aa*groTempScalar[, 1]) * (sim@params@cc_aa*carTempScalar[, 1]) / 
-                  ((sim@params@rr_aa*groTempScalar[, 1]) + m2_algae))
-        n_aa <- tmp - (tmp - n_aa) * exp(-((sim@params@rr_aa*groTempScalar[, 1]) + m2_algae) * dt)
+        tmp <- ((sim@params@rr_aa*groTempScalar[1, i_time]) * (sim@params@cc_aa*carTempScalar[1, i_time]) / 
+                  ((sim@params@rr_aa*groTempScalar[1, i_time]) + m2_algae))
+        n_aa <- tmp - (tmp - n_aa) * exp(-((sim@params@rr_aa*groTempScalar[1, i_time]) + m2_algae) * dt)
         
         n_aa[sim@params@initial_n_aa == 0] <- 0 # destroy what's below (and above) threshold sizes
         ##AAsp##

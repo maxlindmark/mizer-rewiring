@@ -98,6 +98,17 @@ pars_with_res <- MizerParams(t,
                              r_bb = r_bb,
                              t_ref = t_ref)
 
+pars_with_res_barnes <- MizerParams(t, 
+                                    ea_gro = 0,
+                                    ea_car = -0.41,
+                                    kappa_ben = kappa_ben,
+                                    kappa = kappa,
+                                    w_bb_cutoff = w_bb_cutoff,
+                                    w_pp_cutoff = w_pp_cutoff,
+                                    r_pp = r_pp,
+                                    r_bb = r_bb,
+                                    t_ref = t_ref)
+
 # Define temperature-scenarios
 consTemp <- projectTemp$temperature
 start <- 1997-1914
@@ -125,6 +136,13 @@ m_with_resource_temp <- project(pars_with_res,
                                 temperature = projectTemp$temperature,
                                 diet_steps = 10) 
 
+# With temperature with effects on the resource (BARNES)
+m_with_resource_temp_b <- project(pars_with_res_barnes, 
+                                 dt = dt,
+                                 effort = projectEffort_m,
+                                 temperature = projectTemp$temperature,
+                                 diet_steps = 10) 
+
 # Constant temperatures after calibration period (with res in pre calibration period)
 m_cons_temp <- project(pars_with_res, 
                        dt = dt,
@@ -136,22 +154,31 @@ m_cons_temp <- project(pars_with_res,
 no_resource_temp <- data.frame(getYield(m_no_resource_temp))
 no_resource_temp$Year_ct <- as.numeric(rownames(getYield(m_no_resource_temp)))
 no_resource_temp$Year <- no_resource_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-no_resource_temp$Scenario <- "No resource temp"
+no_resource_temp$Scenario <- "Physio"
 
 # Predicted yield - with temp on resource
 with_resource_temp <- data.frame(getYield(m_with_resource_temp))
 with_resource_temp$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp)))
 with_resource_temp$Year <- with_resource_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-with_resource_temp$Scenario <- "With resource temp"
+with_resource_temp$Scenario <- "Physio. + Resource (MTE)"
+
+# Predicted yield - with temp on resource (Barnes)
+with_resource_temp_b <- data.frame(getYield(m_with_resource_temp_b))
+with_resource_temp_b$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp_b)))
+with_resource_temp_b$Year <- with_resource_temp_b$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+with_resource_temp_b$Scenario <- "Physio. + Resource (empiri.)"
 
 # Predicted yield - constant temperature at all
 cons_temp <- data.frame(getYield(m_cons_temp))
 cons_temp$Year_ct <- as.numeric(rownames(getYield(m_cons_temp)))
 cons_temp$Year <- cons_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-cons_temp$Scenario <- "Constant temperature"
+cons_temp$Scenario <- "No warming"
 
 # Combine
-yield <- rbind(no_resource_temp, with_resource_temp, cons_temp)
+yield <- rbind(no_resource_temp, 
+               with_resource_temp, 
+               with_resource_temp_b,
+               cons_temp)
 
 # Convert to long data frame (1 obs = 1 row)
 # The first year with real effort is 1974. This is year 61 with centered time (1974-1914 +1),
@@ -165,7 +192,8 @@ yield_l$Yield <- yield_l$yield_g.m2 * 2.49e+11 / (1e9) # See calibration documen
 yield_l <- yield_l %>% select(-yield_g.m2)
 
 # Plot predicted and observed yield by species, normalize by max within species
-col <- RColorBrewer::brewer.pal("Dark2", n = 5)
+pal <- rev(RColorBrewer::brewer.pal(n = 5, "Dark2"))
+pal2 <- c("black", pal)
 
 yield_l %>% 
   #filter(Year > 2002) %>% 
@@ -173,12 +201,9 @@ yield_l %>%
   filter(Year > 2010) %>% 
   ggplot(., aes(Year, Yield, color = Scenario, linetype = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
-  geom_line(size = 1.3, alpha = 0.8) +
-  scale_color_manual(values = rev(col),
-                     labels = c("No warming", 
-                                "Physiology",
-                                "Physiology + Resource")) +
-  scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.5)) +
+  geom_line(size = 1, alpha = 0.8) +
+  scale_color_manual(values = pal2) +
+  scale_linetype_manual(values = c(2,1,1,1)) +
   theme(aspect.ratio = 1) +
   labs(y = "Yield (1000 tonnes)", x = "Year") +
   guides(linetype = FALSE) +

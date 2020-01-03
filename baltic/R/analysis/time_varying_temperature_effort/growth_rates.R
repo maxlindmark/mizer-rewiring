@@ -122,12 +122,144 @@ ref <- project(params,
                diet_steps = 10,
                t_max = t_max)   
 
+
 refGrowth <- getGrowth(ref)
 refMeanWeight <- getMeanWeight(ref)
 refSpeciesMeanWeight <- getSpeciesMeanWeight(ref)[nrow(projectEffort_m), ] 
 
 
-#**** for loop (with resource) =====================================================
+#**** Barnes - with resource - no physiological scaling ============================
+# NO LOOP NEEDED YET
+# sim <- 1:200
+
+t <- c()
+tt <- c()
+groj <- c()
+growth <- c()
+# data_list_with_res_no_phys_barn <- list()
+# mean_weight_list_with_res_no_phys_barn <- list()
+
+# for (i in sim) {
+
+t <- params@species_params
+
+t$ea_met <- 0
+t$ea_int <- 0
+t$ea_mor <- 0
+
+tt <- MizerParams(t, 
+                  ea_gro = 0, #0.41, #0.43, # ea$gro[i],
+                  ea_car = -0.41, #-0.41, # 0,  # -0.41, # ea$car[i], # -ea$gro[i] 
+                  kappa_ben = kappa_ben,
+                  kappa = kappa,
+                  w_bb_cutoff = w_bb_cutoff,
+                  w_pp_cutoff = w_pp_cutoff,
+                  r_pp = r_pp,
+                  r_bb = r_bb,
+                  t_ref = t_ref)
+
+proj <- project(tt, 
+                dt = dt,
+                effort = projectEffort_m,
+                temperature = projectTemp$temperature,
+                diet_steps = 10) 
+
+growth <- getGrowth(proj)
+
+growth$ea_met <- proj@params@species_params$ea_met[1]
+growth$ea_mor <- proj@params@species_params$ea_mor[1]
+growth$ea_int <- proj@params@species_params$ea_int[1]
+
+growth$ea_gro <- proj@params@ea_gro
+growth$ea_car <- proj@params@ea_car
+
+growth$sim <- 1 # i
+
+growth$re_growth <- growth$value / refGrowth$value
+
+# data_list_with_res_no_phys_barn[[i]] <- growth
+# 
+# mean_weight_list_with_res_no_phys_barn[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
+
+# }
+
+# big_growth_data_w_r_n_p_barn <- dplyr::bind_rows(data_list_with_res_no_phys_barn)
+# big_mean_weight_data_w_r_n_p_barn <- dplyr::bind_rows(mean_weight_list_with_res_no_phys_barn)
+
+big_growth_data_w_r_n_p_barn <- data.frame(growth)
+big_mean_weight_data_w_r_n_p_barn <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
+
+# big_mean_weight_data_w_r_n_p_barn <- big_mean_weight_data_w_r_n_p_barn %>% 
+#   dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
+#big_mean_weight_data_w_r_n_p_barn$species <- rep(ref@params@species_params$species, 200)
+big_mean_weight_data_w_r_n_p_barn$species <- ref@params@species_params$species
+colnames(big_mean_weight_data_w_r_n_p_barn)[1] <- "mean_weight" #$species <- ref@params@species_params$species
+
+
+#**** for loop (Barnes - with resource) =====================================================
+sim <- 1:200
+
+t <- c()
+tt <- c()
+groj <- c()
+growth <- c()
+data_list_with_res_barn <- list()
+mean_weight_list_with_res_barn <- list()
+
+for (i in sim) {
+  
+  t <- params@species_params
+  
+  t$ea_met <- ea$met[i]
+  t$ea_int <- ea$int[i]
+  t$ea_mor <- ea$mor[i]
+  
+  tt <- MizerParams(t, 
+                    ea_gro = 0, #ea$gro[i],
+                    ea_car = -0.41, # ea$car[i],
+                    kappa_ben = kappa_ben,
+                    kappa = kappa,
+                    w_bb_cutoff = w_bb_cutoff,
+                    w_pp_cutoff = w_pp_cutoff,
+                    r_pp = r_pp,
+                    r_bb = r_bb,
+                    t_ref = t_ref)
+  
+  proj <- project(tt, 
+                  dt = dt,
+                  effort = projectEffort_m,
+                  temperature = projectTemp$temperature,
+                  diet_steps = 10,
+                  t_max = t_max)   
+  
+  growth <- getGrowth(proj)
+  
+  growth$ea_met <- proj@params@species_params$ea_met[1]
+  growth$ea_mor <- proj@params@species_params$ea_mor[1]
+  growth$ea_int <- proj@params@species_params$ea_int[1]
+  
+  growth$ea_gro <- proj@params@ea_gro
+  growth$ea_car <- proj@params@ea_car
+  
+  growth$sim <- i
+  
+  growth$re_growth <- growth$value / refGrowth$value
+  
+  data_list_with_res_barn[[i]] <- growth
+  
+  mean_weight_list_with_res_barn[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
+  
+}
+
+big_growth_data_w_r_barn <- dplyr::bind_rows(data_list_with_res_barn)
+big_mean_weight_data_w_r_barn <- dplyr::bind_rows(mean_weight_list_with_res_barn)
+big_mean_weight_data_w_r_barn <- big_mean_weight_data_w_r_barn %>% 
+  dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
+big_mean_weight_data_w_r_barn$species <- rep(ref@params@species_params$species, 200)
+
+
+
+#**** for loop (with resource, MTE) =====================================================
 sim <- 1:200
 
 t <- c()
@@ -315,24 +447,40 @@ big_mean_weight_data_no_r$species <- rep(ref@params@species_params$species, 200)
 
 # B. PLOT ==========================================================================
 #** Plot growth rates ==============================================================
-big_growth_data_w_r$scen <- "With resource temp. dep."
-big_growth_data_no_r$scen <- "No resource temp. dep."
-big_growth_data_w_r_n_p$scen <- "With resource temp. dep. no. phys"
+big_growth_data_w_r$scen <- "Physio. + Resource (MTE)" # "With resource temp. dep."
+big_growth_data_no_r$scen <- "Physio." # "No resource temp. dep."
+big_growth_data_w_r_n_p$scen <- "Resource (MTE)" # "With resource temp. dep. no. phys"
+big_growth_data_w_r_barn$scen <- "Physio. + Resource (empiri.)" # "With resource temp. dep. barn"
+big_growth_data_w_r_n_p_barn$scen <- "Resource (empiri.)" # "With resource temp. dep. barn. no. phys. "
 
 big_growth_data_w_r$sim <- paste("wr", big_growth_data_w_r$sim, sep = "")
 big_growth_data_no_r$sim <- paste("nr", big_growth_data_no_r$sim, sep = "")
 big_growth_data_w_r_n_p$sim <- paste("wr_np", big_growth_data_w_r_n_p$sim, sep = "")
+big_growth_data_w_r_barn$sim <- paste("wr_bar", big_growth_data_w_r_barn$sim, sep = "")
+#big_growth_data_w_r_n_p_barn$scen <- paste("wr_np_bar", big_growth_data_w_r_n_p$sim, sep = "")
+big_growth_data_w_r_n_p_barn$sim <- paste("wr_np_bar", 1, sep = "")
 
-big_growth_data <- rbind(big_growth_data_w_r, big_growth_data_no_r, big_growth_data_w_r_n_p)
+big_growth_data <- rbind(big_growth_data_w_r, 
+                         big_growth_data_no_r, 
+                         big_growth_data_w_r_n_p,
+                         big_growth_data_w_r_barn,
+                         big_growth_data_w_r_n_p_barn)
+
+head(big_growth_data)
+str(big_growth_data)
 
 big_growth_data$scen <- as.factor(big_growth_data$scen)
 
 # Calculate means, max and min for plotting
-mean_dat <- big_growth_data %>%
+mean_dat <- data.frame(big_growth_data %>%
   dplyr::group_by(Species, Age, scen) %>% 
   dplyr::summarise(mean_val = mean(value),
                    max_val = max(value),
-                   min_val = min(value))
+                   min_val = min(value)))
+
+head(mean_dat)
+str(mean_dat)
+
 
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
@@ -340,12 +488,12 @@ col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 mean_dat$Species <- factor(mean_dat$Species, levels = c("Sprat", "Herring", "Cod"))
 big_growth_data$Species <- factor(big_growth_data$Species, levels = c("Sprat", "Herring", "Cod"))
 
-# Plot growth curves
+# Plot growth curves (mean and ribbons)
 p1 <- ggplot(mean_dat, aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
   geom_line(data = mean_dat, aes(Age, mean_val, color = factor(scen)),
             inherit.aes = FALSE, size = 0.5) +
-  geom_ribbon(alpha = 0.15, color = NA) +  
-  labs(y = "Body mass (g)") +
+  geom_ribbon(alpha = 0.175, color = NA) +  
+  labs(y = "Body mass [g]") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0)) + 
   scale_color_manual(values = rev(col)) +
@@ -358,43 +506,24 @@ p1 <- ggplot(mean_dat, aes(x = Age, ymin = min_val, ymax = max_val, fill = facto
         legend.title = element_blank()) +
   NULL
 
-p1 <- big_growth_data %>% filter(Age > 0 & Age < 16) %>% 
-  ggplot(., aes(x = Age, y = value, color = factor(scen), group = sim)) +
-  geom_line(size = 0.5, alpha = 0.03) +
-  labs(y = "Body mass (g)") +
-  facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(expand = c(0, 0)) + 
-  scale_color_manual(values = rev(col)) +
-  theme_classic(base_size = 14) +
-  guides(color = FALSE, fill = FALSE) +
-  geom_line(data = filter(refGrowth, Age < 16), aes(Age, value), color = "black", 
-            inherit.aes = FALSE, size = 0.5, alpha = 0.7, linetype = "dashed") +
-  theme(legend.position = "bottom",
-        legend.title = element_blank()) +
-  NULL
-
-p1
-
-# Testing relative growth rates are correct (seems like larger difference there than in actual growth rates)
-# big_growth_data %>% 
-#   filter(Age > 0 & Age < 16 & Species == "Cod") %>% 
+# Plot growth curves (all curves)
+# p1 <- big_growth_data %>% filter(Age > 0 & Age < 16) %>% 
 #   ggplot(., aes(x = Age, y = value, color = factor(scen), group = sim)) +
-#   geom_line(size = 0.5, alpha = 0.03) +
-#   labs(y = "Body mass (g)") +
+#   geom_line(size = 0.3, alpha = 0.05) +
+#   labs(y = "Body mass [g]") +
+#   facet_wrap(~Species, scales = "free_y") +
 #   scale_y_continuous(expand = c(0, 0)) + 
 #   scale_color_manual(values = rev(col)) +
 #   theme_classic(base_size = 14) +
 #   guides(color = FALSE, fill = FALSE) +
-#   geom_line(data = filter(refGrowth, Age < 16 & Species == "Cod"), aes(Age, value), color = "black", 
-#             inherit.aes = FALSE, size = 0.5, alpha = 0.7, linetype = "dashed") +
+#   geom_line(data = filter(refGrowth, Age < 16), aes(Age, value), color = "black", 
+#             inherit.aes = FALSE, size = 0.3, alpha = 1, linetype = "dashed") +
 #   theme(legend.position = "bottom",
 #         legend.title = element_blank()) +
-#   ylim(400, 1100) +
-#   xlim(3, 4) +
 #   NULL
-  
 
-# Plot relative growth curves
+
+# Plot relative growth curves (ribbons)
 rel_dat <- big_growth_data %>%
   dplyr::group_by(Species, Age, scen) %>% 
   dplyr::summarise(mean_val = mean(re_growth),
@@ -403,41 +532,53 @@ rel_dat <- big_growth_data %>%
 
 rel_dat$Species <- factor(rel_dat$Species, levels = c("Sprat", "Herring", "Cod"))
 
+sort(unique(big_growth_data$scen))
+
 p2 <- rel_dat %>% filter(Age > 0) %>% 
 ggplot(., aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))) +
   geom_line(data = filter(rel_dat, Age > 0), aes(Age, mean_val, color = factor(scen)),
-            inherit.aes = FALSE, size = 0.5) +
-  geom_ribbon(alpha = 0.15, color = NA) +  
+            inherit.aes = FALSE, size = 0.5, alpha = 1) +
+  geom_ribbon(alpha = 0.175, color = NA) +  
   labs(y = "Body mass relative to\nconstant temperature") +
   facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(expand = c(0, 0), limits = c(0.95, 2.2)) + 
-  scale_color_manual(values = rev(col)) +
+  scale_y_continuous(expand = c(0, 0),
+                     #limits = c(0.95, 2.2)
+                     ) + 
+  scale_color_manual(values = rev(col),
+                     name = "Scenario") +
   scale_fill_manual(values = rev(col)) +
+  guides(fill = FALSE,
+         colour = guide_legend(nrow = 3,
+                               override.aes = list(alpha = 1,
+                                                   linetype = 1))) +
   theme_classic(base_size = 14) +
   theme(legend.position = "bottom",
-        legend.title = element_blank()) +
+        legend.direction = "vertical") +
   geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
   NULL
 
-p2 <- big_growth_data %>% filter(Age > 0 & Age < 16) %>% 
-  ggplot(., aes(x = Age, y = re_growth, color = factor(scen), group = sim)) +
-  geom_line(alpha = 0.075, size = 0.5) +
-  geom_line(data = filter(rel_dat, Age > 0 & Age < 16), aes(Age, mean_val, color = factor(scen)),
-            inherit.aes = FALSE, size = 1, linetype = 2) +
-  labs(y = "Body mass relative to\nconstant temperature") +
-  facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(expand = c(0, 0), limits = c(0.95, 2.2)) + 
-  scale_color_manual(values = rev(col), 
-                     labels = c("Metabolism", "Metabolism + Resource", "Resource"),
-                     name = "Scenario") +
-  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
-  guides(linetype = FALSE) +
-  theme_classic(base_size = 14) +
-  theme(legend.position = "bottom") +
-  geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
-  NULL
-
-p2
+# Plot relative growth curves (all curves)
+# p2 <- big_growth_data %>% filter(Age > 0 & Age < 16) %>% 
+#   ggplot(., aes(x = Age, y = re_growth, color = factor(scen), group = sim)) +
+#   geom_line(alpha = 0.075, size = 0.3) +
+#   geom_line(data = filter(rel_dat, Age > 0 & Age < 16), aes(Age, mean_val, color = factor(scen)),
+#             inherit.aes = FALSE, size = 0.75, linetype = 2, alpha = 1) +
+#   labs(y = "Body mass relative to\nconstant temperature") +
+#   facet_wrap(~Species, scales = "free_y") +
+#   scale_y_continuous(expand = c(0, 0)
+#                      #, limits = c(0.95, 2.2)
+#                      ) + 
+#   scale_color_manual(values = rev(col),
+#                      name = "Scenario") +
+#   guides(colour = guide_legend(nrow = 3,
+#                                override.aes = list(alpha = 1,
+#                                                    linetype = 1))) +
+#   guides(linetype = FALSE) +
+#   theme_classic(base_size = 14) +
+#   theme(legend.position = "bottom",
+#         legend.direction = "vertical") +
+#   geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
+#   NULL
 
 # Plot together
 p1/p2
@@ -446,13 +587,17 @@ p1/p2
 
 
 #** Plot mean weights by species ===================================================
-big_mean_weight_data_w_r$scen <- "With resource temp. dep."
-big_mean_weight_data_no_r$scen <- "No resource temp. dep."
-big_mean_weight_data_w_r_n_p$scen <- "With resource temp. dep. no. phys"
+big_mean_weight_data_w_r$scen <- "Physio. + Resource (MTE)" # "With resource temp. dep."
+big_mean_weight_data_no_r$scen <- "Physio." # "No resource temp. dep."
+big_mean_weight_data_w_r_n_p$scen <- "Resource (MTE)" # "With resource temp. dep. no. phys"
+big_mean_weight_data_w_r_barn$scen <- "Physio. + Resource (empiri.)" # "With resource temp. dep. barn"
+big_mean_weight_data_w_r_n_p_barn$scen <- "Resource (empiri.)" # "With resource temp. dep. barn. no. phys. "
 
 big_mean_weight_data <- rbind(big_mean_weight_data_w_r, 
                               big_mean_weight_data_no_r,
-                              big_mean_weight_data_w_r_n_p)
+                              big_mean_weight_data_w_r_n_p,
+                              big_mean_weight_data_w_r_barn,
+                              big_mean_weight_data_w_r_n_p_barn)
 
 big_mean_weight_data$scen <- as.factor(big_mean_weight_data$scen)
 
@@ -466,38 +611,31 @@ col <- rev(RColorBrewer::brewer.pal("Dark2", n = 5))
 ref_w <- data.frame(species = c("Cod", "Sprat", "Herring"),
                     mean_weight = refSpeciesMeanWeight)
 
-# 
-big_mean_weight_data$scen2 <- ""
-
-big_mean_weight_data$scen2 <- ifelse(big_mean_weight_data$scen == "No resource temp. dep.",
-                                     " ",
-                                     big_mean_weight_data$scen2)
-
-big_mean_weight_data$scen2 <- ifelse(big_mean_weight_data$scen == "With resource temp. dep. no. phys",
-                                     "  ",
-                                     big_mean_weight_data$scen2)
-
-unique(big_mean_weight_data$scen)
-
 # Plot
-ggplot(big_mean_weight_data, aes(x = scen2, y = mean_weight, fill = scen2, colour = scen2)) +
-  facet_wrap(~ species, scales = "free", nrow = 1) +
-  coord_flip() +
+ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
+  facet_wrap(~ species, scales = "free", nrow = 2) +
+  #coord_flip() +
   scale_color_manual(values = col) +
   scale_fill_manual(values = col, 
-                    labels = c("Metabolism", "Metabolism + Resource", "Resource"),
                     name = "Scenario") +
-  #geom_flat_violin(position = position_nudge(x = .25, y = 0), adjust = 2, trim = FALSE, alpha = 0.7) +
-  geom_point(position = position_jitter(width = .15), size = 1.1, alpha = 0.7, shape = 21, color = "white") +
-  geom_boxplot(aes(x = scen2, y = mean_weight),
-               outlier.shape = NA, alpha = 0.2, width = .2, color = "black", size = 0.5) +
-  guides(colour = FALSE) +
+  # this doesn't work with facet_wrap's free scales...
+  # geom_flat_violin(position = position_nudge(x = .25, y = 0), adjust = 2, trim = FALSE, alpha = 0.7) +
+  geom_point(position = position_jitter(width = .15), size = 1.1, alpha = 0.9, shape = 21, color = "white") +
+  geom_boxplot(aes(x = scen, y = mean_weight),
+               outlier.shape = NA, alpha = 0.1, width = .2, color = "black", size = 0.5) +
+  guides(fill = FALSE) +
   theme_classic(base_size = 14) +
   theme(aspect.ratio = 3/4) +
   labs(x = "", y = "Mean weight [g]") +
   geom_hline(data = ref_w, aes(yintercept = mean_weight), linetype = 2) +
-  guides(fill = guide_legend(override.aes = list(alpha = 0.8))) +
-  theme(legend.position = "bottom") +
+  guides(fill = guide_legend(#nrow = 3,
+                             override.aes = list(alpha = 0.8))) +
+  theme(#legend.position = "bottom",
+        #legend.text = element_text(size = 12),
+        axis.text.x = element_blank(),
+        legend.direction = "vertical",
+        legend.position = c(1, 0),
+        legend.justification = c(1, 0)) +
   NULL
 
 #ggsave("baltic/figures/mean_weight.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
@@ -522,6 +660,25 @@ ggplot(big_mean_weight_data, aes(x = scen2, y = mean_weight, fill = scen2, colou
 
 
 #**** Some tests ===================================================================
+# Testing relative growth rates are correct (seems like larger difference there than in actual growth rates)
+big_growth_data %>%
+  filter(Age > 0 & Age < 16 & Species == "Cod") %>%
+  ggplot(., aes(x = Age, y = value, color = factor(scen), group = sim)) +
+  geom_line(size = 0.5, alpha = 0.03) +
+  labs(y = "Body mass (g)") +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = rev(col)) +
+  theme_classic(base_size = 14) +
+  guides(color = FALSE, fill = FALSE) +
+  geom_line(data = filter(refGrowth, Age < 16 & Species == "Cod"), aes(Age, value), color = "black",
+            inherit.aes = FALSE, size = 0.5, alpha = 0.7, linetype = "dashed") +
+  theme(legend.position = "bottom",
+        legend.title = element_blank()) +
+  ylim(400, 1100) +
+  xlim(3, 4) +
+  NULL
+
+
 # What are the activation energies in the MAX scenarios?
 maxg <- big_growth_data %>%
   dplyr::filter(Age > 1) %>% # Need this since all length at age 0 are the same
