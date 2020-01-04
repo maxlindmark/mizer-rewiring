@@ -1,4 +1,4 @@
-.Rproj.user
+baltic/.DS_Store
 .Rhistory
 .RData
 .Ruserdata
@@ -6,9 +6,6 @@ src/*.o
 src/*.so
 src/*.dll
 .Rproj.user
-.Rhistory
-.RData
-.Ruserdata
 Exchange Data_2019-04-04 14_32_48.csv
 Exchange Data_2019-04-04 14_32_48_no_flounder.csv
 StomachDataSet201932090580.csv
