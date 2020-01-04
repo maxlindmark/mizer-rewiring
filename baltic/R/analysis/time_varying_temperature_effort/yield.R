@@ -73,8 +73,8 @@ t$ea_met <- mean(ea$met)
 t$ea_int <- mean(ea$int)
 t$ea_mor <- mean(ea$mor)
 
-t$ca_int <- -0.004 # Here we just use the fixed values
-t$ca_met <- 0.001 # Here we just use the fixed values
+#t$ca_int <- -0.004 # Here we just use the fixed values
+#t$ca_met <- 0.001 # Here we just use the fixed values
 
 pars_no_res <- MizerParams(t, 
                            ea_gro = 0,
@@ -108,6 +108,35 @@ pars_with_res_barnes <- MizerParams(t,
                                     r_pp = r_pp,
                                     r_bb = r_bb,
                                     t_ref = t_ref)
+
+# No physiological scaling scenarios:
+t_no_ea <- t
+t_no_ea$ea_int <- 0
+t_no_ea$ea_met <- 0
+t_no_ea$ea_mor <- 0
+
+pars_with_res_barnes_np <- MizerParams(t_no_ea, 
+                                       ea_gro = 0,
+                                       ea_car = -0.41,
+                                       kappa_ben = kappa_ben,
+                                       kappa = kappa,
+                                       w_bb_cutoff = w_bb_cutoff,
+                                       w_pp_cutoff = w_pp_cutoff,
+                                       r_pp = r_pp,
+                                       r_bb = r_bb,
+                                       t_ref = t_ref)
+
+pars_with_res_np <- MizerParams(t_no_ea, 
+                                ea_gro = mean(ea$gro),
+                                ea_car = mean(ea$car),
+                                kappa_ben = kappa_ben,
+                                kappa = kappa,
+                                w_bb_cutoff = w_bb_cutoff,
+                                w_pp_cutoff = w_pp_cutoff,
+                                r_pp = r_pp,
+                                r_bb = r_bb,
+                                t_ref = t_ref)
+
 
 # Define temperature-scenarios
 consTemp <- projectTemp$temperature
@@ -143,12 +172,27 @@ m_with_resource_temp_b <- project(pars_with_res_barnes,
                                  temperature = projectTemp$temperature,
                                  diet_steps = 10) 
 
+# No physiology: with temperature with effects on the resource
+m_with_resource_temp_np <- project(pars_with_res_np, 
+                                   dt = dt,
+                                   effort = projectEffort_m,
+                                   temperature = projectTemp$temperature,
+                                   diet_steps = 10) 
+
+# No physiology: With temperature with effects on the resource (BARNES)
+m_with_resource_temp_b_np <- project(pars_with_res_barnes_np, 
+                                     dt = dt,
+                                     effort = projectEffort_m,
+                                     temperature = projectTemp$temperature,
+                                     diet_steps = 10) 
+
 # Constant temperatures after calibration period (with res in pre calibration period)
 m_cons_temp <- project(pars_with_res, 
                        dt = dt,
                        effort = projectEffort_m,
                        temperature = consTemp,
                        diet_steps = 10) 
+
 
 # Predicted yield - no temp dep resource
 no_resource_temp <- data.frame(getYield(m_no_resource_temp))
@@ -168,6 +212,18 @@ with_resource_temp_b$Year_ct <- as.numeric(rownames(getYield(m_with_resource_tem
 with_resource_temp_b$Year <- with_resource_temp_b$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
 with_resource_temp_b$Scenario <- "Physio. + Resource (empiri.)"
 
+# No phys: Predicted yield - with temp on resource
+with_resource_temp_np <- data.frame(getYield(m_with_resource_temp_np))
+with_resource_temp_np$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp_np)))
+with_resource_temp_np$Year <- with_resource_temp_np$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+with_resource_temp_np$Scenario <- "Resource (MTE)"
+
+# No phys: Predicted yield - with temp on resource (Barnes)
+with_resource_temp_b_np <- data.frame(getYield(m_with_resource_temp_b_np))
+with_resource_temp_b_np$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp_b_np)))
+with_resource_temp_b_np$Year <- with_resource_temp_b_np$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+with_resource_temp_b_np$Scenario <- "Resource (empiri.)"
+
 # Predicted yield - constant temperature at all
 cons_temp <- data.frame(getYield(m_cons_temp))
 cons_temp$Year_ct <- as.numeric(rownames(getYield(m_cons_temp)))
@@ -178,6 +234,8 @@ cons_temp$Scenario <- "No warming"
 yield <- rbind(no_resource_temp, 
                with_resource_temp, 
                with_resource_temp_b,
+               with_resource_temp_np, 
+               with_resource_temp_b_np,
                cons_temp)
 
 # Convert to long data frame (1 obs = 1 row)
@@ -203,7 +261,7 @@ yield_l %>%
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_line(size = 1, alpha = 0.8) +
   scale_color_manual(values = pal2) +
-  scale_linetype_manual(values = c(2,1,1,1)) +
+  scale_linetype_manual(values = c(2,1,1,1,1,1)) +
   theme(aspect.ratio = 1) +
   labs(y = "Yield (1000 tonnes)", x = "Year") +
   guides(linetype = FALSE) +

@@ -82,8 +82,8 @@ t$ea_met <- mean(ea$met)
 t$ea_int <- mean(ea$int)
 t$ea_mor <- mean(ea$mor)
 
-t$ca_int <- -0.004 # Here we just use the fixed values
-t$ca_met <- 0.001 # Here we just use the fixed values
+#t$ca_int <- -0.004 # Here we just use the fixed values
+#t$ca_met <- 0.001 # Here we just use the fixed values
 
 pars_no_res <- MizerParams(t, 
                            ea_gro = 0,
@@ -120,10 +120,12 @@ consTemp[start:137] <- t_ref
 # NOTE: Here we use constant temperatures and therefore the results may not be 
 # exactly translateable to the time-varying effort and temperature projections.
 
-F_range <- seq(0.2, 1.4, 0.01) # Can decrease step later, becomes too slow now
+F_range <- seq(0.2, 1.4, 0.02) # Can decrease step later, becomes too slow now
 t_max <- 100
 index <- 1:length(F_range)
 
+
+#** Physio + Resource (MTE) ========================================================
 #**** Cod ==========================================================================
 # Create empty data holder
 Y <- c()
@@ -175,6 +177,8 @@ for(i in index) {
 codFmsy <- dplyr::bind_rows(data_list)
 
 codFmsy$species <- "Cod"
+
+codFmsy$scen2 <- "Physio. + Resource (MTE)"
 
 ggplot(codFmsy, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
@@ -232,6 +236,8 @@ herFmsy <- dplyr::bind_rows(data_list)
 
 herFmsy$species <- "Herring"
 
+herFmsy$scen2 <- "Physio. + Resource (MTE)"
+
 ggplot(herFmsy, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
 
@@ -288,66 +294,249 @@ sprFmsy <- dplyr::bind_rows(data_list)
 
 sprFmsy$species <- "Sprat"
 
+sprFmsy$scen2 <- "Physio. + Resource (MTE)"
+
 ggplot(sprFmsy, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
 
+#** Physio =========================================================================
+#**** Cod ==========================================================================
+# Create empty data holder
+Y <- c()
+Fm <- c()
+r <- c()
+w <- c()
+td <- c()
+data_list <- list()
+
+for(i in index) {
+  
+  effort = c(Cod = params@species_params$AveEffort[1], 
+             Herring = params@species_params$AveEffort[3], 
+             Sprat = params@species_params$AveEffort[2])
+  
+  effort[1] <- F_range[i]
+  
+  r <- project(pars_no_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep(pars_with_res@t_ref, t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  w <- project(pars_no_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  Y_ref <- mean(data.frame(getYield(r))$Cod[(t_max-20):t_max])
+  Y_warm <- mean(data.frame(getYield(w))$Cod[(t_max-20):t_max])
+  
+  ssb_ref <- mean(data.frame(getSSB(r))$Cod[(t_max-20):t_max])
+  ssb_warm <- mean(data.frame(getSSB(w))$Cod[(t_max-20):t_max])
+  
+  Fm <- F_range[i]
+  
+  td <- data.frame(biomass = rbind(Y_ref, Y_warm, ssb_ref, ssb_warm), 
+                   type = rep(c("yield", "ssb"), each = 2), 
+                   Fm = rep(Fm, 4), 
+                   scen = rep(c("cold", "warm"), times = 2))
+  
+  data_list[[i]] <- td
+  
+}
+
+codFmsy_nores <- dplyr::bind_rows(data_list)
+
+codFmsy_nores$species <- "Cod"
+
+codFmsy_nores$scen2 <- "Physio."
+
+ggplot(codFmsy_nores, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+
+
+#**** Herring ======================================================================
+# Create empty data holder
+Y <- c()
+Fm <- c()
+r <- c()
+w <- c()
+td <- c()
+data_list <- list()
+
+for(i in index) {
+  
+  # Create effort vector
+  effort = c(Cod = params@species_params$AveEffort[1], 
+             Herring = params@species_params$AveEffort[3], 
+             Sprat = params@species_params$AveEffort[2])
+  
+  effort[2] <- F_range[i]
+  
+  r <- project(pars_no_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep(pars_with_res@t_ref, t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  w <- project(pars_no_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  Y_ref <- mean(data.frame(getYield(r))$Herring[(t_max-20):t_max])
+  Y_warm <- mean(data.frame(getYield(w))$Herring[(t_max-20):t_max])
+  
+  ssb_ref <- mean(data.frame(getSSB(r))$Herring[(t_max-20):t_max])
+  ssb_warm <- mean(data.frame(getSSB(w))$Herring[(t_max-20):t_max])
+  
+  Fm <- F_range[i]
+  
+  td <- data.frame(biomass = rbind(Y_ref, Y_warm, ssb_ref, ssb_warm), 
+                   type = rep(c("yield", "ssb"), each = 2), 
+                   Fm = rep(Fm, 4), 
+                   scen = rep(c("cold", "warm"), times = 2))  
+  
+  data_list[[i]] <- td
+  
+}
+
+herFmsy_nores <- dplyr::bind_rows(data_list)
+
+herFmsy_nores$species <- "Herring"
+
+herFmsy_nores$scen2 <- "Physio."
+
+ggplot(herFmsy_nores, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+
+
+#**** Sprat ========================================================================
+# Create effort vector
+effort = c(Cod = params@species_params$AveEffort[1], 
+           Herring = params@species_params$AveEffort[3], 
+           Sprat = params@species_params$AveEffort[2])
+
+# Create empty data holder
+Y <- c()
+Fm <- c()
+r <- c()
+w <- c()
+td <- c()
+data_list <- list()
+
+for(i in index) {
+  
+  effort[3] <- F_range[i]
+  
+  r <- project(pars_no_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep(pars_with_res@t_ref, t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  w <- project(pars_no_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  Y_ref <- mean(data.frame(getYield(r))$Sprat[(t_max-20):t_max])
+  Y_warm <- mean(data.frame(getYield(w))$Sprat[(t_max-20):t_max])
+  
+  ssb_ref <- mean(data.frame(getSSB(r))$Sprat[(t_max-20):t_max])
+  ssb_warm <- mean(data.frame(getSSB(w))$Sprat[(t_max-20):t_max])
+  
+  Fm <- F_range[i]
+  
+  td <- data.frame(biomass = rbind(Y_ref, Y_warm, ssb_ref, ssb_warm), 
+                   type = rep(c("yield", "ssb"), each = 2), 
+                   Fm = rep(Fm, 4), 
+                   scen = rep(c("cold", "warm"), times = 2))  
+  
+  data_list[[i]] <- td
+  
+}
+
+sprFmsy_nores <- dplyr::bind_rows(data_list)
+
+sprFmsy_nores$species <- "Sprat"
+
+sprFmsy_nores$scen2 <- "Physio."
+
+ggplot(sprFmsy_nores, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+
+
+
 #**** All together =================================================================
-col <- RColorBrewer::brewer.pal(n = 5, "Dark2")
+#col <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 col <- RColorBrewer::brewer.pal(n = 3, "Set1")[1:2]
 
-Fmsy <- rbind(codFmsy, sprFmsy, herFmsy)
+Fmsy <- rbind(codFmsy, sprFmsy, herFmsy,
+              codFmsy_nores, sprFmsy_nores, herFmsy_nores)
 
 Fmsy$species <- factor(Fmsy$species, levels = c("Sprat", "Herring", "Cod"))
 
 # Get size-spectrum FMSY for all species:
 Fmsy_sum <- Fmsy %>% 
   filter(type == "yield") %>% 
-  group_by(species, scen) %>% 
+  group_by(species, scen, scen2) %>% 
   filter(biomass == max(biomass))
 
 Fmsy %>% 
+  filter(type == "yield") %>% 
   filter(biomass > 0.001) %>% 
-  ggplot(., aes(Fm, biomass, linetype = type, color = scen)) + 
-  geom_line(alpha = 0.6, size = 1.2) +
+  ggplot(., aes(Fm, biomass, linetype = scen2, color = scen)) + 
+  geom_line(alpha = 0.8, size = 1.2) +
   facet_wrap(~ species, scales = "free") +
-  scale_color_manual(values = rev(col), labels = c("T_ref", "T_ref + 2C")) +
+  scale_color_manual(values = c(col[2], col[1], col[3]), 
+                     labels = c("T_ref", "T_ref + 2C")) +
   theme_classic(base_size = 12) +
-  labs(x = "Fishing mortality [1/year]", y = "Biomass",
+  labs(x = "Fishing mortality [1/year]", 
+       y = "Yield",
        color = "Scenario",
        linetype = "Metric") +
+  #guides(color = FALSE, linetype = FALSE) +
   theme(aspect.ratio = 3/4,
         legend.position = "bottom") +
-  geom_segment(data = filter(Fmsy_sum, scen == "warm"), linetype = 1, 
-               aes(x = Fm, xend = Fm, y = 0, yend = c(0.45, 0.8, 0.45)), arrow = arrow(length = unit(0.3, "cm")), col = col[1]) +
-  geom_segment(data = filter(Fmsy_sum, scen == "cold"), linetype = 1, 
-               aes(x = Fm, xend = Fm, y = 0, yend = c(0.45, 0.8, 0.45)), arrow = arrow(length = unit(0.3, "cm")), col = col[2]) +
+  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio. + Resource (MTE)"), linetype = 2, 
+               aes(x = Fm, xend = Fm, y = 0.5, yend = c(0.87, 1.1, 0.7)), arrow = arrow(length = unit(0.3, "cm")),
+               col = col[1], alpha  = 0.5) +
+  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio."), linetype = 1, 
+               aes(x = Fm, xend = Fm, y = 0.5, yend = c(0.87, 1.1, 0.7)), arrow = arrow(length = unit(0.3, "cm")), 
+               col = col[1], alpha  = 0.5) +
+  geom_segment(data = filter(Fmsy_sum, scen == "cold" & scen2 == "Physio. + Resource (MTE)"), linetype = 1, 
+               aes(x = Fm, xend = Fm, y = 0.5, yend = c(0.87, 1.1, 0.7)), arrow = arrow(length = unit(0.3, "cm")), 
+               col = col[2], alpha  = 0.5) +
   NULL
 
 #ggsave("baltic/figures/FMSY_warm_cold.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
+Fmsy %>% 
+  filter(type == "ssb") %>% 
+  filter(biomass > 0.001) %>% 
+  ggplot(., aes(Fm, biomass, linetype = scen2, color = scen)) + 
+  geom_line(alpha = 0.8, size = 1.2) +
+  facet_wrap(~ species, scales = "free") +
+  scale_color_manual(values = c(col[2], col[1], col[3]), 
+                     labels = c("T_ref", "T_ref + 2C")) +
+  theme_classic(base_size = 12) +
+  labs(x = "Fishing mortality [1/year]", 
+       y = "SSB",
+       color = "Scenario",
+       linetype = "Metric") +
+  theme(aspect.ratio = 3/4,
+        legend.position = "bottom") +
+  NULL
 
-## IN THE GROWTH FIGURE, SHOULD I ALSO DO A 0 ACTIVATION ENERGY AS A CONTRAST? THATS THE NULL ACTUALLY!!!
+#ggsave("baltic/figures/SSB_warm_cold.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
-plotYield(w) + xlim(50, 75)
-plotBiomass(w) + xlim(50, 75)
-
-tail(getBiomass(w), 10)
-tail(getSSB(w), 10)
-tail(getYield(w), 10)
-
-test_eff <- effort
-test_eff[1:3] <- 1
-
-test <- project(pars_with_res,
-               dt = dt,
-               effort = test_eff,
-               temperature = rep(pars_with_res@t_ref, t_max),
-               diet_steps = 10,
-               t_max = t_max)
-
-plot(test)
-tail(getSSB(w), 10)
-tail(getYield(w), 10)
 
 
 # C. HEATMAP EFFORT~TEMPERATURE FOR LOOP ===========================================
@@ -375,7 +564,7 @@ refYield <- data.frame(Yield = c(getYield(ref)[dim(ref@effort)[1], 1],
 
 
 
-# #**** for loop through different fishin effort (with temp dep resource) ============
+#**** for loop through different fishin effort (with temp dep resource) ============
 data_list <- list()
 eff <- seq(0.8, 1.2, 0.05) # Factor for scaling fishing mortality
 temp <- seq(0.8, 1.2, 0.05)
@@ -443,4 +632,29 @@ ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
 #ggsave("baltic/figures/supp/yield_heat.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 #ggsave("baltic/figures/supp/yield_heat_ssmFMSY.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
- 
+
+
+#** SOME TESTS =====================================================================
+plotYield(w) + xlim(50, 75)
+plotBiomass(w) + xlim(50, 75)
+
+tail(getBiomass(w), 10)
+tail(getSSB(w), 10)
+tail(getYield(w), 10)
+
+test_eff <- effort
+test_eff[1:3] <- 1
+
+test <- project(pars_with_res,
+                dt = dt,
+                effort = test_eff,
+                temperature = rep(pars_with_res@t_ref, t_max),
+                diet_steps = 10,
+                t_max = t_max)
+
+plot(test)
+tail(getSSB(w), 10)
+tail(getYield(w), 10)
+
+
+
