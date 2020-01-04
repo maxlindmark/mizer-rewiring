@@ -115,6 +115,34 @@ pars_with_res_barnes <- MizerParams(t,
                                     t_ref = t_ref)
 
 
+# No physiological scaling scenarios:
+t_no_ea <- t
+t_no_ea$ea_int <- 0
+t_no_ea$ea_met <- 0
+t_no_ea$ea_mor <- 0
+
+pars_with_res_barnes_np <- MizerParams(t_no_ea, 
+                                       ea_gro = 0,
+                                       ea_car = -0.41,
+                                       kappa_ben = kappa_ben,
+                                       kappa = kappa,
+                                       w_bb_cutoff = w_bb_cutoff,
+                                       w_pp_cutoff = w_pp_cutoff,
+                                       r_pp = r_pp,
+                                       r_bb = r_bb,
+                                       t_ref = t_ref)
+
+pars_with_res_np <- MizerParams(t_no_ea, 
+                                ea_gro = mean(ea$gro),
+                                ea_car = mean(ea$car),
+                                kappa_ben = kappa_ben,
+                                kappa = kappa,
+                                w_bb_cutoff = w_bb_cutoff,
+                                w_pp_cutoff = w_pp_cutoff,
+                                r_pp = r_pp,
+                                r_bb = r_bb,
+                                t_ref = t_ref)
+
 # Define temperature-scenarios
 consTemp <- projectTemp$temperature
 start <- 1997-1914
@@ -138,7 +166,7 @@ refMort <- getMortality(ref)
 
 refSpect
 
-# testing mortality is correct
+# Testing mortality is correct
 plot(ref)
 ggplot(refMort, aes(w, value, linetype = Species)) + 
   geom_line(size = 1) + 
@@ -296,6 +324,130 @@ for (i in iter) {
 big_spect_data_w_r_b <- dplyr::bind_rows(data_list_with_res_barnes)
 
 
+#**** for loop through different fishing effort (with temp dep resource - NO PHYS) =
+sim <- seq(0.8, 1.2, 0.1) # Factor for scaling fishing mortality
+iter <- seq(from = 1, to = length(sim))
+
+tt <- c()
+groj <- c()
+spect <- c()
+data_list_with_res_np <- list()
+
+# The projected fishing mortality starts at row 100
+
+for (i in iter) {
+  
+  projectEffort_new <- projectEffort_m
+  
+  projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
+  
+  proj <- project(pars_with_res_np, 
+                  dt = dt,
+                  effort = projectEffort_new,
+                  temperature = projectTemp$temperature,
+                  diet_steps = 10,
+                  t_max = t_max)   
+  
+  # Apply getSpectra function to get abundance at size
+  spect <- getSpectra(proj)
+  
+  # Add in iteration
+  spect$sim <- i
+  
+  # Relative spectra
+  spect$re_spec <- getSpectra(proj)$n / getSpectra(ref)$n #spect$n / refSpect$n
+  
+  # Extract mortality (predation) - modified from plotM2
+  mort <- getMortality(proj)
+  
+  # Add in fishing mortality
+  spect$Fm <- rep(as.numeric(proj@effort[dim(proj@effort)[1], ]), each = nrow(spect)/length(unique(spect$species)))
+  
+  # Add in natural mortality
+  spect$mort <- mort$value
+  
+  # Add in fishing mortality scalar
+  spect$Fm <- sim[i]
+  
+  # Relative mortality
+  spect$re_mort <- mort$value / refMort$value #spect$n / refSpect$n
+  
+  # Add feeding level
+  fl <- FL_df(proj)
+  spect$feedingLevel <- fl$value
+  
+  # Relative feeding level
+  spect$re_feedingLevel <- spect$feedingLevel / refFL$value 
+  
+  data_list_with_res_np[[i]] <- spect
+  
+}
+
+big_spect_data_w_r_np <- dplyr::bind_rows(data_list_with_res_np)
+
+
+#**** for loop through different fishing effort (with temp dep resource BARNES - NO PHYS) 
+sim <- seq(0.8, 1.2, 0.1) # Factor for scaling fishing mortality
+iter <- seq(from = 1, to = length(sim))
+
+tt <- c()
+groj <- c()
+spect <- c()
+data_list_with_res_barnes_np <- list()
+
+# The projected fishing mortality starts at row 100
+
+for (i in iter) {
+  
+  projectEffort_new <- projectEffort_m
+  
+  projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
+  
+  proj <- project(pars_with_res_barnes_np, 
+                  dt = dt,
+                  effort = projectEffort_new,
+                  temperature = projectTemp$temperature,
+                  diet_steps = 10,
+                  t_max = t_max)   
+  
+  # Apply getSpectra function to get abundance at size
+  spect <- getSpectra(proj)
+  
+  # Add in iteration
+  spect$sim <- i
+  
+  # Relative spectra
+  spect$re_spec <- getSpectra(proj)$n / getSpectra(ref)$n #spect$n / refSpect$n
+  
+  # Extract mortality (predation) - modified from plotM2
+  mort <- getMortality(proj)
+  
+  # Add in fishing mortality
+  spect$Fm <- rep(as.numeric(proj@effort[dim(proj@effort)[1], ]), each = nrow(spect)/length(unique(spect$species)))
+  
+  # Add in natural mortality
+  spect$mort <- mort$value
+  
+  # Add in fishing mortality scalar
+  spect$Fm <- sim[i]
+  
+  # Relative mortality
+  spect$re_mort <- mort$value / refMort$value #spect$n / refSpect$n
+  
+  # Add feeding level
+  fl <- FL_df(proj)
+  spect$feedingLevel <- fl$value
+  
+  # Relative feeding level
+  spect$re_feedingLevel <- spect$feedingLevel / refFL$value 
+  
+  data_list_with_res_barnes_np[[i]] <- spect
+  
+}
+
+big_spect_data_w_r_b_np <- dplyr::bind_rows(data_list_with_res_barnes_np)
+
+
 #**** for loop through different fishing effort (no temp dep resource) ============
 tt <- c()
 groj <- c()
@@ -351,26 +503,6 @@ for (i in iter) {
   # Relative feeding level
   spect$re_feedingLevel <- spect$feedingLevel / refFL$value 
 
-  # ggplot(spect, aes(log10(w), re_spec, color = factor(Fm))) +
-  #   facet_wrap(~species, scales = "free", ncol = 1) + 
-  #   geom_hline(yintercept = 1) +
-  #   geom_line() +
-  #   NULL
-  # 
-  # spect %>% filter(re_spec > 1 & species == "Cod")
-  # 
-  # test <- spect %>% filter(species == "Cod" & Fm == 1)
-  # tt <- filter(getSpectra(ref), species == "Cod")
-  # test2 <- data.frame(n = c(test$n, tt$n),
-  #                     w = rep(test$w), 2,
-  #                     scen = rep(c("warm", "ref"), each = 100))
-  # 
-  # ggplot(test2, aes(log10(w), n, color = factor(scen))) +
-  #   geom_line(size = 1) +
-  #   NULL
-  # 
-  # test2 %>% filter(log10(w) > 4)
-  
   data_list_no_res[[i]] <- spect
   
 }
@@ -443,16 +575,22 @@ options(scipen = 10000) # Set higher level before using scientific notation over
 
 big_spect_data_w_r$scen <- "Physio. + Resource (MTE)"
 big_spect_data_w_r_b$scen <- "Physio. + Resource (empiri.)"
+big_spect_data_w_r_np$scen <- "Resource (MTE)"
+big_spect_data_w_r_b_np$scen <- "Resource (empiri.)"
 big_spect_data_no_r$scen <- "Physio"
 big_spect_data_con_temp$scen <- "No warming"
 
 big_spect_data_w_r$sim <- paste("wr", big_spect_data_w_r$sim, sep = "")
 big_spect_data_w_r_b$sim <- paste("wr_b", big_spect_data_w_r_b$sim, sep = "")
+big_spect_data_w_r_np$sim <- paste("wr_np", big_spect_data_w_r_np$sim, sep = "")
+big_spect_data_w_r_b_np$sim <- paste("wr_b_np", big_spect_data_w_r_b_np$sim, sep = "")
 big_spect_data_no_r$sim <- paste("nr", big_spect_data_no_r$sim, sep = "")
 big_spect_data_con_temp$sim <- paste("ct", big_spect_data_con_temp$sim, sep = "")
 
 big_spect_data <- rbind(big_spect_data_w_r, 
                         big_spect_data_w_r_b,
+                        big_spect_data_w_r_np, 
+                        big_spect_data_w_r_b_np,
                         big_spect_data_no_r, 
                         big_spect_data_con_temp)
 
@@ -477,7 +615,7 @@ big_spect_data %>%
   # cod abundance increases rapibdly in the low fishing scenarios.
   #filter(n > 0 & re_spec > 0.85 & re_spec < 1.15 & w > 0.001) %>%
   #filter(n > 0 & re_spec > 0.8 & re_spec < 1.2 & w > 0.001) %>%
-  filter(n > 0 & Fm %in% c(0.9, 1, 1.1) & w > 0.001 & re_spec > 0.8 & re_spec < 1.3) %>%
+  filter(n > 0 & Fm %in% c(0.9, 1, 1.1) & w > 0.001 & re_spec > 0.8 & re_spec < 1.3 & w > 0.1) %>%
   ggplot(., aes(w, re_spec, color = factor(Fm), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_line(size = 1) + 
@@ -494,7 +632,7 @@ big_spect_data %>%
        color = "FMSY\nscaling\nfactor", 
        alpha = "FMSY\nscaling\nfactor", 
        linetype = "FMSY\nscaling\nfactor") +
-  theme(strip.text.y = element_text(size = 8)) +
+  theme(strip.text.y = element_text(size = 5)) +
   NULL
 
 #ggsave("baltic/figures/supp/spectra_FM_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
@@ -507,7 +645,7 @@ pal2 <- c("black", pal)
 unique(big_spect_data$scen)
 
 p1 <- big_spect_data %>% 
-  filter(n > 0 & Fm == 1) %>%
+  filter(n > 0 & Fm == 1 & w > 0.1) %>%
   ggplot(., aes(w, (n*240.342), color = factor(scen), linetype = scen)) + 
   geom_line(size = 1) + 
   scale_colour_manual(values = pal2,
@@ -531,9 +669,11 @@ pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 unique(big_spect_data$scen)
 
 p2 <- big_spect_data %>% 
-  filter(n > 0 & Fm == 1 & scen %in% c("Physio. + Resource (MTE)",
-                                       "Physio. + Resource (empiri.)",
-                                       "Physio")) %>%
+  filter(n > 0 & Fm == 1 & w > 0.1 & scen %in% c("Physio. + Resource (MTE)",
+                                                 "Resource (MTE)",
+                                                 "Resource (empiri.)",
+                                                 "Physio. + Resource (empiri.)",
+                                                 "Physio")) %>%
   ggplot(., aes(w, re_spec, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
@@ -567,6 +707,8 @@ p2+p1
 big_spect_data %>% 
   filter(n > 0 & Fm == 1 & scen %in% c("Physio. + Resource (MTE)",
                                        "Physio. + Resource (empiri.)",
+                                       "Resource (MTE)",
+                                       "Resource (empiri.)",
                                        "Physio")) %>%
   ggplot(., aes(w, mort, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
@@ -587,6 +729,8 @@ big_spect_data %>%
 big_spect_data %>% 
   filter(Fm == 1 & mort > 0.075 & scen %in% c("Physio. + Resource (MTE)",
                                               "Physio. + Resource (empiri.)",
+                                              "Resource (MTE)",
+                                              "Resource (empiri.)",
                                               "Physio")) %>%
   ggplot(., aes(w, re_mort, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
@@ -610,6 +754,8 @@ big_spect_data %>%
 big_spect_data %>% 
   filter(Fm == 1 & scen %in% c("Physio. + Resource (MTE)",
                                "Physio. + Resource (empiri.)",
+                               "Resource (MTE)",
+                               "Resource (empiri.)",
                                "Physio")) %>%
   ggplot(., aes(w, feedingLevel, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
@@ -648,6 +794,8 @@ big_spect_data %>%
 big_spect_data %>% 
   filter(Fm == 1 & scen %in% c("Physio. + Resource (MTE)",
                                "Physio. + Resource (empiri.)",
+                               "Resource (MTE)",
+                               "Resource (empiri.)",
                                "Physio")) %>%
   ggplot(., aes(w, re_feedingLevel, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
