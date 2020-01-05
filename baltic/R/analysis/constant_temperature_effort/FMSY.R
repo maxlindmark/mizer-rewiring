@@ -621,8 +621,8 @@ ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
   theme_classic(base_size = 12) +
   scale_fill_viridis() +
   labs(x = "Temperature relative to\nRCP8.5 projection",
-       y = "Fishing mortality relative\nto average FMSY",
-       #y = "Fishing mortality relative\nto MSSM FMSY",
+       #y = "Fishing mortality relative\nto average FMSY",
+       y = "Fishing mortality relative\nto MSSM FMSY",
        fill = "Yield relative to\naverageFMSY +\nconstant temp.") +
   coord_cartesian(expand = 0) +
   theme(aspect.ratio = 3/4,
