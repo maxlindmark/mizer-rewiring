@@ -464,7 +464,7 @@ rdd <- getRDD(m3@params,
 
 # rdi vs rdd
 rdi / rdd
-rdd / rdi
+#rdd / rdi
 
 rec <- data.frame(Species = names(rdi),
                   "RDI/RDD" = rdi/rdd)

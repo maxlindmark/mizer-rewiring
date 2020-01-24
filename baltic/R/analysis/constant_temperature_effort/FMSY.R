@@ -85,18 +85,18 @@ t$ea_mor <- mean(ea$mor)
 #t$ca_int <- -0.004 # Here we just use the fixed values
 #t$ca_met <- 0.001 # Here we just use the fixed values
 
-pars_no_res <- MizerParams(t, 
-                           ea_gro = 0,
-                           ea_car = 0, # -ea$gro[i] 
-                           kappa_ben = kappa_ben,
-                           kappa = kappa,
-                           w_bb_cutoff = w_bb_cutoff,
-                           w_pp_cutoff = w_pp_cutoff,
-                           r_pp = r_pp,
-                           r_bb = r_bb,
-                           t_ref = t_ref)
+pars_phys <- MizerParams(t, 
+                         ea_gro = 0,
+                         ea_car = 0, # -ea$gro[i] 
+                         kappa_ben = kappa_ben,
+                         kappa = kappa,
+                         w_bb_cutoff = w_bb_cutoff,
+                         w_pp_cutoff = w_pp_cutoff,
+                         r_pp = r_pp,
+                         r_bb = r_bb,
+                         t_ref = t_ref)
 
-pars_with_res <- MizerParams(t, 
+pars_res_phys <- MizerParams(t, 
                              ea_gro = mean(ea$gro),
                              ea_car = mean(ea$car), # -ea$gro[i] 
                              kappa_ben = kappa_ben,
@@ -106,6 +106,23 @@ pars_with_res <- MizerParams(t,
                              r_pp = r_pp,
                              r_bb = r_bb,
                              t_ref = t_ref)
+
+t_np <- params@species_params
+t_np$ea_int <- 0
+t_np$ea_met <- 0
+t_np$ea_mat <- 0
+t_np$ea_mor <- 0
+
+pars_res <- MizerParams(t_np, 
+                        ea_gro = mean(ea$gro),
+                        ea_car = mean(ea$car), # -ea$gro[i] 
+                        kappa_ben = kappa_ben,
+                        kappa = kappa,
+                        w_bb_cutoff = w_bb_cutoff,
+                        w_pp_cutoff = w_pp_cutoff,
+                        r_pp = r_pp,
+                        r_bb = r_bb,
+                        t_ref = t_ref)
 
 # Define temperature-scenarios
 consTemp <- projectTemp$temperature
@@ -120,12 +137,12 @@ consTemp[start:137] <- t_ref
 # NOTE: Here we use constant temperatures and therefore the results may not be 
 # exactly translateable to the time-varying effort and temperature projections.
 
-F_range <- seq(0.2, 1.4, 0.02) # Can decrease step later, becomes too slow now
+F_range <- seq(0.2, 1.4, 0.01) # Can decrease step later, becomes too slow now
 t_max <- 100
 index <- 1:length(F_range)
 
 
-#** Physio + Resource (MTE) ========================================================
+#** Physio + Resource (exp) ========================================================
 #**** Cod ==========================================================================
 # Create empty data holder
 Y <- c()
@@ -143,17 +160,17 @@ for(i in index) {
   
   effort[1] <- F_range[i]
   
-  r <- project(pars_with_res,
+  r <- project(pars_res_phys,
                dt = dt,
                effort = effort,
-               temperature = rep(pars_with_res@t_ref, t_max),
+               temperature = rep(pars_res_phys@t_ref, t_max),
                diet_steps = 10,
                t_max = t_max)
   
-  w <- project(pars_with_res,
+  w <- project(pars_res_phys,
                dt = dt,
                effort = effort,
-               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               temperature = rep((pars_res_phys@t_ref + 2), t_max),
                diet_steps = 10,
                t_max = t_max)
   
@@ -174,13 +191,13 @@ for(i in index) {
   
 }
 
-codFmsy <- dplyr::bind_rows(data_list)
+codFmsy_res_phys <- dplyr::bind_rows(data_list)
 
-codFmsy$species <- "Cod"
+codFmsy_res_phys$species <- "Cod"
 
-codFmsy$scen2 <- "Physio. + Resource (MTE)"
+codFmsy_res_phys$scen2 <- "Physio. + Resource (exp.)"
 
-ggplot(codFmsy, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+ggplot(codFmsy_res_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
 
 #**** Herring ======================================================================
@@ -201,17 +218,17 @@ for(i in index) {
   
   effort[2] <- F_range[i]
   
-  r <- project(pars_with_res,
+  r <- project(pars_res_phys,
                dt = dt,
                effort = effort,
-               temperature = rep(pars_with_res@t_ref, t_max),
+               temperature = rep(pars_res_phys@t_ref, t_max),
                diet_steps = 10,
                t_max = t_max)
   
-  w <- project(pars_with_res,
+  w <- project(pars_res_phys,
                dt = dt,
                effort = effort,
-               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               temperature = rep((pars_res_phys@t_ref + 2), t_max),
                diet_steps = 10,
                t_max = t_max)
   
@@ -232,13 +249,13 @@ for(i in index) {
   
 }
 
-herFmsy <- dplyr::bind_rows(data_list)
+herFmsy_res_phys <- dplyr::bind_rows(data_list)
 
-herFmsy$species <- "Herring"
+herFmsy_res_phys$species <- "Herring"
 
-herFmsy$scen2 <- "Physio. + Resource (MTE)"
+herFmsy_res_phys$scen2 <- "Physio. + Resource (exp.)"
 
-ggplot(herFmsy, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+ggplot(herFmsy_res_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
 
 #**** Sprat ========================================================================
@@ -259,17 +276,17 @@ for(i in index) {
   
   effort[3] <- F_range[i]
   
-  r <- project(pars_with_res,
+  r <- project(pars_res_phys,
                dt = dt,
                effort = effort,
-               temperature = rep(pars_with_res@t_ref, t_max),
+               temperature = rep(pars_res_phys@t_ref, t_max),
                diet_steps = 10,
                t_max = t_max)
   
-  w <- project(pars_with_res,
+  w <- project(pars_res_phys,
                dt = dt,
                effort = effort,
-               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               temperature = rep((pars_res_phys@t_ref + 2), t_max),
                diet_steps = 10,
                t_max = t_max)
   
@@ -290,13 +307,189 @@ for(i in index) {
   
 }
 
-sprFmsy <- dplyr::bind_rows(data_list)
+sprFmsy_res_phys <- dplyr::bind_rows(data_list)
 
-sprFmsy$species <- "Sprat"
+sprFmsy_res_phys$species <- "Sprat"
 
-sprFmsy$scen2 <- "Physio. + Resource (MTE)"
+sprFmsy_res_phys$scen2 <- "Physio. + Resource (exp.)"
 
-ggplot(sprFmsy, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+ggplot(sprFmsy_res_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+
+
+
+#** Resource (exp) ========================================================
+#**** Cod ==========================================================================
+# Create empty data holder
+Y <- c()
+Fm <- c()
+r <- c()
+w <- c()
+td <- c()
+data_list <- list()
+
+for(i in index) {
+  
+  effort = c(Cod = params@species_params$AveEffort[1], 
+             Herring = params@species_params$AveEffort[3], 
+             Sprat = params@species_params$AveEffort[2])
+  
+  effort[1] <- F_range[i]
+  
+  r <- project(pars_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep(pars_res@t_ref, t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  w <- project(pars_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep((pars_res@t_ref + 2), t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  Y_ref <- mean(data.frame(getYield(r))$Cod[(t_max-20):t_max])
+  Y_warm <- mean(data.frame(getYield(w))$Cod[(t_max-20):t_max])
+  
+  ssb_ref <- mean(data.frame(getSSB(r))$Cod[(t_max-20):t_max])
+  ssb_warm <- mean(data.frame(getSSB(w))$Cod[(t_max-20):t_max])
+  
+  Fm <- F_range[i]
+  
+  td <- data.frame(biomass = rbind(Y_ref, Y_warm, ssb_ref, ssb_warm), 
+                   type = rep(c("yield", "ssb"), each = 2), 
+                   Fm = rep(Fm, 4), 
+                   scen = rep(c("cold", "warm"), times = 2))
+  
+  data_list[[i]] <- td
+  
+}
+
+codFmsy_res <- dplyr::bind_rows(data_list)
+
+codFmsy_res$species <- "Cod"
+
+codFmsy_res$scen2 <- "Resource (exp.)"
+
+ggplot(codFmsy_res, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+
+
+#**** Herring ======================================================================
+# Create empty data holder
+Y <- c()
+Fm <- c()
+r <- c()
+w <- c()
+td <- c()
+data_list <- list()
+
+for(i in index) {
+  
+  # Create effort vector
+  effort = c(Cod = params@species_params$AveEffort[1], 
+             Herring = params@species_params$AveEffort[3], 
+             Sprat = params@species_params$AveEffort[2])
+  
+  effort[2] <- F_range[i]
+  
+  r <- project(pars_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep(pars_res@t_ref, t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  w <- project(pars_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep((pars_res@t_ref + 2), t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  Y_ref <- mean(data.frame(getYield(r))$Herring[(t_max-20):t_max])
+  Y_warm <- mean(data.frame(getYield(w))$Herring[(t_max-20):t_max])
+  
+  ssb_ref <- mean(data.frame(getSSB(r))$Herring[(t_max-20):t_max])
+  ssb_warm <- mean(data.frame(getSSB(w))$Herring[(t_max-20):t_max])
+  
+  Fm <- F_range[i]
+  
+  td <- data.frame(biomass = rbind(Y_ref, Y_warm, ssb_ref, ssb_warm), 
+                   type = rep(c("yield", "ssb"), each = 2), 
+                   Fm = rep(Fm, 4), 
+                   scen = rep(c("cold", "warm"), times = 2))  
+  
+  data_list[[i]] <- td
+  
+}
+
+herFmsy_res <- dplyr::bind_rows(data_list)
+
+herFmsy_res$species <- "Herring"
+
+herFmsy_res$scen2 <- "Resource (exp.)"
+
+ggplot(herFmsy_res, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+
+
+#**** Sprat ========================================================================
+# Create effort vector
+effort = c(Cod = params@species_params$AveEffort[1], 
+           Herring = params@species_params$AveEffort[3], 
+           Sprat = params@species_params$AveEffort[2])
+
+# Create empty data holder
+Y <- c()
+Fm <- c()
+r <- c()
+w <- c()
+td <- c()
+data_list <- list()
+
+for(i in index) {
+  
+  effort[3] <- F_range[i]
+  
+  r <- project(pars_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep(pars_res@t_ref, t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  w <- project(pars_res,
+               dt = dt,
+               effort = effort,
+               temperature = rep((pars_res@t_ref + 2), t_max),
+               diet_steps = 10,
+               t_max = t_max)
+  
+  Y_ref <- mean(data.frame(getYield(r))$Sprat[(t_max-20):t_max])
+  Y_warm <- mean(data.frame(getYield(w))$Sprat[(t_max-20):t_max])
+  
+  ssb_ref <- mean(data.frame(getSSB(r))$Sprat[(t_max-20):t_max])
+  ssb_warm <- mean(data.frame(getSSB(w))$Sprat[(t_max-20):t_max])
+  
+  Fm <- F_range[i]
+  
+  td <- data.frame(biomass = rbind(Y_ref, Y_warm, ssb_ref, ssb_warm), 
+                   type = rep(c("yield", "ssb"), each = 2), 
+                   Fm = rep(Fm, 4), 
+                   scen = rep(c("cold", "warm"), times = 2))  
+  
+  data_list[[i]] <- td
+  
+}
+
+sprFmsy_res <- dplyr::bind_rows(data_list)
+
+sprFmsy_res$species <- "Sprat"
+
+sprFmsy_res$scen2 <- "Resource (exp.)"
+
+ggplot(sprFmsy_res, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+
 
 
 #** Physio =========================================================================
@@ -317,17 +510,17 @@ for(i in index) {
   
   effort[1] <- F_range[i]
   
-  r <- project(pars_no_res,
+  r <- project(pars_phys,
                dt = dt,
                effort = effort,
-               temperature = rep(pars_with_res@t_ref, t_max),
+               temperature = rep(pars_phys@t_ref, t_max),
                diet_steps = 10,
                t_max = t_max)
   
-  w <- project(pars_no_res,
+  w <- project(pars_phys,
                dt = dt,
                effort = effort,
-               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               temperature = rep((pars_phys@t_ref + 2), t_max),
                diet_steps = 10,
                t_max = t_max)
   
@@ -348,13 +541,13 @@ for(i in index) {
   
 }
 
-codFmsy_nores <- dplyr::bind_rows(data_list)
+codFmsy_phys <- dplyr::bind_rows(data_list)
 
-codFmsy_nores$species <- "Cod"
+codFmsy_phys$species <- "Cod"
 
-codFmsy_nores$scen2 <- "Physio."
+codFmsy_phys$scen2 <- "Physio."
 
-ggplot(codFmsy_nores, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+ggplot(codFmsy_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
 
 #**** Herring ======================================================================
@@ -375,17 +568,17 @@ for(i in index) {
   
   effort[2] <- F_range[i]
   
-  r <- project(pars_no_res,
+  r <- project(pars_phys,
                dt = dt,
                effort = effort,
-               temperature = rep(pars_with_res@t_ref, t_max),
+               temperature = rep(pars_phys@t_ref, t_max),
                diet_steps = 10,
                t_max = t_max)
   
-  w <- project(pars_no_res,
+  w <- project(pars_phys,
                dt = dt,
                effort = effort,
-               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               temperature = rep((pars_phys@t_ref + 2), t_max),
                diet_steps = 10,
                t_max = t_max)
   
@@ -406,13 +599,13 @@ for(i in index) {
   
 }
 
-herFmsy_nores <- dplyr::bind_rows(data_list)
+herFmsy_phys <- dplyr::bind_rows(data_list)
 
-herFmsy_nores$species <- "Herring"
+herFmsy_phys$species <- "Herring"
 
-herFmsy_nores$scen2 <- "Physio."
+herFmsy_phys$scen2 <- "Physio."
 
-ggplot(herFmsy_nores, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+ggplot(herFmsy_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
 
 #**** Sprat ========================================================================
@@ -433,17 +626,17 @@ for(i in index) {
   
   effort[3] <- F_range[i]
   
-  r <- project(pars_no_res,
+  r <- project(pars_phys,
                dt = dt,
                effort = effort,
-               temperature = rep(pars_with_res@t_ref, t_max),
+               temperature = rep(pars_phys@t_ref, t_max),
                diet_steps = 10,
                t_max = t_max)
   
-  w <- project(pars_no_res,
+  w <- project(pars_phys,
                dt = dt,
                effort = effort,
-               temperature = rep((pars_with_res@t_ref + 2), t_max),
+               temperature = rep((pars_phys@t_ref + 2), t_max),
                diet_steps = 10,
                t_max = t_max)
   
@@ -464,13 +657,13 @@ for(i in index) {
   
 }
 
-sprFmsy_nores <- dplyr::bind_rows(data_list)
+sprFmsy_phys <- dplyr::bind_rows(data_list)
 
-sprFmsy_nores$species <- "Sprat"
+sprFmsy_phys$species <- "Sprat"
 
-sprFmsy_nores$scen2 <- "Physio."
+sprFmsy_phys$scen2 <- "Physio."
 
-ggplot(sprFmsy_nores, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
+ggplot(sprFmsy_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
 
 
@@ -478,8 +671,9 @@ ggplot(sprFmsy_nores, aes(Fm, biomass, linetype = type, color = scen)) + geom_li
 #col <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 col <- RColorBrewer::brewer.pal(n = 3, "Set1")[1:2]
 
-Fmsy <- rbind(codFmsy, sprFmsy, herFmsy,
-              codFmsy_nores, sprFmsy_nores, herFmsy_nores)
+Fmsy <- rbind(codFmsy_phys, sprFmsy_phys, herFmsy_phys,
+              codFmsy_res_phys, sprFmsy_res_phys, herFmsy_res_phys,
+              codFmsy_res, sprFmsy_res, herFmsy_res)
 
 Fmsy$species <- factor(Fmsy$species, levels = c("Sprat", "Herring", "Cod"))
 
@@ -492,8 +686,8 @@ Fmsy_sum <- Fmsy %>%
 Fmsy %>% 
   filter(type == "yield") %>% 
   filter(biomass > 0.001) %>% 
-  ggplot(., aes(Fm, biomass, linetype = scen2, color = scen)) + 
-  geom_line(alpha = 0.8, size = 1.2) +
+  ggplot(., aes(Fm, (biomass*240.342), linetype = scen2, color = scen)) + 
+  geom_line(alpha = 0.6, size = 1.2) +
   facet_wrap(~ species, scales = "free") +
   scale_color_manual(values = c(col[2], col[1], col[3]), 
                      labels = c("T_ref", "T_ref + 2C")) +
@@ -504,19 +698,25 @@ Fmsy %>%
        linetype = "Metric") +
   #guides(color = FALSE, linetype = FALSE) +
   theme(aspect.ratio = 3/4,
-        legend.position = "bottom") +
-  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio. + Resource (MTE)"), linetype = 2, 
-               aes(x = Fm, xend = Fm, y = 0.5, yend = c(0.87, 1.1, 0.7)), arrow = arrow(length = unit(0.3, "cm")),
-               col = col[1], alpha  = 0.5) +
+        legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.title = element_text(size = 10)) +
+  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio. + Resource (exp.)"), linetype = 3, 
+               aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")),
+               col = col[1], alpha  = 0.7) +
+  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Resource (exp.)"), linetype = 2, 
+               aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")),
+               col = col[1], alpha  = 0.7) +
   geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio."), linetype = 1, 
-               aes(x = Fm, xend = Fm, y = 0.5, yend = c(0.87, 1.1, 0.7)), arrow = arrow(length = unit(0.3, "cm")), 
-               col = col[1], alpha  = 0.5) +
-  geom_segment(data = filter(Fmsy_sum, scen == "cold" & scen2 == "Physio. + Resource (MTE)"), linetype = 1, 
-               aes(x = Fm, xend = Fm, y = 0.5, yend = c(0.87, 1.1, 0.7)), arrow = arrow(length = unit(0.3, "cm")), 
-               col = col[2], alpha  = 0.5) +
+               aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")), 
+               col = col[1], alpha  = 0.7) +
+  geom_segment(data = filter(Fmsy_sum, scen == "cold" & scen2 == "Physio. + Resource (exp.)"), linetype = 1, 
+               aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")), 
+               col = col[2], alpha  = 0.7) +
   NULL
 
 #ggsave("baltic/figures/FMSY_warm_cold.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
 
 Fmsy %>% 
   filter(type == "ssb") %>% 

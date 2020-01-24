@@ -867,7 +867,8 @@ getEReproAndGrowth <- function(object, n, n_pp, n_bb, n_aa, intakeScalar, metSca
 
 #' Get starvation mortality 
 #' 
-#' Calculates starvation mortality based on the equation in the old mizer vingette. Starvation mortality#' is assumed proportional to the energy defficiency and is inversely proportional to body weight (and
+#' Calculates starvation mortality based on the equation in the old mizer vingette. Starvation mortality#' 
+#' is assumed proportional to the energy defficiency and is inversely proportional to body weight (and
 #' therefore also lipid reserves). \eqn{\mu_S(w)} The weight proportionality constant is currently set
 #' to 0.1, but could be a separate parameter. The 0.1 constant means that the instantaneous starvation
 #' mortality is 1 when energy deficit is equal individual's body mass. 

@@ -50,7 +50,7 @@ eval(parse(text = func))
 params <- readRDS("baltic/params/mizer_param_calib.rds")
 
 # Read in params object
-ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
+ea <- read.csv("baltic/params/samples_activation_energy.csv")#[, 2:6]
 ea <- ea %>% dplyr::rename("car" = "X.gro")
 
 # Read in effort and temperature for projections
@@ -105,7 +105,7 @@ pars_with_res <- MizerParams(t,
 
 pars_with_res_barnes <- MizerParams(t, 
                                     ea_gro = 0,
-                                    ea_car = -0.41,
+                                    ea_car = mean(ea$b_car),
                                     kappa_ben = kappa_ben,
                                     kappa = kappa,
                                     w_bb_cutoff = w_bb_cutoff,
@@ -123,7 +123,7 @@ t_no_ea$ea_mor <- 0
 
 pars_with_res_barnes_np <- MizerParams(t_no_ea, 
                                        ea_gro = 0,
-                                       ea_car = -0.41,
+                                       ea_car = mean(ea$b_car),
                                        kappa_ben = kappa_ben,
                                        kappa = kappa,
                                        w_bb_cutoff = w_bb_cutoff,
@@ -573,11 +573,11 @@ big_spect_data_con_temp <- dplyr::bind_rows(data_list_con_temp)
 #**** Arrange data  ================================================================
 options(scipen = 10000) # Set higher level before using scientific notation over normal
 
-big_spect_data_w_r$scen <- "Physio. + Resource (MTE)"
-big_spect_data_w_r_b$scen <- "Physio. + Resource (empiri.)"
-big_spect_data_w_r_np$scen <- "Resource (MTE)"
-big_spect_data_w_r_b_np$scen <- "Resource (empiri.)"
-big_spect_data_no_r$scen <- "Physio"
+big_spect_data_w_r$scen <- "Physio. + Resource (exp.)"
+big_spect_data_w_r_b$scen <- "Physio. + Resource (obs.)"
+big_spect_data_w_r_np$scen <- "Resource (exp.)"
+big_spect_data_w_r_b_np$scen <- "Resource (obs.)"
+big_spect_data_no_r$scen <- "Physio."
 big_spect_data_con_temp$scen <- "No warming"
 
 big_spect_data_w_r$sim <- paste("wr", big_spect_data_w_r$sim, sep = "")
@@ -669,11 +669,11 @@ pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 unique(big_spect_data$scen)
 
 p2 <- big_spect_data %>% 
-  filter(n > 0 & Fm == 1 & w > 0.1 & scen %in% c("Physio. + Resource (MTE)",
-                                                 "Resource (MTE)",
-                                                 "Resource (empiri.)",
-                                                 "Physio. + Resource (empiri.)",
-                                                 "Physio")) %>%
+  filter(n > 0 & Fm == 1 & w > 0.1 & scen %in% c("Physio. + Resource (exp.)",
+                                                 "Resource (exp.)",
+                                                 "Resource (obs.)",
+                                                 "Physio. + Resource (obs.)",
+                                                 "Physio.")) %>%
   ggplot(., aes(w, re_spec, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
@@ -705,12 +705,12 @@ p2+p1
 #**** Plot mortality ===============================================================
 # Absolute mortality
 big_spect_data %>% 
-  filter(n > 0 & Fm == 1 & scen %in% c("Physio. + Resource (MTE)",
-                                       "Physio. + Resource (empiri.)",
-                                       "Resource (MTE)",
-                                       "Resource (empiri.)",
-                                       "Physio")) %>%
-  ggplot(., aes(w, mort, color = factor(scen), group = sim)) + 
+  filter(n > 0 & Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
+                                       "Physio. + Resource (obs.)",
+                                       "Resource (exp.)",
+                                       "Resource (obs.)",
+                                       "Physio.")) %>%
+  ggplot(., aes(w, mort, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
@@ -718,6 +718,7 @@ big_spect_data %>%
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
   scale_x_log10() +
+  guides(linetype = FALSE) +
   theme(legend.position = "bottom",
         aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
@@ -727,12 +728,12 @@ big_spect_data %>%
 
 # Relative mortality (filter really low values!)
 big_spect_data %>% 
-  filter(Fm == 1 & mort > 0.075 & scen %in% c("Physio. + Resource (MTE)",
-                                              "Physio. + Resource (empiri.)",
-                                              "Resource (MTE)",
-                                              "Resource (empiri.)",
-                                              "Physio")) %>%
-  ggplot(., aes(w, re_mort, color = factor(scen), group = sim)) + 
+  filter(Fm == 1 & mort > 0.075 & scen %in% c("Physio. + Resource (exp.)",
+                                              "Physio. + Resource (obs.)",
+                                              "Resource (exp.)",
+                                              "Resource (obs.)",
+                                              "Physio.")) %>%
+  ggplot(., aes(w, re_mort, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
@@ -740,6 +741,7 @@ big_spect_data %>%
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
   scale_x_log10() +
+  guides(linetype = FALSE) +
   theme(#legend.position = "bottom",
         aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
@@ -752,11 +754,11 @@ big_spect_data %>%
 #**** Plot feeding level ===========================================================
 # Absolute feeding level
 big_spect_data %>% 
-  filter(Fm == 1 & scen %in% c("Physio. + Resource (MTE)",
-                               "Physio. + Resource (empiri.)",
-                               "Resource (MTE)",
-                               "Resource (empiri.)",
-                               "Physio")) %>%
+  filter(Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
+                               "Physio. + Resource (obs.)",
+                               "Resource (exp.)",
+                               "Resource (obs.)",
+                               "Physio.")) %>%
   ggplot(., aes(w, feedingLevel, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_line(size = 1) + 
@@ -792,18 +794,19 @@ big_spect_data %>%
 
 # Relative feeding level
 big_spect_data %>% 
-  filter(Fm == 1 & scen %in% c("Physio. + Resource (MTE)",
-                               "Physio. + Resource (empiri.)",
-                               "Resource (MTE)",
-                               "Resource (empiri.)",
-                               "Physio")) %>%
-  ggplot(., aes(w, re_feedingLevel, color = factor(scen), group = sim)) + 
+  filter(Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
+                               "Physio. + Resource (obs.)",
+                               "Resource (exp.)",
+                               "Resource (obs.)",
+                               "Physio.")) %>%
+  ggplot(., aes(w, re_feedingLevel, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_line(size = 1) + 
   scale_colour_manual(values = rev(pal)) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
   scale_x_log10() +
+  guides(linetype = FALSE) +
   theme(aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
        y = "Relative Feeding level (warming/no warming)",

@@ -46,22 +46,23 @@ lapply(pkgs, library, character.only = TRUE)
 #======== B. READ DATA ==============================================================
 #====** BITS (Trawl Survey) ========
 # See cleanup_BITS_data for post download processing of data
-dat_bent <- read.csv("Data/BITS/clean_BITS.csv", sep = ",")
+dat_bent <- read.csv("baltic/data/BITS/clean_BITS.csv", sep = ",")
 
 head(dat_bent)
 
 #====** Acoustic Survey ========
 # BIAS (sprat, herring)
-dat_pela <- read.csv("Data/BIAS/sprat_herring_acoustic_abundance_1992_2002.csv", 
+dat_pela <- read.csv("baltic/data/BIAS/sprat_herring_acoustic_abundance_1992_2002.csv", 
                      sep = ";", dec = ",")
 
 head(dat_pela)
 str(dat_pela)
 
 # Standardize column names & filter year
-dat_pela <- rename(dat_pela, Year     = ANNUS,
-                             Species  = SPECIES,
-                             AreaCode = RECT)
+dat_pela <- dplyr::rename(dat_pela, 
+                          Year     = ANNUS,
+                          Species  = SPECIES,
+                          AreaCode = RECT)
 
 dat_pela <- dat_pela %>% filter(Year >= 1991 & #max(dat_pela$Year)-2 &
                                 Year <= 2002 & #max(dat_pela$Year) &
@@ -81,10 +82,13 @@ cod$mature <- ifelse(cod$Length_cm > 30, "Adu", "Juv")
 # nrow(filter(cod, AreaCode == "37G9" & mature == "Juv")), for testing below summary
 
 # Summarize number of fish in each areacode
-cod <- cod %>% group_by(AreaCode, mature) %>% summarize(n = n()) 
+cod <- cod %>% 
+  dplyr::group_by(AreaCode, mature) %>% 
+  dplyr::summarize(n = n())%>% 
+  dplyr::ungroup() 
 
 # Go from long to wide to get n on the same row for each AreaCode
-cod <- spread(cod, mature, n)
+cod <- tidyr::spread(cod, mature, n)
 
 # NA's here are really 0, so need to replace
 cod[is.na(cod)] <- 0
@@ -99,7 +103,10 @@ flo <- filter(dat_bent, Species == "Flounder")
 flo$mature <- ifelse(flo$Length_cm > 24.4, "Adu", "Juv")
 
 # Summarize number of fish in each areacode
-flo <- flo %>% group_by(AreaCode, mature) %>% summarize(n = n())
+flo <- flo %>% 
+  dplyr::group_by(AreaCode, mature) %>% 
+  dplyr::summarize(n = n())%>% 
+  dplyr::ungroup()
 
 # Go from long to wide to get n on the same row for each AreaCode
 flo <- spread(flo, mature, n)
@@ -128,9 +135,10 @@ her <- subset(her, select = c("Species", "AreaCode", "Juv", "Adu"))
 
 # Summarize number of fish in each AreaCode
 her <- her %>% 
-  group_by(AreaCode) %>% 
-  summarize(Juv = sum(Juv),
-            Adu = sum(Adu))
+  dplyr::group_by(AreaCode) %>% 
+  dplyr::summarize(Juv = sum(Juv),
+            Adu = sum(Adu))%>% 
+  dplyr::ungroup()
 
 # NA's here are really 0, so need to replace
 her[is.na(her)] <- 0
@@ -149,8 +157,12 @@ spr$Adu <- rowSums(spr[, 8:14])
 spr <- subset(spr, select = c("Species", "AreaCode", "Juv", "Adu"))
 
 # Summarize number of fish in each areacode
-spr <- spr %>% group_by(AreaCode) %>% summarize(Juv = sum(Juv),
-                                                Adu = sum(Adu))
+spr <- spr %>% 
+  dplyr::group_by(AreaCode) %>% 
+  dplyr::summarize(Juv = sum(Juv),
+                   Adu = sum(Adu)) %>% 
+  dplyr::ungroup()
+
 
 spr[is.na(spr)] <- 0
 
@@ -173,9 +185,9 @@ ggplot(df_intra, aes(AreaCode, fill = Species)) +
 # Make wide again so Species is a column
 df_inter <- df_intra %>%
   gather(lifestage, n, 2:3) %>% 
-  mutate(Spec_str = paste(Species, lifestage, sep = "")) %>% 
-  group_by(AreaCode, Spec_str) %>% 
-  summarize(n = sum(n)) %>% 
+  dplyr::mutate(Spec_str = paste(Species, lifestage, sep = "")) %>% 
+  dplyr::group_by(AreaCode, Spec_str) %>% 
+  dplyr::summarize(n = sum(n)) %>% 
   spread(Spec_str, n)
 
 head(df_inter)
@@ -349,8 +361,8 @@ inter
 # making data long again (one row = one observation) for easy ggplotting by species!
 df_map <- df_intra %>% 
   gather(Life_stage, n, c("Adu", "Juv")) %>%
-  group_by(AreaCode, Species) %>% 
-  summarize(n = sum(n)) %>% 
+  dplyr::group_by(AreaCode, Species) %>% 
+  dplyr::summarize(n = sum(n)) %>% 
   spread(Species, n)
 
 df_map[is.na(df_map)] <- 0
@@ -410,8 +422,8 @@ df_map$Sprat_p    <- df_map$Sprat    / sum(df_map$Sprat)
 
 # Reorganize data for plotting (long format, one row = one obs (rectangle))
 p_dat <- df_map %>% 
-  select(AreaCode, lat, lon, Cod_p, Flounder_p, Herring_p, Sprat_p) %>% 
-  rename(Flounder = Flounder_p,
+  dplyr::select(AreaCode, lat, lon, Cod_p, Flounder_p, Herring_p, Sprat_p) %>% 
+  dplyr::rename(Flounder = Flounder_p,
          Cod      = Cod_p,
          Sprat    = Sprat_p,
          Herring  = Herring_p) %>% 
@@ -438,7 +450,32 @@ p <- ggplot(data = p_dat, aes(x = lon, y = lat)) +
         aspect.ratio = 1)+
   NULL
 
-#ggsave("Figures/interaction_map.tiff", plot = p, dpi = 300, width = 15, height = 15, units = "cm")
+p
+
+unique(p_dat$Species)
+
+# Without flounder
+p <- 
+  p_dat %>% filter(Species %in% c("Cod", "Sprat", "Herring")) %>% 
+  ggplot(., aes(x = lon, y = lat)) +
+  geom_point(aes(size = proportion), color = viridis(n = 1, begin = 0.2)) + 
+  geom_polygon(data = map1, aes(x = long, y = lat, group = group), 
+               colour = "grey80", size = 0.9, fill = "grey80") +
+  coord_cartesian(xlim = c(12, 30), ylim = c(54, 60.5)) +
+  scale_x_continuous(name = "Longitude") +
+  scale_y_continuous(name = "Latitude") + 
+  scale_size_continuous(range = c(0.001, 3)) +
+  #guides(size = FALSE) +
+  facet_wrap(~ Species) +
+  theme_bw(base_size = 12) +
+  theme(panel.grid.major = element_line(colour = NA),
+        panel.grid.minor = element_blank(),
+        aspect.ratio = 1)+
+  NULL
+
+p
+
+#ggsave("baltic/figures/supp/interaction_map.pdf", plot = p, dpi = 300, width = 15, height = 15, units = "cm")
 
 
 # maybe manually add ICES rect? Through geom_segment?

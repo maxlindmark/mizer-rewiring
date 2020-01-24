@@ -44,7 +44,7 @@ eval(parse(text = func))
 params <- readRDS("baltic/params/mizer_param_calib.rds")
 
 # Read in params object
-ea <- read.csv("baltic/params/samples_activation_energy.csv")[, 2:6]
+ea <- read.csv("baltic/params/samples_activation_energy.csv")#[, 2:6]
 ea <- ea %>% dplyr::rename("car" = "X.gro")
 
 # Read in effort and temperature for projections
@@ -100,7 +100,7 @@ pars_with_res <- MizerParams(t,
 
 pars_with_res_barnes <- MizerParams(t, 
                                     ea_gro = 0,
-                                    ea_car = -0.41,
+                                    ea_car = mean(ea$b_car),
                                     kappa_ben = kappa_ben,
                                     kappa = kappa,
                                     w_bb_cutoff = w_bb_cutoff,
@@ -117,7 +117,7 @@ t_no_ea$ea_mor <- 0
 
 pars_with_res_barnes_np <- MizerParams(t_no_ea, 
                                        ea_gro = 0,
-                                       ea_car = -0.41,
+                                       ea_car = mean(ea$b_car),
                                        kappa_ben = kappa_ben,
                                        kappa = kappa,
                                        w_bb_cutoff = w_bb_cutoff,
@@ -198,31 +198,31 @@ m_cons_temp <- project(pars_with_res,
 no_resource_temp <- data.frame(getYield(m_no_resource_temp))
 no_resource_temp$Year_ct <- as.numeric(rownames(getYield(m_no_resource_temp)))
 no_resource_temp$Year <- no_resource_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-no_resource_temp$Scenario <- "Physio"
+no_resource_temp$Scenario <- "Physio."
 
 # Predicted yield - with temp on resource
 with_resource_temp <- data.frame(getYield(m_with_resource_temp))
 with_resource_temp$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp)))
 with_resource_temp$Year <- with_resource_temp$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-with_resource_temp$Scenario <- "Physio. + Resource (MTE)"
+with_resource_temp$Scenario <- "Physio. + Resource (exp.)"
 
 # Predicted yield - with temp on resource (Barnes)
 with_resource_temp_b <- data.frame(getYield(m_with_resource_temp_b))
 with_resource_temp_b$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp_b)))
 with_resource_temp_b$Year <- with_resource_temp_b$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-with_resource_temp_b$Scenario <- "Physio. + Resource (empiri.)"
+with_resource_temp_b$Scenario <- "Physio. + Resource (obs.)"
 
 # No phys: Predicted yield - with temp on resource
 with_resource_temp_np <- data.frame(getYield(m_with_resource_temp_np))
 with_resource_temp_np$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp_np)))
 with_resource_temp_np$Year <- with_resource_temp_np$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-with_resource_temp_np$Scenario <- "Resource (MTE)"
+with_resource_temp_np$Scenario <- "Resource (exp.)"
 
 # No phys: Predicted yield - with temp on resource (Barnes)
 with_resource_temp_b_np <- data.frame(getYield(m_with_resource_temp_b_np))
 with_resource_temp_b_np$Year_ct <- as.numeric(rownames(getYield(m_with_resource_temp_b_np)))
 with_resource_temp_b_np$Year <- with_resource_temp_b_np$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-with_resource_temp_b_np$Scenario <- "Resource (empiri.)"
+with_resource_temp_b_np$Scenario <- "Resource (obs.)"
 
 # Predicted yield - constant temperature at all
 cons_temp <- data.frame(getYield(m_cons_temp))
@@ -257,11 +257,12 @@ yield_l %>%
   #filter(Year > 2002) %>% 
   #filter(Year > 2015) %>% 
   filter(Year > 2010) %>% 
-  ggplot(., aes(Year, Yield, color = Scenario, linetype = Scenario)) +
+  ggplot(., aes(Year, Yield, color = Scenario, linetype = Scenario, size = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
-  geom_line(size = 1, alpha = 0.8) +
+  geom_line(alpha = 0.8) +
   scale_color_manual(values = pal2) +
-  scale_linetype_manual(values = c(2,1,1,1,1,1)) +
+  #scale_linetype_manual(values = c(2,1,1,1,1,1)) +
+  scale_size_manual(values = c(0.5,1.3,1.3,1.3,1.3,1.3)) +
   theme(aspect.ratio = 1) +
   labs(y = "Yield (1000 tonnes)", x = "Year") +
   guides(linetype = FALSE) +
