@@ -264,7 +264,7 @@ yield_l %>%
   #scale_linetype_manual(values = c(2,1,1,1,1,1)) +
   scale_size_manual(values = c(0.5,1.3,1.3,1.3,1.3,1.3)) +
   theme(aspect.ratio = 1) +
-  labs(y = "Yield (1000 tonnes)", x = "Year") +
+  labs(y = "Yield (1000 tonnes/year)", x = "Year") +
   guides(linetype = FALSE) +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) +

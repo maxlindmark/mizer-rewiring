@@ -686,7 +686,7 @@ p2 <- big_spect_data %>%
   #scale_y_log10(breaks = sim) +
   scale_x_log10() +
   theme(legend.position = "bottom",
-        legend.text = element_text(size = 8)) +
+        legend.text = element_text(size = 10)) +
   guides(color = FALSE) +
   labs(x ="Body mass (g)",
        y = "Relative abundance (warming/no warming)",
@@ -932,7 +932,7 @@ testSpect %>%
   theme_classic(base_size = 13) +
   scale_x_log10() +
   theme(legend.position = "bottom",
-        aspect.ratio = 1/2) +
+        aspect.ratio = 1/2,) +
   labs(x ="Body mass (g)",
        y = "Relative abundance (warming/no warming)",
        color = "Scenario") +

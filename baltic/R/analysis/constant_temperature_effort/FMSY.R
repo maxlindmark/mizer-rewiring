@@ -683,17 +683,18 @@ Fmsy_sum <- Fmsy %>%
   group_by(species, scen, scen2) %>% 
   filter(biomass == max(biomass))
 
-Fmsy %>% 
+pf <- Fmsy %>% 
   filter(type == "yield") %>% 
   filter(biomass > 0.001) %>% 
   ggplot(., aes(Fm, (biomass*240.342), linetype = scen2, color = scen)) + 
   geom_line(alpha = 0.6, size = 1.2) +
   facet_wrap(~ species, scales = "free") +
   scale_color_manual(values = c(col[2], col[1], col[3]), 
-                     labels = c("T_ref", "T_ref + 2C")) +
+                     labels = c(expression("T"[ref]), 
+                                expression(paste("T"[ref], "+2", degree*C)))) +
   theme_classic(base_size = 12) +
   labs(x = "Fishing mortality [1/year]", 
-       y = "Yield",
+       y = "Yield [1000 tonnes]",
        color = "Scenario",
        linetype = "Metric") +
   #guides(color = FALSE, linetype = FALSE) +
@@ -713,35 +714,41 @@ Fmsy %>%
   geom_segment(data = filter(Fmsy_sum, scen == "cold" & scen2 == "Physio. + Resource (exp.)"), linetype = 1, 
                aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")), 
                col = col[2], alpha  = 0.7) +
+  # guides(linetype = FALSE,
+  #        color = FALSE) +
   NULL
 
+pf
 #ggsave("baltic/figures/FMSY_warm_cold.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
-Fmsy %>% 
+ps <- Fmsy %>% 
   filter(type == "ssb") %>% 
   filter(biomass > 0.001) %>% 
-  ggplot(., aes(Fm, biomass, linetype = scen2, color = scen)) + 
+  ggplot(., aes(Fm, biomass*240.342, linetype = scen2, color = scen)) + 
   geom_line(alpha = 0.8, size = 1.2) +
   facet_wrap(~ species, scales = "free") +
   scale_color_manual(values = c(col[2], col[1], col[3]), 
-                     labels = c("T_ref", "T_ref + 2C")) +
+                     labels = c(expression("T"[ref]), 
+                                expression(paste("T"[ref], "+2", degree*C)))) +
   theme_classic(base_size = 12) +
   labs(x = "Fishing mortality [1/year]", 
-       y = "SSB",
+       y = "SSB [1000 tonnes]",
        color = "Scenario",
        linetype = "Metric") +
   theme(aspect.ratio = 3/4,
-        legend.position = "bottom") +
+        legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.title = element_text(size = 10)) +
   NULL
 
+#pf / ps
+ps
 #ggsave("baltic/figures/SSB_warm_cold.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 
 # C. HEATMAP EFFORT~TEMPERATURE FOR LOOP ===========================================
-baseEffort <- projectEffort_m[137, ] # This is the average of assessed and ssm FMSY
-
 simFMSY <- projectEffort_m[137, ] # This is the average of assessed and ssm FMSY
 simFMSY[] <- c(0.4, 0.52, 0.92)
 baseEffort <- simFMSY
@@ -750,7 +757,7 @@ baseTemp <- t_ref
 t_max <- 100
 
 #**** Project reference scenario ===================================================
-ref <- project(pars_with_res, 
+ref <- project(pars_res_phys, 
                dt = dt,
                effort = baseEffort,
                temperature = rep(baseTemp, t_max),
@@ -785,7 +792,7 @@ for (i in iter) {
   baseEffort_var <- baseEffort * temp_eff$eff[i]
   baseTemp_var <- baseTemp * temp_eff$temp[i]
   
-  proj <- project(pars_with_res,
+  proj <- project(pars_res_phys,
                   dt = dt,
                   effort = baseEffort_var,
                   temperature = rep(baseTemp_var, t_max),
@@ -820,17 +827,83 @@ ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
   facet_grid(~ Species, scales = "free") +
   theme_classic(base_size = 12) +
   scale_fill_viridis() +
-  labs(x = "Temperature relative to\nRCP8.5 projection",
+  labs(x = c(expression("Temperature factor to T"[ref])),
        #y = "Fishing mortality relative\nto average FMSY",
-       y = "Fishing mortality relative\nto MSSM FMSY",
-       fill = "Yield relative to\naverageFMSY +\nconstant temp.") +
+       y = "Fishing mortality relative\n to MSSM FMSY",
+       fill = "Yield relative to\naverage FMSY +\nconstant temp.") +
   coord_cartesian(expand = 0) +
   theme(aspect.ratio = 3/4,
         legend.position = "bottom") +
   NULL
 
-#ggsave("baltic/figures/supp/yield_heat.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 #ggsave("baltic/figures/supp/yield_heat_ssmFMSY.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
+### Now do relative to average FMSY
+baseEffort <- projectEffort_m[137, ] # This is the average of assessed and ssm FMSY
+
+data_list <- list()
+eff <- seq(0.8, 1.2, 0.05) # Factor for scaling fishing mortality
+temp <- seq(0.8, 1.2, 0.05)
+temp_eff <- expand.grid(data.frame(eff = eff, temp = temp))
+iter <- seq(from = 1, to = nrow(temp_eff))
+
+# projectEffort_new <- projectEffort_m
+# projectTemp_new <- projectTemp$temperature
+# tt <- c()
+# groj <- c()
+# yield <- c()
+# data_list <- list()
+
+# The projected fishing mortality starts at row 100
+
+for (i in iter) {
+  
+  baseEffort_var <- baseEffort * temp_eff$eff[i]
+  baseTemp_var <- baseTemp * temp_eff$temp[i]
+  
+  proj <- project(pars_res_phys,
+                  dt = dt,
+                  effort = baseEffort_var,
+                  temperature = rep(baseTemp_var, t_max),
+                  diet_steps = 10,
+                  t_max = t_max)
+  
+  # Extract yield at last iteration
+  proYield <- data.frame(Yield = c(getYield(proj)[dim(proj@effort)[1], 1],
+                                   getYield(proj)[dim(proj@effort)[1], 2],
+                                   getYield(proj)[dim(proj@effort)[1], 3]),
+                         Species = proj@params@species_params$species,
+                         Fm = proj@effort[dim(proj@effort)[1], ],
+                         temp = proj@temperature[dim(proj@temperature)[1], 1],
+                         Fm_scal = temp_eff$eff[i],
+                         temp_scal = temp_eff$temp[i])
+  
+  proYield$Yield_rel <- proYield$Yield / refYield$Yield
+  
+  data_list[[i]] <- proYield
+  
+}
+
+str(data_list)
+
+# Add data 
+big_yield_data <- dplyr::bind_rows(data_list)
+
+big_yield_data$Species <- factor(big_yield_data$Species, levels = c("Sprat", "Herring", "Cod"))
+
+ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
+  geom_tile(color = NA) +
+  facet_grid(~ Species, scales = "free") +
+  theme_classic(base_size = 12) +
+  scale_fill_viridis() +
+  labs(x = c(expression("Temperature factor to T"[ref])),
+       y = "Fishing mortality relative\nto average FMSY",
+       fill = "Yield relative to\naverage FMSY +\nconstant temp.") +
+  coord_cartesian(expand = 0) +
+  theme(aspect.ratio = 3/4,
+        legend.position = "bottom") +
+  NULL
+#ggsave("baltic/figures/supp/yield_heat.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 

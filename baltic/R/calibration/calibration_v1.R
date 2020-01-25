@@ -178,6 +178,24 @@ params <- MizerParams(balticParams,
                       r_bb = r_bb,
                       t_ref = t_ref)
 
+params@species_params
+params@species_params$h*1.5
+
+#--- testing steady function:
+# t <- balticParams
+# t$r_max <- Inf
+# tt <- MizerParams(t,
+#                   kappa_ben = kappa_ben,
+#                   kappa = kappa,
+#                   w_bb_cutoff = w_bb_cutoff,
+#                   w_pp_cutoff = w_pp_cutoff,
+#                   r_pp = r_pp,
+#                   r_bb = r_bb,
+#                   t_ref = t_ref)
+# 
+# s <- steady(tt, effort = effort)
+# s@species_params
+
 # Project model
 t_max <- 800
 
@@ -441,6 +459,47 @@ p1 + p2
 #ggsave("baltic/figures/supp/SSB_fit.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
+#-------- TEST I can get the same biomasses when I scale R_max, Kappa and gamma as when I scale only biomasses afterwards...
+t <- params3_upd@species_params
+
+t$r_max <- params3_upd@species_params$r_max * ((balticParams$sd25.29.32_m.2) / (1e9))
+t$gamma <- params3_upd@species_params$gamma / ((balticParams$sd25.29.32_m.2) / (1e9))
+
+tt <- MizerParams(t,
+                  kappa_ben = kappa_ben * (balticParams$sd25.29.32_m.2)[1] / (1e9),
+                  kappa = kappa * (balticParams$sd25.29.32_m.2)[1] / (1e9),
+                  # kappa_ben = kappa_ben,
+                  # kappa = kappa,
+                  w_bb_cutoff = w_bb_cutoff,
+                  w_pp_cutoff = w_pp_cutoff,
+                  r_pp = r_pp,
+                  r_bb = r_bb,
+                  t_ref = t_ref)  
+
+ttt <- project(
+               #params3_upd,
+               tt,
+               dt = dt,
+               temperature = rep(t_ref, 65),
+               effort = effort,
+               diet_steps = 10,
+               t_max = 65) 
+
+plot(ttt)
+
+#colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )  * (balticParams$sd25.29.32_m.2) / (1e9)
+#colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )  / (1e9)
+colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )
+#tail(getSSB(ttt))
+
+
+# These are the means in unit m^2 * scaling factor 249
+colMeans(getSSB(m3)[c(I(dim(m3@n)[1]-20):dim(m3@n)[1]), ] ) * (balticParams$sd25.29.32_m.2) / (1e9)
+#tail(getSSB(m3))
+
+
+
+
 #**** Recruitment & density dependence =============================================
 # Evalute how much density dependence there is in the model from the stock-recruit relationship
 # Calculate the density independent recruitment (total egg production) R_{p.i} before density dependence
@@ -626,13 +685,14 @@ ggplot(herFmsy, aes(Fm, Y)) + geom_line()
 #****** All together ===============================================================
 Fmsy <- rbind(codFmsy, sprFmsy, herFmsy)
 
-fmsy1 <- ggplot(Fmsy, aes(Fm, Y, color = Species)) + 
+fmsy1 <- ggplot(Fmsy, aes(Fm, (Y*249), color = Species)) + 
   geom_line(alpha = 0.8) +
   scale_color_manual(values = rev(col)) +
   theme_classic(base_size = 14) +
   annotate("text", -Inf, Inf, label = "A", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
-  labs(x = "Fishing mortality [1/year]", y = "Yield") +
+  labs(x = "Fishing mortality [1/year]", 
+       y = "Yield [1000 tonnes/year]") +
   NULL
 
 # Now plot FMSY from model and assessment
@@ -751,6 +811,7 @@ plotEffort <- data.frame(projectEffort)
 
 plotEffort$Year <- as.numeric(as.character(rownames(projectEffort)))
 
+col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 eff <- plotEffort %>% 
   gather(Species, Effort, 1:3) %>% 
   ggplot(., aes(Year, Effort, color = Species, linetype = Species)) +
@@ -768,7 +829,7 @@ eff <- plotEffort %>%
             fill  = "gray80") +
   geom_line(size = 1.2, alpha = 0.8) +
   theme_classic(base_size = 15) +
-  scale_y_continuous(expand = c(0, 0)) +
+  coord_cartesian(expand = 0) +
   scale_color_manual(values = rev(col)) +
   theme(aspect.ratio = 3/4, legend.position = c(.2, .85),
         legend.title = element_blank()) +
@@ -778,6 +839,7 @@ eff <- plotEffort %>%
   NULL
 
 #**** Set up time varying temperature ==============================================
+####--------------- THIS IS JUST FOR PLOTTING; READING IN ALREADY CREATED DATA
 # Plot temperature data
 temp <- ggplot(tempDat, aes(Year.num, mean_temp)) +
   theme_classic(base_size = 15) +
@@ -796,47 +858,43 @@ temp <- ggplot(tempDat, aes(Year.num, mean_temp)) +
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-# # Plot temperature data as implemented in model
-# consTemp$mean_temp_normal <- consTemp$mean_temp + t_ref
-# consTemp$mean_temp_normal_ref <- ifelse(consTemp$Year.num > 1996,
-#                                         t_ref,
-#                                         consTemp$mean_temp_normal)
-# 
-# consTemp2 <- data.frame(Year.num = rep(consTemp$Year.num, 2),
-#                         Temperature = c(consTemp$mean_temp_normal_ref, consTemp$mean_temp_normal),
-#                         Scenario = rep(c("Contant temperature", "Warming"), each = length(consTemp$mean_temp_normal)))
+# Plot temperature data as implemented in model
+projectTemp <- read.csv("baltic/params/projectTemp.csv")
+projectEffort_m <- as.matrix(projectEffort)
+consTemp <- projectTemp$temperature
+start <- 1997-1914
+consTemp[start:137] <- t_ref
 
-# ggplot(tempScen, aes(Year, Temperature, color = Scenario, linetype = Scenario)) +
-#   geom_line(alpha = 0.8, size = 1.2) +
-#   theme_classic(base_size = 25) +
-#   scale_color_manual(values = rev(col)) +
-#   theme(legend.position=c(.2,.75)) +
-#   NULL
+col <- RColorBrewer::brewer.pal("Dark2", n = 5)
+col <- RColorBrewer::brewer.pal("Set1", n = 3)[1:2]
 
-# temp_model <- ggplot(consTemp2, aes(Year.num, Temperature, color = Scenario, linetype = Scenario)) +
-#   theme_classic(base_size = 15) +
-#   scale_y_continuous(expand = c(0, 0)) +
-#   theme(aspect.ratio = 3/4) +
-#   # geom_rect(data = ref_time, inherit.aes = FALSE, 
-#   #           aes(xmin = min(Year), 
-#   #               xmax = max(Year),
-#   #               ymin = -0.9,
-#   #               ymax = 1.8),
-#   #           fill  = "gray90") +
-#   #geom_hline(yintercept = 0, size = 1, alpha = 0.8, linetype = 2) +
-#   geom_line(size = 1.2, col = "gray20") +
-#   labs(x = "Year", y = "Change in Baltic Sea SST (RCP8.5)") +
-#   annotate("text", -Inf, Inf, label = "B", size = 4, 
-#            fontface = "bold", hjust = -0.5, vjust = 1.3) +
-#   theme(legend.position = "bottom") +
-#   NULL
-# 
-# temp_model
+tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
+                       Scenario = rep(c("no warming", "warming"), each = length(consTemp)),
+                       Year = 1:length(consTemp) + 1913)
+
+temp_model <- ggplot(tempScen, aes(Year, (Temperature+0.43), color = Scenario, linetype = Scenario)) +
+  geom_rect(data = ref_time, inherit.aes = FALSE, 
+            aes(xmin = min(Year), 
+                xmax = max(Year),
+                ymin = 9.2,
+                ymax = 11.8),
+            fill  = "gray90") +
+  geom_line(alpha = 0.8, size = 1.2) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = rev(col)) +
+  coord_cartesian(expand = 0) +
+  #geom_hline(yintercept = 10) +
+  theme(legend.position=c(.25,.75),
+        aspect.ratio = 3/4) +
+  ylab(expression(paste("Relative temperature [", degree*C, "]"))) +
+  NULL
 
 # Plot effort and the two temperature-series temperature
-eff / temp # / temp_model
-
+eff / temp_model
 #ggsave("baltic/figures/supp/effort_temp.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+####--------------- END 
+
+
 
 # The temperature data is relative to a mean (1970-1999). By adding t_ref here, the mean 
 # temperature in the calibration time period becomes 10C, which is both reasonable and arbitrary
@@ -984,7 +1042,7 @@ str(pred_ssb_noResT)
 pred_ssb_wiResT <- data.frame(getSSB(m4_wiRes))
 pred_ssb_wiResT$Year_ct <- as.numeric(rownames(getSSB(m4_wiRes)))
 pred_ssb_wiResT$Year <- pred_ssb_wiResT$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
-pred_ssb_wiResT$Scenario <- "Physio. + Resource (MTE)"
+pred_ssb_wiResT$Scenario <- "Physio. + Resource (exp.)"
 str(pred_ssb_wiResT)
 
 # Predicted ssb - no temperature at all after calibration (t_ref)
@@ -1023,7 +1081,7 @@ dat$Year <- as.integer(dat$Year)
 
 # Plot predicted and observed ssb by species, normalize by max within species
 # Reorder factor levels
-dat$Scenario <- factor(dat$Scenario, levels = c("Constant temp", "Physio.", "Physio. + Resource (MTE)", "Stock assessment"))
+dat$Scenario <- factor(dat$Scenario, levels = c("Constant temp", "Physio.", "Physio. + Resource (exp.)", "Stock assessment"))
 
 #dat %>% filter(Year < 2012) %>%
 dat %>% filter(Year < 2012 & Year > 1970) %>% 
