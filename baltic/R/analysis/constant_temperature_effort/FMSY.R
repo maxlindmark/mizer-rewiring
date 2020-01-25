@@ -694,7 +694,7 @@ pf <- Fmsy %>%
                                 expression(paste("T"[ref], "+2", degree*C)))) +
   theme_classic(base_size = 12) +
   labs(x = "Fishing mortality [1/year]", 
-       y = "Yield [1000 tonnes]",
+       y = "Yield [1000 tonnes/year]",
        color = "Scenario",
        linetype = "Metric") +
   #guides(color = FALSE, linetype = FALSE) +
