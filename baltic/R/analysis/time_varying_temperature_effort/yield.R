@@ -268,7 +268,10 @@ yield_l %>%
   guides(linetype = FALSE) +
   theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) +
-  theme(aspect.ratio = 1/2) +
+  theme(aspect.ratio = 1/2,
+        legend.position = "bottom",
+        #legend.direction = "vertical"
+        ) +
   NULL
 
 #ggsave("baltic/figures/time_series_pred_yield.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")

@@ -166,6 +166,8 @@ refMort <- getMortality(ref)
 
 refSpect
 
+plotSpectra(ref)
+
 # Testing mortality is correct
 plot(ref)
 ggplot(refMort, aes(w, value, linetype = Species)) + 
@@ -657,7 +659,7 @@ p1 <- big_spect_data %>%
   theme(legend.text = element_text(size = 8)) +
   facet_wrap(~species, scales = "free", nrow = 3) +
   labs(x ="Body mass (g)",
-       y = "Abundance") +
+       y = "Biomass density") +
   NULL
 
 p1
@@ -689,7 +691,7 @@ p2 <- big_spect_data %>%
         legend.text = element_text(size = 10)) +
   guides(color = FALSE) +
   labs(x ="Body mass (g)",
-       y = "Relative abundance (warming/no warming)",
+       y = "Relative biomass density (warming/no warming)",
        color = "Scenario") +
   NULL
 
