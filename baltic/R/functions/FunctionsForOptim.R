@@ -136,8 +136,8 @@ calibratePar_Baltic <- function(start_vector,
   params <- MizerParams(modelParams, 
                         no_w = no_size_groups,
                         store_kernel = F,
-                        kappa_ben = 10,
-                        kappa = 10,
+                        kappa_ben = 10000,
+                        kappa = 10000,
                         w_bb_cutoff = 20,
                         w_pp_cutoff = 1,
                         r_pp = 4,
@@ -149,7 +149,7 @@ calibratePar_Baltic <- function(start_vector,
   
   # Increase maximum consumption rates by a factor (or species-specific factor)
   h <- params@species_params$h
-  params@species_params$h <- h * 1.2
+  params@species_params$h <- h * 1.3
   
   # Remove gamma, because it needs to be recalculated using the new h. 
   params@species_params <- subset(params@species_params,
@@ -159,8 +159,8 @@ calibratePar_Baltic <- function(start_vector,
   params_upd <- MizerParams(params@species_params,
                             no_w = no_size_groups,
                             store_kernel = F,
-                            kappa_ben = 10,
-                            kappa = 10,
+                            kappa_ben = 10000,
+                            kappa = 10000,
                             w_bb_cutoff = 20,
                             w_pp_cutoff = 1,
                             r_pp = 4,
