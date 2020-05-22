@@ -12,7 +12,7 @@ dt = 0.1
 t_max = 200 
 
 # Reference temperature (rescaled projection, see calibration.v1)
-t_ref <- 9.57
+t_ref <- 10.11562
 
 # Fishing mortality for calibrations. This is overall mean for calibration period, see abundance_F_time series
 effort = c(Cod = 0.899, Herring = 0.340, Sprat = 0.306)
@@ -136,17 +136,20 @@ calibratePar_Baltic <- function(start_vector,
   params <- MizerParams(modelParams, 
                         no_w = no_size_groups,
                         store_kernel = F,
-                        kappa_ben = 2,
-                        kappa = 2,
+                        kappa_ben = 10,
+                        kappa = 10,
                         w_bb_cutoff = 20,
                         w_pp_cutoff = 1,
                         r_pp = 4,
                         r_bb = 4,
                         t_ref = t_ref)
   
+  # Recalculate ks so that it is 0.12*h and not 0.2*h (old hardwired bug...)
+  params@species_params$ks <- params@species_params$h * 0.12
+  
   # Increase maximum consumption rates by a factor (or species-specific factor)
   h <- params@species_params$h
-  params@species_params$h <- h * 1.5
+  params@species_params$h <- h * 1.2
   
   # Remove gamma, because it needs to be recalculated using the new h. 
   params@species_params <- subset(params@species_params,
@@ -156,8 +159,8 @@ calibratePar_Baltic <- function(start_vector,
   params_upd <- MizerParams(params@species_params,
                             no_w = no_size_groups,
                             store_kernel = F,
-                            kappa_ben = 2,
-                            kappa = 2,
+                            kappa_ben = 10,
+                            kappa = 10,
                             w_bb_cutoff = 20,
                             w_pp_cutoff = 1,
                             r_pp = 4,
