@@ -84,7 +84,7 @@ errorFMSY <- function(model_run, meansteps = meansteps.par){
               
               for(i in F_range) {
                 effort[1] <- i
-                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max_loop) 
+                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max_loop), diet_steps = 10, t_max = t_max_loop) 
                 Y <- mean(data.frame(getYield(t))$Cod[(t_max-20):t_max])
                 Fm <- i
                 t <- cbind(Y, Fm)
@@ -102,7 +102,7 @@ errorFMSY <- function(model_run, meansteps = meansteps.par){
               
               for(i in F_range) {
                 effort[3] <- i
-                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max_loop) 
+                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max_loop), diet_steps = 10, t_max = t_max_loop) 
                 Y <- mean(data.frame(getYield(t))$Sprat[(t_max-20):t_max])
                 Fm <- i
                 t <- cbind(Y, Fm)
@@ -120,7 +120,7 @@ errorFMSY <- function(model_run, meansteps = meansteps.par){
               
               for(i in F_range) {
                 effort[2] <- i
-                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max_loop) 
+                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max_loop), diet_steps = 10, t_max = t_max_loop) 
                 Y <- mean(data.frame(getYield(t))$Herring[(t_max-20):t_max])
                 Fm <- i
                 t <- cbind(Y, Fm)
