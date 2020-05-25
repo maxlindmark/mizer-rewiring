@@ -71,6 +71,10 @@ errorFMSY <- function(model_run, meansteps = meansteps.par){
   # bio_obs_n <- bio_obs/bio_obs[1] # use this if you only want to minimize error of ssb relative to cod ssb
   
   # Loop through fishing mortalities to find FMSY
+              
+              F_range <- seq(0, 1.2, 0.2) # Can increase later, becomes too slow now
+              t_max_loop <- 200            
+  
               # Cod
               # Mean F in calibration time
               effort = c(Cod = balticParams$AveEffort[1], Herring = balticParams$AveEffort[3], Sprat = balticParams$AveEffort[2])
@@ -80,7 +84,7 @@ errorFMSY <- function(model_run, meansteps = meansteps.par){
               
               for(i in F_range) {
                 effort[1] <- i
-                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max) 
+                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max_loop) 
                 Y <- mean(data.frame(getYield(t))$Cod[(t_max-20):t_max])
                 Fm <- i
                 t <- cbind(Y, Fm)
@@ -98,7 +102,7 @@ errorFMSY <- function(model_run, meansteps = meansteps.par){
               
               for(i in F_range) {
                 effort[3] <- i
-                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max) 
+                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max_loop) 
                 Y <- mean(data.frame(getYield(t))$Sprat[(t_max-20):t_max])
                 Fm <- i
                 t <- cbind(Y, Fm)
@@ -116,7 +120,7 @@ errorFMSY <- function(model_run, meansteps = meansteps.par){
               
               for(i in F_range) {
                 effort[2] <- i
-                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max) 
+                t <- project(model_run, dt = 0.1, effort = effort, temperature = rep(model_run@t_ref, t_max), diet_steps = 10, t_max = t_max_loop) 
                 Y <- mean(data.frame(getYield(t))$Herring[(t_max-20):t_max])
                 Fm <- i
                 t <- cbind(Y, Fm)
