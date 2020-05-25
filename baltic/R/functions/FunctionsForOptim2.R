@@ -72,7 +72,7 @@ errorFMSY <- function(model_run, meansteps = meansteps.par){
   
   # Loop through fishing mortalities to find FMSY
               
-              F_range <- seq(0, 1.2, 0.2) # Can increase later, becomes too slow now
+              F_range <- seq(0, 1.2, 0.1) # Can increase later, becomes too slow now
               t_max_loop <- 200            
   
               # Cod
