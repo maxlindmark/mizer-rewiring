@@ -410,24 +410,6 @@ m3 <- project(params3_upd,
 # Check dynamics and density
 plotBiomass(m3) + theme_classic(base_size = 14)
 
-# Check spectra
-spect <- plotSpectra(m3, algae = F) + 
-  scale_color_manual(values = rev(col)) +
-  theme_classic(base_size = 18) + 
-  theme(aspect.ratio = 3/4) +
-  NULL
-
-# Check feeding level
-feedlev <- plotFeedingLevel(m3) + 
-  theme_classic(base_size = 18) + 
-  theme(aspect.ratio = 3/4) +
-  NULL
-
-spect / feedlev
-
-#ggsave("baltic/figures/supp/spect_feedlev.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
-
-
 # Check growth
 plotGrowthCurves(m3, max_age = 15) + 
   scale_color_manual(values = rep(col[1], 3)) +
@@ -446,8 +428,6 @@ plotGrowthCurves(m3, max_age = 15) +
   theme(aspect.ratio = 1/2) +
   NULL
 
-#ggsave("baltic/figures/VBGE_model_data.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
-
 # They still look OK after calibration
 
 # SSB pred/fit
@@ -455,86 +435,10 @@ ssb_model <- getSSB(m3)[t_max, ] * m3@params@species_params$sd25.29.32_m.2 / 1e9
 ssb_data <- balticParams$AveSpawnBiomass
 ssb_model/ssb_data
 
-# Plot predicted vs fitted SSB. Take mean of last 20 time steps
-obs <- balticParams$AveSpawnBiomass
-pred <- colMeans(getSSB(m3)[c(I(dim(m3@n)[1]-20):dim(m3@n)[1]), ] ) * (balticParams$sd25.29.32_m.2) / (1e9)
-
-ssb_eval <- data.frame(SSB = c(obs, pred),
-                       Source = rep(c("Observed", "Predicted"), each = 3),
-                       Species = rep(balticParams$species, 2))
-
-p1 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) + 
-  geom_point(size = 6, alpha = 0.8) +
-  scale_fill_manual(values = rev(col)) +
-  scale_shape_manual(values = c(24, 21),
-                     guide = guide_legend(override.aes = list(colour = "black", 
-                                                              fill = "black",
-                                                              size = 4))) + 
-  labs(x = "", y = "Spawning stock biomass\n(1000 tonnes)") +
-  theme_classic(base_size = 14) +
-  guides(fill = FALSE) +
-  theme(legend.position = c(.85, .2),
-        legend.title = element_blank(),
-        aspect.ratio = 1) + 
-  annotate("text", -Inf, Inf, label = "A", size = 4, 
-           fontface = "bold", hjust = -0.5, vjust = 1.3) +
-  NULL
-
-ssb_eval_l <- data.frame(obs = log10(obs), pred = log10(pred), Species = balticParams$species)
-
-p2 <- ggplot(ssb_eval_l, aes(obs, pred, fill = Species, shape = Species)) +
-  geom_point(size = 6, alpha = 0.8) +
-  scale_fill_manual(values = rev(col)) +
-  scale_shape_manual(values = c(21, 22, 24)) +
-  labs(x = "Log10(Observed SSB)", y = "Log10(Predicted SSB)") +
-  geom_abline(slope = 1, intercept = 0, color = "red", linetype = 2) +
-  theme_classic(base_size = 14) +
-  theme(legend.position = c(.85, .2),
-        legend.title = element_blank(),
-        aspect.ratio = 1) +
-  annotate("text", -Inf, Inf, label = "B", size = 4, 
-           fontface = "bold", hjust = -0.5, vjust = 1.3) +
-  NULL
-
-p1 + p2  
-
-#ggsave("baltic/figures/supp/SSB_fit.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+# Seems OK!
 
 
-#-------- TEST I can get the same biomasses when I scale R_max, Kappa and gamma as when I scale only biomasses afterwards...
-# t <- params3_upd@species_params
-# 
-# t$r_max <- params3_upd@species_params$r_max * ((balticParams$sd25.29.32_m.2) / (1e9))
-# t$gamma <- params3_upd@species_params$gamma / ((balticParams$sd25.29.32_m.2) / (1e9))
-# 
-# tt <- MizerParams(t,
-#                   kappa_ben = kappa_ben2 * (balticParams$sd25.29.32_m.2)[1] / (1e9),
-#                   kappa = kappa2 * (balticParams$sd25.29.32_m.2)[1] / (1e9),
-#                   w_bb_cutoff = w_bb_cutoff,
-#                   w_pp_cutoff = w_pp_cutoff,
-#                   r_pp = r_pp,
-#                   r_bb = r_bb,
-#                   t_ref = t_ref)  
-# 
-# ttt <- project(tt,
-#                dt = dt,
-#                temperature = rep(t_ref, 65),
-#                effort = effort,
-#                diet_steps = 10,
-#                t_max = 65) 
-# 
-# plot(ttt)
-# colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )  * (balticParams$sd25.29.32_m.2) / (1e9)
-# colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )  / (1e9)
-# colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )
-# These are the means in unit m^2 * scaling factor 249
-# colMeans(getSSB(m3)[c(I(dim(m3@n)[1]-20):dim(m3@n)[1]), ] ) * (balticParams$sd25.29.32_m.2) / (1e9)
-
-# i.e. the same as when I tune parameters directly.
-#-------- END TEST
-
-
-#**** Recruitment & density dependence =============================================
+#** 4. Check recruitment & density dependence ======================================
 # Evalute how much density dependence there is in the model from the stock-recruit relationship
 # Calculate the density independent recruitment (total egg production) R_{p.i} before density dependence
 rdi <- getRDI(m3@params,
@@ -579,7 +483,9 @@ rdi / params3_upd@species_params$r_max
 # curves can still be flat). I recommend the user to think about which features of the
 # model should be tuned given the questions and then define an appropriate error function.
 
-# Yield curves look pretty flat. See if I can make them look more realistic by tuning erepro down
+# Yield curves look pretty flat (not shown here but code is below if you want to make the 
+# plots for a different model setup you can run that code here). 
+# See if I can make them look more realistic by tuning erepro down
 params3b_upd <- params3_upd
 
 params3b_upd@species_params
@@ -605,8 +511,7 @@ ssb_model <- getSSB(m3b)[t_max, ] * m3b@params@species_params$sd25.29.32_m.2 / 1
 ssb_data <- balticParams$AveSpawnBiomass
 ssb_model/ssb_data
 
-#**** Recruitment & density dependence =============================================
-# Evalute how much density dependence there is in the model from the stock-recruit relationship
+# Re-evalute how much density dependence there is in the model from the stock-recruit relationship
 # Calculate the density independent recruitment (total egg production) R_{p.i} before density dependence
 rdi <- getRDI(m3b@params,
               m3b@n[t_max,,],
@@ -644,15 +549,14 @@ rdd / params3b_upd@species_params$r_max
 # 0.6349157 0.6864370 0.8611853 
 
 
-# Estimate FMSY from model - compare with assessment
+#** 5. Estimate FMSY from model - compare with assessment ==========================
 # In lack of a better approach, I will just for-loop different F, extract Yield, plot
 # over F. I will increase each species F separately, keeping the others at their mean
 
 F_range <- seq(0, 1.5, 0.05) # Can increase later, becomes too slow now
 t_max <- 200
 
-
-#****** Cod ========================================================================
+#**** Cod ==========================================================================
 # Mean F in calibration time
 effort = c(Cod = balticParams$AveEffort[1], 
            Herring = balticParams$AveEffort[3], 
@@ -688,7 +592,7 @@ codFmsy$Species <- "Cod"
 ggplot(codFmsy, aes(Fm, Y)) + geom_line()
 
 
-#****** Sprat ======================================================================
+#**** Sprat ========================================================================
 # Mean F in calibration time
 effort = c(Cod = balticParams$AveEffort[1], 
            Herring = balticParams$AveEffort[3], 
@@ -724,7 +628,7 @@ sprFmsy$Species <- "Sprat"
 ggplot(sprFmsy, aes(Fm, Y)) + geom_line()
 
 
-#****** Herring ====================================================================
+#**** Herring ======================================================================
 # Mean F in calibration time
 effort = c(Cod = balticParams$AveEffort[1], 
            Herring = balticParams$AveEffort[3], 
@@ -760,21 +664,23 @@ herFmsy$Species <- "Herring"
 ggplot(herFmsy, aes(Fm, Y)) + geom_line()
 
 
-
 # All together
 Fmsy <- rbind(codFmsy, sprFmsy, herFmsy)
 
-Fmsy %>% dplyr::group_by(Species) %>% filter(Y == max(Y))
 
-fmsy1 <- Fmsy %>% filter(Y > 0.01) %>% ggplot(., aes(Fm, (Y*249), color = Species)) + 
+# D. PLOTS FROM CALIBRATION ========================================================
+#** FMSY ===========================================================================
+p1 <- Fmsy %>% filter(Y > 0.01) %>% ggplot(., aes(Fm, (Y*249), color = Species)) + 
   geom_line(alpha = 0.8) +
   scale_color_manual(values = rev(col)) +
-  theme_classic(base_size = 14) +
   annotate("text", -Inf, Inf, label = "A", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   labs(x = "Fishing mortality [1/year]", 
        y = "Yield [1000 tonnes/year]") +
   NULL
+
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12))
 
 # Now plot FMSY from model and assessment
 # Since FMSY is not available for the entire time period, I will take FMSY values
@@ -806,461 +712,158 @@ herassesFMSY <- data.frame(Source = c("Single Species Assessment",
 
 asses_mod_FMSY <- rbind(codassesFMSY, sprassesFMSY, herassesFMSY)
 
-# Find average FMSY from different sources
-ave_fmsy <- data.frame(asses_mod_FMSY %>% dplyr::group_by(Species) %>% dplyr::summarize(mean(FMSY)))
 
-# Add to BalticParams 
-balticParams$aveFMSY <- ave_fmsy[, 2]
-
-fmsy2 <- ggplot(asses_mod_FMSY, aes(Species, FMSY, shape = Source, fill = Source)) + 
+p2 <- ggplot(asses_mod_FMSY, aes(Species, FMSY, shape = Source, fill = Source)) + 
   geom_point(size = 6, alpha = 0.7, color = "white") +
   scale_color_manual(values = col) +
   scale_fill_manual(values = col) +
   scale_shape_manual(values = seq(21, 25)) +
-  theme_classic(base_size = 14) +
   annotate("text", -Inf, Inf, label = "B", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-fmsy1 / fmsy2
+pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12))
 
 
+pWord1 / pWord2
+ggsave("baltic/figures/supp/FMSY.png", width = 6.5, height = 6.5, dpi = 600)
 
 
+#** Growth =========================================================================
+p3 <- plotGrowthCurves(m3b, max_age = 15) + 
+  scale_color_manual(values = rep(col[1], 3)) +
+  facet_wrap(~ Species, scales = "free", ncol = 1) +
+  geom_point(data = subset(vbge_data, age < 16), 
+             aes(age, Weight_g), size = 2, fill = "gray50", 
+             color = "white", shape = 21, alpha = 0.1) +
+  geom_hline(data = vbge_pred, aes(yintercept = w_mat), 
+             color = "black", size = 0.8, linetype = 2) +
+  geom_line(aes(x = Age, y = value), 
+            color = col[5], size = 1.3, alpha = 0.8) +
+  geom_line(data = subset(vbge_pred, age < 16), aes(age, weight), 
+            color = col[4], size = 1.3, linetype = "twodash", alpha = 0.8) +
+  guides(color = FALSE, linetype = FALSE) +
+  NULL
+
+pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1/2)
+ggsave("baltic/figures/supp/growth_model_data.png", width = 6.5, height = 6.5, dpi = 600)
 
 
+#** Spectra and feeding level ======================================================
+p4 <- spect <- plotSpectra(m3, algae = F) + 
+  scale_color_manual(values = rev(col)) +
+  NULL
+
+pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 3/4)
+
+# Check feeding level
+p5 <- feedlev <- plotFeedingLevel(m3) + 
+  NULL
+
+pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 3/4)
+
+pWord4 / pWord5
+ggsave("baltic/figures/supp/spect_feedlev.png", width = 6.5, height = 6.5, dpi = 600)
 
 
-# TEST if they can die from fishing
-effort = c(Cod = balticParams$AveEffort[1], 
-           Herring = balticParams$AveEffort[3], 
-           Sprat = balticParams$AveEffort[2])
-
-teffort <- effort
-
-teffort[1] <- 1.8
-
-test <- project(params3b_upd,
-                dt = 0.1,
-                effort = teffort,
-                temperature = rep(t_ref, t_max),
-                diet_steps = 10,
-                t_max = t_max)
-#test@effort
-plotBiomass(test)
-#plot(test)
-
-
-
-# E. TEST 2: OPTIMIZING FOR FMSY!! =====================================================
-# Note I haven't added code to set SSB within 20% of observed, so that fit needs to be 
-# assessed if fit is bad!
-
-#**** Source functions =============================================================
-# See the functions script for description of their arguments and such
-script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/StartVector2.R", ssl.verifypeer = FALSE)
-eval(parse(text = script))
-
-script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/FunctionsForOptim2.R", ssl.verifypeer = FALSE)
-eval(parse(text = script))
-
-# This function takes 10 minutes on my macbook pro (2019)
-
-system.time(optim_resultNC <- optim(
-  par = start_vector,         # Vector of starting parameter values
-  startpars = startpars,
-  fn = calibratePar_Baltic,   # Function to feed parameter values to the mizer object, 
-  # Run the model and return the error. 
-  modelParams = params3b_upd@species_params, # Pass the calibrated parameter file
-  # (Jon passed his sim object after the burn-in period, 
-  # But I don't run burn-in for now)
-  lower = lower_bounds(
-    startpars = startpars),   # Function to set lower bounds, 
-  # We pass a user constructed list 'startpars' that contains data 
-  upper = upper_bounds(
-    startpars = startpars),   # Same for upper bounds
-  method = "L-BFGS-B",
-  control = list(maxit = 10, 
-                 REPORT = 1, 
-                 trace = 6), 
-  effort = effort)) 
-
-# optimized erepro in case I don't want to run optim again:
-# with allometric erepro (and h-scaling factor = 1.2):
-# exp(optim_resultNC$`par`)
-# > exp(optim_resultNC$`par`)
-# [1] 6.702358e-05 1.983433e-03 2.981690e-04
-
-# Now update erepro
-params4 <- m3@params@species_params
-
-# Checking different
-exp(optim_resultNC$`par`)
-params4$erepro
-
-# This is the final set of parameters I use after calibration has been done
-params4$erepro <- exp(optim_resultNC$`par`)
-
-params4_upd <- MizerParams(params4,
-                           kappa_ben = kappa_ben2,
-                           kappa = kappa2,
-                           w_bb_cutoff = w_bb_cutoff,
-                           w_pp_cutoff = w_pp_cutoff,
-                           r_pp = r_pp,
-                           r_bb = r_bb,
-                           t_ref = t_ref)
-
-#params3_upd@species_params$ks / ((params3_upd@species_params$h/1.2)*0.12)
-
-# Project model with optimized r_max
-t_max <- 65
-
-m4 <- project(params4_upd,
-              dt = dt,
-              temperature = rep(t_ref, t_max),
-              effort = effort,
-              diet_steps = 10,
-              t_max = t_max) 
-
-# Check dynamics and density
-plotBiomass(m4) + theme_classic(base_size = 14)
-
-
-#**** SSB pred/fit =================================================================
-ssb_model <- getSSB(m4)[t_max, ] * m4@params@species_params$sd25.29.32_m.2 / 1e9 
-ssb_data <- balticParams$AveSpawnBiomass
-ssb_model/ssb_data
-
+#** SSB fit ========================================================================
 # Plot predicted vs fitted SSB. Take mean of last 20 time steps
 obs <- balticParams$AveSpawnBiomass
-pred <- colMeans(getSSB(m4)[c(I(dim(m4@n)[1]-20):dim(m4@n)[1]), ] ) * (balticParams$sd25.29.32_m.2) / (1e9)
+pred <- colMeans(getSSB(m3b)[c(I(dim(m3b@n)[1]-20):dim(m3b@n)[1]), ] ) * (balticParams$sd25.29.32_m.2) / (1e9)
 
 ssb_eval <- data.frame(SSB = c(obs, pred),
                        Source = rep(c("Observed", "Predicted"), each = 3),
                        Species = rep(balticParams$species, 2))
 
-p1 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) + 
-  geom_point(size = 6, alpha = 0.8) +
+p6 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) + 
+  geom_point(size = 4, alpha = 0.8) +
   scale_fill_manual(values = rev(col)) +
   scale_shape_manual(values = c(24, 21),
                      guide = guide_legend(override.aes = list(colour = "black", 
                                                               fill = "black",
                                                               size = 4))) + 
   labs(x = "", y = "Spawning stock biomass\n(1000 tonnes)") +
-  theme_classic(base_size = 14) +
   guides(fill = FALSE) +
-  theme(legend.position = c(.85, .2),
-        legend.title = element_blank(),
-        aspect.ratio = 1) + 
   annotate("text", -Inf, Inf, label = "A", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
+pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       legend.position = c(.85, .2),
+                                       legend.title = element_blank(),
+                                       aspect.ratio = 1)
+
+      
 ssb_eval_l <- data.frame(obs = log10(obs), pred = log10(pred), Species = balticParams$species)
 
-p2 <- ggplot(ssb_eval_l, aes(obs, pred, fill = Species, shape = Species)) +
-  geom_point(size = 6, alpha = 0.8) +
+p7 <- ggplot(ssb_eval_l, aes(obs, pred, fill = Species, shape = Species)) +
+  geom_point(size = 4, alpha = 0.8) +
   scale_fill_manual(values = rev(col)) +
   scale_shape_manual(values = c(21, 22, 24)) +
   labs(x = "Log10(Observed SSB)", y = "Log10(Predicted SSB)") +
   geom_abline(slope = 1, intercept = 0, color = "red", linetype = 2) +
-  theme_classic(base_size = 14) +
-  theme(legend.position = c(.85, .2),
-        legend.title = element_blank(),
-        aspect.ratio = 1) +
   annotate("text", -Inf, Inf, label = "B", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-p1 + p2  
+pWord7 <- p7 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       legend.position = c(.85, .2),
+                                       legend.title = element_blank(),
+                                       aspect.ratio = 1)
+
+pWord6 + pWord7
+ggsave("baltic/figures/supp/SSB_fit.png", width = 6.5, height = 6.5, dpi = 600)
 
 
-#**** Recruitment & density dependence =============================================
-# Evalute how much density dependence there is in the model from the stock-recruit relationship
-# Calculate the density independent recruitment (total egg production) R_{p.i} before density dependence
-rdi <- getRDI(m4@params,
-              m4@n[t_max,,],
-              m4@n_pp[t_max,],
-              m4@n_bb[t_max,],
-              m4@n_aa[t_max,],
-              m4@intTempScalar[,,(t_max/dt)],
-              m4@metTempScalar[,,(t_max/dt)])
-
-# Calculate the flux entering the smallest size class of each species (recruitment - density dependence)
-rdd <- getRDD(m4@params,
-              m4@n[t_max,,],
-              m4@n_pp[t_max,],
-              m4@n_bb[t_max,],
-              m4@n_aa[t_max,],
-              sex_ratio = 0.5,
-              m4@intTempScalar[,,(t_max/dt)],
-              m4@metTempScalar[,,(t_max/dt)])
-
-# rdi vs rdd
-rdi / rdd
-# > rdi / rdd
-# Cod    Sprat  Herring 
-# 3.719452 6.161260 2.615313 
-
-# Get RDD to rmax ratio
-rdd / params4_upd@species_params$r_max
-# > rdd / params4_upd@species_params$r_max
-# Cod     Sprat   Herring 
-# 0.7311432 0.8376955 0.6176366 
-
-
-#**** Estimate FMSY from model - compare with assessment ===========================
-# In lack of a better approach, I will just for-loop different F, extract Yield, plot
-# over F. I will increase each species F separately, keeping the others at their mean
-
-F_range <- seq(0, 1.5, 0.1) # Can increase later, becomes too slow now
-t_max <- 200
-
-
-#****** Cod ========================================================================
-# Mean F in calibration time
-effort = c(Cod = balticParams$AveEffort[1], 
-           Herring = balticParams$AveEffort[3], 
-           Sprat = balticParams$AveEffort[2])
-
-# Create empty data holder
-codFmsy <- c()
-Y <- c()
-Fm <- c()
-t <- c()
-
-for(i in F_range) {
-  
-  effort[1] <- i
-  
-  t <- project(params4_upd, 
-               dt = 0.1,
-               effort = effort, 
-               temperature = rep(params4_upd@t_ref, t_max),
-               diet_steps = 10,
-               t_max = t_max) 
-  
-  Y <- mean(data.frame(getYield(t))$Cod[(t_max-20):t_max])
-  Fm <- i
-  t <- cbind(Y, Fm)
-  
-  codFmsy <- data.frame(rbind(t, codFmsy))
-  
-}
-
-codFmsy$Species <- "Cod"
-
-ggplot(codFmsy, aes(Fm, Y)) + geom_line()
-
-
-#****** Sprat ======================================================================
-# Mean F in calibration time
-effort = c(Cod = balticParams$AveEffort[1], 
-           Herring = balticParams$AveEffort[3], 
-           Sprat = balticParams$AveEffort[2])
-
-# Create empty data holder
-sprFmsy <- c()
-Y <- c()
-Fm <- c()
-t <- c()
-
-for(i in F_range) {
-  
-  effort[3] <- i
-  
-  t <- project(params4_upd, 
-               dt = 0.1,
-               effort = effort, 
-               temperature = rep(params4_upd@t_ref, t_max),
-               diet_steps = 10,
-               t_max = t_max) 
-  
-  Y <- mean(data.frame(getYield(t))$Sprat[(t_max-20):t_max])
-  Fm <- i
-  t <- cbind(Y, Fm)
-  
-  sprFmsy <- data.frame(rbind(t, sprFmsy))
-  
-}
-
-sprFmsy$Species <- "Sprat"
-
-ggplot(sprFmsy, aes(Fm, Y)) + geom_line()
-
-
-#****** Herring ====================================================================
-# Mean F in calibration time
-effort = c(Cod = balticParams$AveEffort[1], 
-           Herring = balticParams$AveEffort[3], 
-           Sprat = balticParams$AveEffort[2])
-
-# Create empty data holder
-herFmsy <- c()
-Y <- c()
-Fm <- c()
-t <- c()
-
-for(i in F_range) {
-  
-  effort[2] <- i
-  
-  t <- project(params4_upd, 
-               dt = 0.1,
-               effort = effort, 
-               temperature = rep(params4_upd@t_ref, t_max),
-               diet_steps = 10,
-               t_max = t_max) 
-  
-  Y <- mean(data.frame(getYield(t))$Herring[(t_max-20):t_max])
-  Fm <- i
-  t <- cbind(Y, Fm)
-  
-  herFmsy <- data.frame(rbind(t, herFmsy))
-  
-}
-
-herFmsy$Species <- "Herring"
-
-ggplot(herFmsy, aes(Fm, Y)) + geom_line()
-
-
-
-#****** All together ===============================================================
-Fmsy <- rbind(codFmsy, sprFmsy, herFmsy)
-
-Fmsy %>% dplyr::group_by(Species) %>% filter(Y == max(Y))
-
-fmsy1 <- ggplot(Fmsy, aes(Fm, (Y*249), color = Species)) + 
-  geom_line(alpha = 0.8) +
-  scale_color_manual(values = rev(col)) +
-  theme_classic(base_size = 14) +
-  annotate("text", -Inf, Inf, label = "A", size = 4, 
-           fontface = "bold", hjust = -0.5, vjust = 1.3) +
-  labs(x = "Fishing mortality [1/year]", 
-       y = "Yield [1000 tonnes/year]") +
-  NULL
-
-# Now plot FMSY from model and assessment
-# Since FMSY is not available for the entire time period, I will take FMSY values
-# from the assessment report from which I took historical data from (back-calculated)
-
-# Cod (from Advice 2013)
-codassesFMSY <- data.frame(Source = c("Single Species Assessment",
-                                      "Multispecies Assessment",
-                                      "Size Spectrum Model"),
-                           FMSY = c(0.46, 0.55, codFmsy$Fm[codFmsy$Y == max(codFmsy$Y)]),
-                           Species = rep("Cod", 3))
-
-# Sprat (from Advice 2014)
-sprassesFMSY <- data.frame(Source = c("Single Species Assessment",
-                                      "Multispecies Assessment lwr",
-                                      "Multispecies Assessment upr",
-                                      "Size Spectrum Model"),
-                           FMSY = c(0.29, 0.25, 0.32, sprFmsy$Fm[sprFmsy$Y == max(sprFmsy$Y)]),
-                           Species = rep("Sprat", 4))
-
-
-# Herring (from Advice 2014)
-herassesFMSY <- data.frame(Source = c("Single Species Assessment",
-                                      "Multispecies Assessment lwr",
-                                      "Multispecies Assessment upr",
-                                      "Size Spectrum Model"),
-                           FMSY = c(0.26, 0.25, 0.35, herFmsy$Fm[herFmsy$Y == max(herFmsy$Y)]),
-                           Species = rep("Herring", 4))
-
-asses_mod_FMSY <- rbind(codassesFMSY, sprassesFMSY, herassesFMSY)
-
-# Find average FMSY from different sources
-ave_fmsy <- data.frame(asses_mod_FMSY %>% dplyr::group_by(Species) %>% dplyr::summarize(mean(FMSY)))
-
-# Add to BalticParams 
-balticParams$aveFMSY <- ave_fmsy[, 2]
-
-fmsy2 <- ggplot(asses_mod_FMSY, aes(Species, FMSY, shape = Source, fill = Source)) + 
-  geom_point(size = 6, alpha = 0.7, color = "white") +
-  scale_color_manual(values = col) +
-  scale_fill_manual(values = col) +
-  scale_shape_manual(values = seq(21, 25)) +
-  theme_classic(base_size = 14) +
-  annotate("text", -Inf, Inf, label = "B", size = 4, 
-           fontface = "bold", hjust = -0.5, vjust = 1.3) +
-  NULL
-
-fmsy1 / fmsy2
-
-# TEST if they can die from fishing
-effort = c(Cod = balticParams$AveEffort[1], 
-           Herring = balticParams$AveEffort[3], 
-           Sprat = balticParams$AveEffort[2])
-
-teffort <- effort
-
-teffort[1] <- 2.75
-
-test <- project(params4_upd,
-                dt = 0.1,
-                effort = teffort,
-                temperature = rep(t_ref, t_max),
-                diet_steps = 10,
-                t_max = t_max)
-#test@effort
-plotBiomass(test)
-#plot(test)
-
-
-
-
-
-
-
-
-
-
-
-
-# D. VALIDATE WITH TIME SERIES =====================================================
-#**** Set up time varying effort ===================================================
+# E. VALIDATE WITH TIME SERIES =====================================================
+#** Set up time varying effort =====================================================
 # First I need to set-up the matricies holding time series of temperature and effort
 # Note also that t_max is taken from the effort-array when used and not the argument 
-# in project, and temperature needs to have the same length as t_max, I here center
-# effort to start at 1 and the actual year. I go back to normal scale when plotting
+# in project (that's just how it is in mizer), and temperature needs to have the same 
+# length as t_max, I here center effort to start at 1 and the actual year. 
+# I go back to normal scale when plotting.
 
 # This procedure is based on the Mizer vignette
 # Read in historical F
 f_history <- as.matrix(
   ssb_f %>% 
-    filter(Year > 1973 & Year < 2013) %>% 
-    select(Year, Species, Fm) %>% 
+    dplyr::filter(Year > 1973 & Year < 2013) %>% 
+    dplyr::select(Year, Species, Fm) %>% 
     spread(Species, Fm) %>%
-    select(Cod, Herring, Sprat)
+    dplyr::select(Cod, Herring, Sprat)
 )
 
 rownames(f_history) <- 1974:2012  # If I want the full time series, do: 1974:2012. Now I just to 10 years prior and after
 
 # Before projecting forward, we want to remove the transient dynamics.
-# Judging from the last projection, 60 yrs burn in seems ok.
+# Judging from the last projection, 100 yrs burn in seems ok.
 # We also start the time series at 1974 (1992-2002 for calibration)
 # That means we start the simulation to get a time series free from transients 
 # by starting from 1974-burnin
-plotBiomass(m3) + theme_classic(base_size = 14)
+plotBiomass(m3b)
 
-burnin <- 60
+burnin <- 100
 
-# Here I use the F at the first time step of the series, as in 'mizer'
+# Here I use the F at the first time step of the series, as in 'mizer' vignette
 initial_effort <- matrix(f_history[1, ], # colMeans(f_history[1:19, ])
                          byrow = TRUE,
                          nrow = burnin,
                          ncol = ncol(f_history),
-                         dimnames = list(1914:1973)) # Must match with burn-in
+                         dimnames = list(1874:1973)) # Must match with burn-in
 
 all_effort <- rbind(initial_effort, f_history)
 
 # All effort until 2012
 all_effort
-
-# FMSY from assessment
-asses_mod_FMSY
 
 # Create effort for projection with temperature by appending FMSY to effort data
 t_future <- 2050-2012
@@ -1271,9 +874,13 @@ projectEffort_fwr_df <- data.frame(all_effort[1:t_future,])
 # We don't really need to use assessment estimates, but since we do when calibrating
 # the model, they should perhaps be influencing here
 # Can also consider taking MSY's from the size spectrum model
-projectEffort_fwr_df[, 1] <- asses_mod_FMSY %>% filter(Species == "Cod") %>% summarize(medFMSY = mean(FMSY))  # Cod
+
+# FMSY from assessment
+asses_mod_FMSY
+
+projectEffort_fwr_df[, 1] <- asses_mod_FMSY %>% filter(Species == "Cod") %>% summarize(medFMSY = mean(FMSY))     # Cod
 projectEffort_fwr_df[, 2] <- asses_mod_FMSY %>% filter(Species == "Herring") %>% summarize(medFMSY = mean(FMSY)) # Herring
-projectEffort_fwr_df[, 3] <- asses_mod_FMSY %>% filter(Species == "Sprat") %>% summarize(medFMSY = mean(FMSY)) # Sprat
+projectEffort_fwr_df[, 3] <- asses_mod_FMSY %>% filter(Species == "Sprat") %>% summarize(medFMSY = mean(FMSY))   # Sprat
 
 projectEffort_fwr <- as.matrix(projectEffort_fwr_df)
 rownames(projectEffort_fwr) <- 2013:2050
@@ -1285,13 +892,40 @@ projectEffort_ct <- projectEffort
 rownames(projectEffort_ct) <- 1:nrow(projectEffort)
 projectEffort_ct
 
-# Plot effort data
+# Create data frame for plotting later where Year is a column
 plotEffort <- data.frame(projectEffort)
 
 plotEffort$Year <- as.numeric(as.character(rownames(projectEffort)))
 
+
+#** Set up time varying temperature ================================================
+# The temperature data is relative to a mean (1970-1999). By adding t_ref here, the mean 
+# temperature in the calibration time period becomes 10C, which is both reasonable and arbitrary
+tempDat$mean_temp_scaled <- tempDat$mean_temp + m3b@params@t_ref
+
+# Now I need to match year for temperature and effort
+projectEffort_ct # Centered complete effort array
+projectEffort    # Non-centered complete effort array
+
+# I need a temperature-vector with same length as t_max.
+# Repeat first element in temp-data from min(plotEffort$Year):1969, as temperature starts at 1970
+projectTemp_df <- tempDat %>% 
+  dplyr::select(Year.r, mean_temp_scaled) %>% 
+  dplyr::rename(Year = Year.r,
+                temperature = mean_temp_scaled)
+
+projectTemp_burnin <- data.frame(Year = seq(from = min(plotEffort$Year), to = 1969, by = 1),
+                                 temperature = rep(projectTemp_df$temperature[1], length(seq(min(plotEffort$Year):1969))))
+
+projectTemp <- rbind(projectTemp_burnin, projectTemp_df)
+projectTemp
+
+
+#** Plot effort and temperature scenarios ==========================================
+# Plot effort data
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
-eff <- plotEffort %>% 
+
+p8 <- plotEffort %>% 
   gather(Species, Effort, 1:3) %>% 
   ggplot(., aes(Year, Effort, color = Species, linetype = Species)) +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
@@ -1307,51 +941,33 @@ eff <- plotEffort %>%
                 ymax = 1.4),
             fill  = "gray80") +
   geom_line(size = 1.2, alpha = 0.8) +
-  theme_classic(base_size = 15) +
   coord_cartesian(expand = 0) +
   scale_color_manual(values = rev(col)) +
-  theme(aspect.ratio = 3/4, legend.position = c(.2, .85),
-        legend.title = element_blank()) +
   labs(x = "Year", y = "Fishing mortality (F)") +
   annotate("text", -Inf, Inf, label = "A", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-#**** Set up time varying temperature ==============================================
-####--------------- THIS IS JUST FOR PLOTTING; READING IN ALREADY CREATED DATA
-# Plot temperature data
-temp <- ggplot(tempDat, aes(Year.num, mean_temp)) +
-  theme_classic(base_size = 15) +
-  scale_y_continuous(expand = c(0, 0)) +
-  theme(aspect.ratio = 3/4) +
-  geom_rect(data = ref_time, inherit.aes = FALSE, 
-            aes(xmin = min(Year), 
-                xmax = max(Year),
-                ymin = -0.9,
-                ymax = 1.8),
-            fill  = "gray90") +
-  geom_hline(yintercept = 0, size = 1, alpha = 0.8, linetype = 2) +
-  geom_line(size = 1, col = "gray20") +
-  labs(x = "Year", y = "Change in Baltic Sea SST (RCP8.5)") +
-  annotate("text", -Inf, Inf, label = "B", size = 4, 
-           fontface = "bold", hjust = -0.5, vjust = 1.3) +
-  NULL
+pWord8 <- p8 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12), 
+                                       aspect.ratio = 3/4, 
+                                       legend.position = c(.2, .85),
+                                       legend.title = element_blank())
 
-# Plot temperature data as implemented in model
-projectTemp <- read.csv("baltic/params/projectTemp.csv")
+# Plot temperature data as implemented in model (i.e. with t_ref until mid-point of calibration window)
 projectEffort_m <- as.matrix(projectEffort)
 consTemp <- projectTemp$temperature
-start <- 1997-1914
-consTemp[start:137] <- t_ref
+start <- 1997 - min(plotEffort$Year)
+consTemp[start:nrow(plotEffort)] <- t_ref
+
+tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
+                       Scenario = rep(c("no warming", "warming"), each = length(consTemp)),
+                       Year = 1:length(consTemp) + (min(plotEffort$Year) - 1))
 
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 col <- RColorBrewer::brewer.pal("Set1", n = 3)[1:2]
 
-tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
-                       Scenario = rep(c("no warming", "warming"), each = length(consTemp)),
-                       Year = 1:length(consTemp) + 1913)
-
-temp_model <- ggplot(tempScen, aes(Year, (Temperature+0.43), color = Scenario, linetype = Scenario)) +
+p9 <- ggplot(tempScen, aes(Year, (Temperature), color = Scenario, linetype = Scenario)) +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
             aes(xmin = min(Year), 
                 xmax = max(Year),
@@ -1362,44 +978,23 @@ temp_model <- ggplot(tempScen, aes(Year, (Temperature+0.43), color = Scenario, l
   theme_classic(base_size = 15) +
   scale_color_manual(values = rev(col)) +
   coord_cartesian(expand = 0) +
-  #geom_hline(yintercept = 10) +
-  theme(legend.position=c(.25,.75),
-        aspect.ratio = 3/4) +
   ylab(expression(paste("Relative temperature [", degree*C, "]"))) +
   NULL
 
+pWord9 <- p9 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12), 
+                                       aspect.ratio = 3/4, 
+                                       legend.position = c(.25, .75),
+                                       legend.title = element_blank())
+
+
 # Plot effort and the two temperature-series temperature
-eff / temp_model
-#ggsave("baltic/figures/supp/effort_temp.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
-####--------------- END 
+pWord8 / pWord9
+
+ggsave("baltic/figures/supp/effort_temp.png", width = 6.5, height = 6.5, dpi = 600)
 
 
-
-# The temperature data is relative to a mean (1970-1999). By adding t_ref here, the mean 
-# temperature in the calibration time period becomes 10C, which is both reasonable and arbitrary
-tempDat$mean_temp_scaled <- tempDat$mean_temp + m3@params@t_ref
-
-# Now I need to match year for temperature and effort
-projectEffort # Non-centered complete effort array
-projectEffort_ct # Centered complete effort array
-
-# I need a temperature-vector with same length as t_max.
-# Repeat first element in temp-data from 1914-1969, as temperature starts at 1970
-projectTemp_df <- tempDat %>% 
-  dplyr::select(Year.r, mean_temp_scaled) %>% 
-  dplyr::rename(Year = Year.r,
-                temperature = mean_temp_scaled)
-
-projectTemp_burnin <- data.frame(Year = seq(from = 1914, to = 1969, by = 1),
-                                 temperature = rep(projectTemp_df$temperature[1], length(seq(1914:1969))))
-
-projectTemp <- rbind(projectTemp_burnin, projectTemp_df)
-projectTemp
-
-nrow(projectEffort_ct)
-nrow(projectTemp)
-
-#**** Project with temperatue and effort varying through time ======================
+#** Project with temperatue and effort varying through time ========================
 # Here I want to create two models
 # m4_temp: time series with temperature + nice parameters for temperature
 # m4_cons: constant temperature (t_ref, i.e. no temperature effect!)

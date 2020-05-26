@@ -46,19 +46,19 @@ set.seed(4361)
 n <- 200
 
 # Metabolic rate (Lindmark et al (in prep))
-met_u <- 0.62
-met_sd <- 0.03
+met_u <- 0.61
+met_sd <- 0.032
 met_q <- qnorm(c(0.025, 0.975), met_u, met_sd)
 met <- rnorm(n = n, met_u, met_sd)
 
 # Background Mortality (assumed to be = metabolic rate)
-mor_u <- 0.62
-mor_sd <- 0.03
+mor_u <- 0.61
+mor_sd <- 0.032
 mor <- rnorm(n = n, mor_u, mor_sd)
 
 # Maximum consumption rate (Lindmark et al (in prep))
 int_u <- 0.69
-int_sd <- 0.08
+int_sd <- 0.075
 int_q <- qnorm(c(0.025, 0.975), int_u, int_sd)
 int <- rnorm(n = n, int_u, int_sd)
 
@@ -98,19 +98,19 @@ ea_dat <- ea %>%
 ea_dat$rate2 <- factor(ea_dat$rate, levels = c("Maximum\nconsumption rate", "Metabolic rate", "Background\nmortality rate", 
                                                "Resource growth rate (exp)", "Resource\ncarrying capacity (exp)", "Resource\ncarrying capacity (obs)"))
 
-ggplot(ea_dat, aes(activation_energy)) + 
+p1 <- ggplot(ea_dat, aes(activation_energy)) + 
   facet_wrap(~rate2, scales = "free") +
   geom_histogram() +
-  theme_classic(base_size = 14) +
   coord_cartesian(expand = 0) +
   labs(y = "Count", x = "Activation energy") +
   NULL
 
-#ggsave("baltic/figures/supp/random_activation_energies.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12))
+
+ggsave("baltic/figures/supp/random_activation_energies.png", width = 6.5, height = 6.5, dpi = 600)
 
 #write.csv(ea, "baltic/params/samples_activation_energy.csv")
-
-head(ea_dat)
 
 
 # C. PLOT TEMP SCALARS =============================================================
