@@ -996,7 +996,7 @@ ggsave("baltic/figures/supp/effort_temp.png", width = 6.5, height = 6.5, dpi = 6
 
 #** Project with temperatue and effort varying through time ========================
 # Here I want to create two models
-# m4_temp: time series with temperature + nice parameters for temperature
+# m4_temp: time series with temperature + parameters for temperature
 # m4_cons: constant temperature (t_ref, i.e. no temperature effect!)
 # NOTE! This is not a good method when comparing the models as they will
 # essentially have different starting values. It's ok now though because
@@ -1005,7 +1005,7 @@ ggsave("baltic/figures/supp/effort_temp.png", width = 6.5, height = 6.5, dpi = 6
 # In the next section I will evalute their fit to assessment data
 
 # Update params to include non-default activation energies in the species params
-temp_sp_param <- params3_upd@species_params
+temp_sp_param <- params3b_upd@species_params
 
 temp_sp_param$ea_met <- mean(ea$met)
 temp_sp_param$ea_mor <- mean(ea$mor)
@@ -1013,8 +1013,8 @@ temp_sp_param$ea_int <- mean(ea$int)
 
 # No temperature effects on the resource
 params_n_res <- MizerParams(temp_sp_param,
-                            kappa_ben = kappa_ben,
-                            kappa = kappa,
+                            kappa_ben = kappa_ben2,
+                            kappa = kappa2,
                             w_bb_cutoff = w_bb_cutoff,
                             w_pp_cutoff = w_pp_cutoff,
                             r_pp = r_pp,
@@ -1040,8 +1040,8 @@ plotBiomass(m4_noRes) +
 
 # With temperature effects on the resource
 params_w_res <- MizerParams(temp_sp_param,
-                            kappa_ben = kappa_ben,
-                            kappa = kappa,
+                            kappa_ben = kappa_ben2,
+                            kappa = kappa2,
                             w_bb_cutoff = w_bb_cutoff,
                             w_pp_cutoff = w_pp_cutoff,
                             r_pp = r_pp,
@@ -1091,12 +1091,6 @@ obs_ssb_l <- ssb_f %>%
 
 obs_ssb_l$Scenario <- "Stock assessment"
 
-# Centering year so that 1974 is Year_ct = 61
-#projectEffort
-#projectEffort_ct
-
-obs_ssb_l$Year_ct <- (obs_ssb_l$Year-(1974))+(61) # 1974 is first year, t_1 needs to be one. Then +60 to match predicted
-
 # Predicted ssb - no temp dep resource
 # m4_noRes@params
 # str(m4_noRes@carTempScalar)
@@ -1104,7 +1098,7 @@ obs_ssb_l$Year_ct <- (obs_ssb_l$Year-(1974))+(61) # 1974 is first year, t_1 need
 
 pred_ssb_noResT <- data.frame(getSSB(m4_noRes))
 pred_ssb_noResT$Year_ct <- as.numeric(rownames(getSSB(m4_noRes)))
-pred_ssb_noResT$Year <- pred_ssb_noResT$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+pred_ssb_noResT$Year <- pred_ssb_noResT$Year_ct + (min(plotEffort$Year)-1)
 pred_ssb_noResT$Scenario <- "Physio."
 str(pred_ssb_noResT)
 
@@ -1115,14 +1109,14 @@ str(pred_ssb_noResT)
 
 pred_ssb_wiResT <- data.frame(getSSB(m4_wiRes))
 pred_ssb_wiResT$Year_ct <- as.numeric(rownames(getSSB(m4_wiRes)))
-pred_ssb_wiResT$Year <- pred_ssb_wiResT$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+pred_ssb_wiResT$Year <- pred_ssb_wiResT$Year_ct + (min(plotEffort$Year)-1) 
 pred_ssb_wiResT$Scenario <- "Physio. + Resource (exp.)"
 str(pred_ssb_wiResT)
 
 # Predicted ssb - no temperature at all after calibration (t_ref)
 pred_ssb_cons <- data.frame(getSSB(m4_consTemp))
 pred_ssb_cons$Year_ct <- as.numeric(rownames(getSSB(m4_consTemp)))
-pred_ssb_cons$Year <- pred_ssb_cons$Year_ct + (1914-1) # 1914 is so that 60 year burn-in leads to start at 1974
+pred_ssb_cons$Year <- pred_ssb_cons$Year_ct + (min(plotEffort$Year)-1) 
 pred_ssb_cons$Scenario <- "Constant temp"
 str(pred_ssb_cons)
 
@@ -1130,10 +1124,8 @@ str(pred_ssb_cons)
 pred_ssb <- rbind(pred_ssb_noResT, pred_ssb_wiResT, pred_ssb_cons)
 
 # Convert to long data frame (1 obs = 1 row)
-# The first year with real effort is 1974. This is year 61 with centered time (1974-1914 +1),
-# The last year before FMSY is 2012. In centered time this is 2012-1914 = 98
 pred_ssb_l <- pred_ssb %>% 
-  filter(Year > 1973) %>%
+  dplyr::filter(Year > 1973) %>%
   gather(Species, ssb_g.m2, 1:3)
 
 # Scale up from g/m2 to 10^6 kg / Baltic
@@ -1144,22 +1136,11 @@ pred_ssb_l <- pred_ssb_l %>% select(-ssb_g.m2)
 dat <- data.frame(rbind(obs_ssb_l, pred_ssb_l))
 dat$Year <- as.integer(dat$Year)
 
-# Normalize to maximum within species
-# dat2 <- dat %>% 
-#   drop_na() %>% 
-#   ungroup() %>% 
-#   dplyr::filter(Year < 2012) %>% 
-#   dplyr::group_by(Species, source) %>% 
-#   dplyr::mutate(test = max(SSB)) %>% 
-#   dplyr::mutate(SSB_norm = SSB / max(SSB))
-
 # Plot predicted and observed ssb by species, normalize by max within species
 # Reorder factor levels
 dat$Scenario <- factor(dat$Scenario, levels = c("Constant temp", "Physio.", "Physio. + Resource (exp.)", "Stock assessment"))
 
-#dat %>% filter(Year < 2012) %>%
-dat %>% filter(Year < 2012 & Year > 1970) %>% 
-  #ggplot(., aes(Year, SSB_norm, linetype = source, color = source, alpha = source)) +
+p10 <- dat %>% filter(Year < 2012 & Year > 1970) %>% 
   ggplot(., aes(Year, SSB, linetype = Scenario, color = Scenario, alpha = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
@@ -1172,65 +1153,61 @@ dat %>% filter(Year < 2012 & Year > 1970) %>%
   scale_linetype_manual(values = c("twodash", "dashed", "dotted", "solid")) +
   scale_color_manual(values = c(rev(col)[1:3], "gray30")) +
   scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.5)) +
-  theme(aspect.ratio = 1) +
-  #labs(y = "SSB/max(SSB)", x = "Year") +
   labs(y = "Spawning stock biomass (1000 tonnes)", x = "Year") +
-  theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) +
-  theme(aspect.ratio = 1/2) +
   NULL
 
-#ggsave("baltic/figures/supp/time_series_pred_ssb.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord10 <- p10 + theme_classic() + theme(text = element_text(size = 12),
+                                         axis.text = element_text(size = 12), 
+                                         aspect.ratio = 1/2)
+
+ggsave("baltic/figures/supp/time_series_pred_ssb.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 #**** Calculate and plot correlation coefficients ==================================
-obs_df <- filter(dat, Scenario == "Stock assessment" & Year < 2013)
-#pred_cons_df <- filter(dat, Scenario == "Constant temp" & Year < 2013)
-pred_wTempR_df <- filter(dat, Scenario == "Physio. + Resource (MTE)" & Year < 2013)
-#pred_nTempR_df <- filter(dat, Scenario == "No resource temp" & Year < 2013)
-
 # Since the temperature-scenarios are so similar, I'm just calculating the correlations
-# for the scenario with temperature-dependent resources
+obs_df <- filter(dat, Scenario == "Stock assessment" & Year < 2013)
+pred_wTempR_df <- filter(dat, Scenario == "Physio. + Resource (exp.)" & Year < 2013)
+
+# For the scenario with temperature-dependent resources
 cor_df <- data.frame(Year = obs_df$Year,
                      Obs = obs_df$SSB,
-                     #pred_cons = pred_cons_df$SSB,
                      pred_wTempR = pred_wTempR_df$SSB,
-                     #pred_nTempR = pred_nTempR_df$SSB,
                      Species = obs_df$Species)
 
 # Calculate correlations between predictions from _resource_temp and observations
 cors_con <- ddply(cor_df, c("Species"), summarise, cor = round(cor(pred_wTempR, Obs), 2))
 
 # Plot correlation between predicted and observed
-ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
+p11 <- ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
   facet_wrap(~ Species, ncol = 3, scales = "free") +
   geom_abline(slope = 1, intercept = 0, color = "red", size = 0.7) +
-  geom_point(size = 2.5) +
+  geom_point(size = 2) +
   labs(y = "Predicted", x = "Observed") +
-  theme_classic(base_size = 14) +
   scale_y_continuous(expand = c(0, 0)) + 
   geom_text(data = cors_con, aes(label = paste("r = ", cor, sep = "")), 
-            x = Inf, y = Inf, vjust = 16, hjust = 1.1,  
+            x = c(550, 1500, 1700), y = c(60, 600, 930),
             fontface = "italic", size = 4, inherit.aes = FALSE) +
   scale_color_viridis() +
-  theme(aspect.ratio = 1, 
-        legend.position = "bottom",
-        legend.text = element_text(size = 8)) +
   NULL
 
-#ggsave("baltic/figures/supp/obs_pred_corr.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord11 <- p11 + theme_classic() + theme(text = element_text(size = 12),
+                                         axis.text = element_text(size = 12), 
+                                         legend.text = element_text(size = 8),
+                                         legend.position = "bottom",
+                                         aspect.ratio = 1)
 
-# Temperature-dependence does not really improve time series fit. But that does not mean 
-# temperature is not worth including
+ggsave("baltic/figures/supp/obs_pred_corr.png", width = 6.5, height = 6.5, dpi = 600)
+
 
 # D. SAVE OBJECTS FOR ANALYSIS ============================================================
 #**** Mizer params ========================================================================
-mizer_param_calib <- params3_upd
+mizer_param_calib <- params3b_upd
 str(mizer_param_calib)
 
-#saveRDS(mizer_param_calib, file = "baltic/params/mizer_param_calib.rds") 
+saveRDS(mizer_param_calib, file = "baltic/params/mizer_param_calib.rds") 
 
 #**** Temperature and effort vectors ======================================================
-#write.csv(projectEffort_ct, file = "baltic/params/projectEffort.csv")
-#write.csv(projectTemp, file = "baltic/params/projectTemp.csv") 
+write.csv(projectEffort_ct, file = "baltic/params/projectEffort.csv")
+write.csv(projectTemp, file = "baltic/params/projectTemp.csv") 
 
