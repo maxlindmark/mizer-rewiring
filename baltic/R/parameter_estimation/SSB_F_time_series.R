@@ -93,7 +93,7 @@ tsb + ssb
 
 
 # Plot SSB and F, overlay mean for each period
-ssb2 <- dat %>% 
+p1 <- dat %>% 
   filter(Year > 1979 & Year < 2010 & Species %in% c("Cod", "Sprat", "Herring")) %>%
   ggplot(., aes(Year, SSB, color = Species)) +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
@@ -108,15 +108,17 @@ ssb2 <- dat %>%
   theme(aspect.ratio = 1) +
   ylab("Spawning stock biomass\n(1000 tonnes)") +
   scale_color_manual(values = col) +
-  theme_classic(base_size = 12) +
   scale_y_continuous(expand = c(0, 0)) +
   guides(color = FALSE) +
-  theme(aspect.ratio = 1) +
   annotate("text", -Inf, Inf, label = "A", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-f <- dat %>% 
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
+                                       aspect.ratio = 1)
+
+
+p2 <- dat %>% 
   filter(Year > 1979 & Year < 2010 & Species %in% c("Cod", "Sprat", "Herring")) %>%
   ggplot(., aes(Year, Fm, color = Species)) +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
@@ -131,15 +133,17 @@ f <- dat %>%
   theme(aspect.ratio = 1) +
   ylab("F") +
   scale_color_manual(values = col) +
-  theme_classic(base_size = 12) +
   scale_y_continuous(expand = c(0, 0)) +
-  theme(aspect.ratio = 1) +
   annotate("text", -Inf, Inf, label = "B", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-ssb2 + f
+pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 12),
+                                       aspect.ratio = 1)
 
+pWord1 + pWord2
+
+ggsave("baltic/figures/supp/SSB_F.png", width = 6.5, height = 6.5, dpi = 600)
 #ggsave("baltic/figures/supp/SSB_F.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
@@ -148,8 +152,3 @@ mean_ssb_F %>%
   group_by(Species) %>% 
   summarize(mean(mean_SSB),
             mean(mean_F))
-
-# Here we have some options: 
-# 1) Use SSB and ignore Flounder when calibrating
-# 2) Use SSB and assume same ratio of Flounder:Cod in SSB as in survey
-# I will try option 1

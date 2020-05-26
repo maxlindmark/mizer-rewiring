@@ -199,18 +199,20 @@ dat_agg %>%
             sd_n   = 10^(sd(log10(PPMR))))
 
 # Plot log10(PPMR)
-dat_agg %>% 
+p1 <- dat_agg %>% 
   distinct(ICES_ItemID, .keep_all = TRUE) %>% 
   ggplot(., aes(log10(PPMR))) +
   geom_histogram(size = 3) +
-  theme_classic(base_size = 18) +
   geom_vline(xintercept = 2.63, color = "red", linetype = 2, size = 1) +
   coord_cartesian(expand = 0) +
   annotate("text", label = "mean PPMR=426\nsd PPMR=5.63", 
            x = Inf, y = Inf, size = 4.5, col = "blue",
            vjust = 1, hjust = 1) +
-  labs(y = "Count")
+  labs(y = "Count") +
   NULL
 
-#ggsave("baltic/figures/supp/PPMR.pdf", plot = last_plot(), width = 15, height = 15, units = "cm")
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12))
+  
+ggsave("baltic/figures/supp/PPMR.png", width = 3.5, height = 3.5, dpi = 600)
 

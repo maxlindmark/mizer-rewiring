@@ -167,8 +167,8 @@ effort = c(Cod = balticParams$AveEffort[1],
 dt <- 0.1
 
 # These are the values I choose (lowest kappa with coexistence, found them iteratively).
-kappa_ben <- 30
-kappa <- 30
+kappa_ben <- 11
+kappa <- 11
 
 # Create mizerParam object
 params <- MizerParams(balticParams,
@@ -183,6 +183,17 @@ params <- MizerParams(balticParams,
 # Fix the bug with ks=0.2*h, should be ks=0.12*h
 params@species_params$ks <- 0.12 * params@species_params$h
 
+# Recalculate the params object with the new ks to get the correct metabolism
+# using species_params instead of baltic params in MizerParams
+params <- MizerParams(params@species_params,
+                      kappa_ben = kappa_ben,
+                      kappa = kappa,
+                      w_bb_cutoff = w_bb_cutoff,
+                      w_pp_cutoff = w_pp_cutoff,
+                      r_pp = r_pp,
+                      r_bb = r_bb,
+                      t_ref = t_ref)
+
 # Project model
 t_max <- 300
 
@@ -196,9 +207,8 @@ m1 <- project(params,
 # Check dynamics and density
 plotBiomass(m1) + theme_classic(base_size = 14)
 
-
 # Check growth
-# Growth rates are extremely low
+# Growth rates are low
 plotGrowthCurves(m1, max_age = 15) + 
   scale_color_manual(values = rep(col[1], 3)) +
   facet_wrap(~ Species, scales = "free", ncol = 3) +
@@ -251,7 +261,6 @@ m2 <- project(params2_upd,
 
 # Check dynamics and density
 plotBiomass(m2) + theme_classic(base_size = 14)
-
 
 # Check growth 
 # Growth rates look slightly better, ok for now since they will change after calibrating r_max
@@ -341,7 +350,6 @@ ssb_model/ssb_data
 
 # Make sure MizerParams() in FunctionsForOptim.R uses the same parameter-setup that you've decided so far!
 
-
 #**** Source functions =============================================================
 # See the functions script for description of their arguments and such
 script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/StartVector.R", ssl.verifypeer = FALSE)
@@ -350,7 +358,7 @@ eval(parse(text = script))
 script <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/FunctionsForOptim.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
-# With only r_max to be optimized, and three species, this function takes 3.5 minutes on my macbook pro (2019)
+# With only r_max to be optimized, and three species, this function takes 3.8 minutes on my macbook pro (2019)
 # Note also that I have NOT turned off warnings from creating mizerParams objects, so they will printed in the console.
 # If this code takes to long to run, I will do it in a different script and store the .Rdata
 
@@ -429,6 +437,12 @@ plotGrowthCurves(m3, max_age = 15) +
   theme_classic(base_size = 14) + 
   theme(aspect.ratio = 1/2) +
   NULL
+
+
+#### CONTINUE HERE AND RE-SAVE ALL THE PLOTS!!!!!
+
+
+
 
 # They still look OK after calibration
 
@@ -1213,3 +1227,53 @@ saveRDS(mizer_param_calib, file = "baltic/params/mizer_param_calib.rds")
 write.csv(projectEffort_ct, file = "baltic/params/projectEffort.csv")
 write.csv(projectTemp, file = "baltic/params/projectTemp.csv") 
 
+
+# TEST I can get the same biomasses when I scale R_max, Kappa and gamma as when I scale only biomasses afterwards...
+# t <- params3_upd@species_params
+# 
+# t$r_max <- params3_upd@species_params$r_max * ((balticParams$sd25.29.32_m.2) / (1e9))
+# t$gamma <- params3_upd@species_params$gamma / ((balticParams$sd25.29.32_m.2) / (1e9))
+# 
+# tt <- MizerParams(t,
+#                   kappa_ben = kappa_ben2 * (balticParams$sd25.29.32_m.2)[1] / (1e9),
+#                   kappa = kappa2 * (balticParams$sd25.29.32_m.2)[1] / (1e9),
+#                   w_bb_cutoff = w_bb_cutoff,
+#                   w_pp_cutoff = w_pp_cutoff,
+#                   r_pp = r_pp,
+#                   r_bb = r_bb,
+#                   t_ref = t_ref)  
+# 
+# ttt <- project(tt,
+#                dt = dt,
+#                temperature = rep(t_ref, 65),
+#                effort = effort,
+#                diet_steps = 10,
+#                t_max = 65) 
+# 
+# plot(ttt)
+# colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )  * (balticParams$sd25.29.32_m.2) / (1e9)
+# colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )  / (1e9)
+# colMeans(getSSB(ttt)[c(I(dim(ttt@n)[1]-20):dim(m3@n)[1]), ] )
+# These are the means in unit m^2 * scaling factor 249
+# colMeans(getSSB(m3)[c(I(dim(m3@n)[1]-20):dim(m3@n)[1]), ] ) * (balticParams$sd25.29.32_m.2) / (1e9)
+
+# i.e. the same as when I tune parameters directly.
+
+# TEST if they can die from fishing
+# effort = c(Cod = balticParams$AveEffort[1], 
+#            Herring = balticParams$AveEffort[3], 
+#            Sprat = balticParams$AveEffort[2])
+# 
+# teffort <- effort
+# 
+# teffort[1] <- 1.8
+# 
+# test <- project(params3b_upd,
+#                 dt = 0.1,
+#                 effort = teffort,
+#                 temperature = rep(t_ref, t_max),
+#                 diet_steps = 10,
+#                 t_max = t_max)
+# test@effort
+# plotBiomass(test)
+# plot(test)

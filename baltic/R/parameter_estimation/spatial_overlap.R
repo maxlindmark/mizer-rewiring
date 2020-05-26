@@ -455,7 +455,7 @@ p
 unique(p_dat$Species)
 
 # Without flounder
-p <- 
+p1 <- 
   p_dat %>% filter(Species %in% c("Cod", "Sprat", "Herring")) %>% 
   ggplot(., aes(x = lon, y = lat)) +
   geom_point(aes(size = proportion), color = viridis(n = 1, begin = 0.2)) + 
@@ -467,15 +467,12 @@ p <-
   scale_size_continuous(range = c(0.001, 3)) +
   #guides(size = FALSE) +
   facet_wrap(~ Species) +
-  theme_bw(base_size = 12) +
-  theme(panel.grid.major = element_line(colour = NA),
-        panel.grid.minor = element_blank(),
-        aspect.ratio = 1)+
   NULL
 
-p
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1)
+
+ggsave("baltic/figures/supp/interaction_map.png", width = 6.5, height = 6.5, dpi = 600)
 
 #ggsave("baltic/figures/supp/interaction_map.pdf", plot = p, dpi = 300, width = 15, height = 15, units = "cm")
-
-
-# maybe manually add ICES rect? Through geom_segment?
