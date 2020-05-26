@@ -438,12 +438,6 @@ plotGrowthCurves(m3, max_age = 15) +
   theme(aspect.ratio = 1/2) +
   NULL
 
-
-#### CONTINUE HERE AND RE-SAVE ALL THE PLOTS!!!!!
-
-
-
-
 # They still look OK after calibration
 
 # SSB pred/fit
@@ -483,6 +477,10 @@ rdi / rdd
 
 # Get RDD to rmax ratio
 rdd / params3_upd@species_params$r_max
+# > rdd / params3_upd@species_params$r_max
+# Cod     Sprat   Herring 
+# 0.9981746 0.9642567 0.9874798 
+# Very close to r_max...
 
 # Get RDI to rmax ratio
 rdi / params3_upd@species_params$r_max
@@ -526,6 +524,10 @@ plotBiomass(m3b) + theme_classic(base_size = 14)
 ssb_model <- getSSB(m3b)[t_max, ] * m3b@params@species_params$sd25.29.32_m.2 / 1e9 
 ssb_data <- balticParams$AveSpawnBiomass
 ssb_model/ssb_data
+# > ssb_model/ssb_data
+# Cod     Sprat   Herring 
+# 0.6707212 0.8496077 1.0329188
+# A bit worse fit, but "better" density dependence, i.e. not too much...
 
 # Re-evalute how much density dependence there is in the model from the stock-recruit relationship
 # Calculate the density independent recruitment (total egg production) R_{p.i} before density dependence
@@ -553,23 +555,22 @@ rdi / rdd
 # Cod    Sprat  Herring 
 # 2.739093 3.189151 7.203846 
 
-# Get RDD to rmax ratio
-rdi / params3b_upd@species_params$r_max
-# > rdi / params3b_upd@species_params$r_max
-# Cod    Sprat  Herring 
-# 1.739093 2.189151 6.203846 
-
 rdd / params3b_upd@species_params$r_max
 # > rdd / params3b_upd@species_params$r_max
 # Cod     Sprat   Herring 
 # 0.6349157 0.6864370 0.8611853 
+
+rdi / params3b_upd@species_params$r_max
+# > rdi / params3b_upd@species_params$r_max
+# Cod    Sprat  Herring 
+# 1.739093 2.189151 6.203846 
 
 
 #** 5. Estimate FMSY from model - compare with assessment ==========================
 # In lack of a better approach, I will just for-loop different F, extract Yield, plot
 # over F. I will increase each species F separately, keeping the others at their mean
 
-F_range <- seq(0, 1.5, 0.05) # Can increase later, becomes too slow now
+F_range <- seq(0, 1.5, 0.02) # Can increase later, becomes too slow now
 t_max <- 200
 
 #**** Cod ==========================================================================
@@ -1146,7 +1147,7 @@ pred_ssb_l <- pred_ssb %>%
 
 # Scale up from g/m2 to 10^6 kg / Baltic
 pred_ssb_l$SSB <- pred_ssb_l$ssb_g.m2 * (balticParams$sd25.29.32_m.2) / (1e9)
-pred_ssb_l <- pred_ssb_l %>% select(-ssb_g.m2)
+pred_ssb_l <- pred_ssb_l %>% select(-c(ssb_g.m2, Year_ct))
 
 # Combine observed and predicted SSB
 dat <- data.frame(rbind(obs_ssb_l, pred_ssb_l))
