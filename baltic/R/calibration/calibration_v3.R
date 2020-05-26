@@ -11,9 +11,11 @@
 # C. Calibrate model to observed SSB, validate:
 #    ssb, growth, recruitment, diet (see calibration protocol)
 #
-# D. Validate with time series
+# D. Plots from calibration
 #
-# E. Save params object for analysis
+# E. Validate with time series
+#
+# F. Save params object for analysis
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1200,7 +1202,7 @@ pWord11 <- p11 + theme_classic() + theme(text = element_text(size = 12),
 ggsave("baltic/figures/supp/obs_pred_corr.png", width = 6.5, height = 6.5, dpi = 600)
 
 
-# D. SAVE OBJECTS FOR ANALYSIS ============================================================
+# F. SAVE OBJECTS FOR ANALYSIS ============================================================
 #**** Mizer params ========================================================================
 mizer_param_calib <- params3b_upd
 str(mizer_param_calib)
