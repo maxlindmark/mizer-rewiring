@@ -137,7 +137,7 @@ consTemp[start:137] <- t_ref
 # NOTE: Here we use constant temperatures and therefore the results may not be 
 # exactly translateable to the time-varying effort and temperature projections.
 
-F_range <- seq(0.2, 1.4, 0.01) # Can decrease step later, becomes too slow now
+F_range <- seq(0, 1.1, 0.01) # Can decrease step later, becomes too slow now
 t_max <- 100
 index <- 1:length(F_range)
 
@@ -683,7 +683,7 @@ Fmsy_sum <- Fmsy %>%
   group_by(species, scen, scen2) %>% 
   filter(biomass == max(biomass))
 
-pf <- Fmsy %>% 
+p1 <- Fmsy %>% 
   filter(type == "yield") %>% 
   filter(biomass > 0.001) %>% 
   ggplot(., aes(Fm, (biomass*240.342), linetype = scen2, color = scen)) + 
@@ -692,37 +692,36 @@ pf <- Fmsy %>%
   scale_color_manual(values = c(col[2], col[1], col[3]), 
                      labels = c(expression("T"[ref]), 
                                 expression(paste("T"[ref], "+2", degree*C)))) +
-  theme_classic(base_size = 12) +
   labs(x = "Fishing mortality [1/year]", 
        y = "Yield [1000 tonnes/year]",
        color = "Scenario",
        linetype = "Metric") +
-  #guides(color = FALSE, linetype = FALSE) +
-  theme(aspect.ratio = 3/4,
-        legend.position = "bottom",
-        legend.text = element_text(size = 9),
-        legend.title = element_text(size = 10)) +
   geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio. + Resource (exp.)"), linetype = 3, 
-               aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")),
+               aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")),
                col = col[1], alpha  = 0.7) +
   geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Resource (exp.)"), linetype = 2, 
-               aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")),
+               aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")),
                col = col[1], alpha  = 0.7) +
   geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio."), linetype = 1, 
-               aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")), 
+               aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")), 
                col = col[1], alpha  = 0.7) +
   geom_segment(data = filter(Fmsy_sum, scen == "cold" & scen2 == "Physio. + Resource (exp.)"), linetype = 1, 
-               aes(x = Fm, xend = Fm, y = c(240, 350, 160), yend = c(240*1.2, 350*1.2, 160*1.2)), arrow = arrow(length = unit(0.3, "cm")), 
+               aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")), 
                col = col[2], alpha  = 0.7) +
-  # guides(linetype = FALSE,
-  #        color = FALSE) +
+  coord_cartesian(expand = 0) +
   NULL
 
-pf
-#ggsave("baltic/figures/FMSY_warm_cold.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord1 <- p1+ theme_classic() + theme(text = element_text(size = 12),
+                                      axis.text = element_text(size = 10),
+                                      legend.position = "bottom",
+                                      aspect.ratio = 3/4,
+                                      legend.text = element_text(size = 6),
+                                      legend.title = element_text(size = 10))
+
+ggsave("baltic/figures/FMSY_warm_cold.png", width = 6.5, height = 6.5, dpi = 600)
 
 
-ps <- Fmsy %>% 
+p2 <- Fmsy %>% 
   filter(type == "ssb") %>% 
   filter(biomass > 0.001) %>% 
   ggplot(., aes(Fm, biomass*240.342, linetype = scen2, color = scen)) + 
@@ -731,20 +730,21 @@ ps <- Fmsy %>%
   scale_color_manual(values = c(col[2], col[1], col[3]), 
                      labels = c(expression("T"[ref]), 
                                 expression(paste("T"[ref], "+2", degree*C)))) +
-  theme_classic(base_size = 12) +
   labs(x = "Fishing mortality [1/year]", 
        y = "SSB [1000 tonnes]",
        color = "Scenario",
        linetype = "Metric") +
-  theme(aspect.ratio = 3/4,
-        legend.position = "bottom",
-        legend.text = element_text(size = 9),
-        legend.title = element_text(size = 10)) +
+  coord_cartesian(expand = 0) +
   NULL
 
-#pf / ps
-ps
-#ggsave("baltic/figures/SSB_warm_cold.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord2 <- p2+ theme_classic() + theme(text = element_text(size = 12),
+                                      axis.text = element_text(size = 10),
+                                      legend.position = "bottom",
+                                      aspect.ratio = 3/4,
+                                      legend.text = element_text(size = 6),
+                                      legend.title = element_text(size = 10))
+
+ggsave("baltic/figures/supp/SSB_warm_cold.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 

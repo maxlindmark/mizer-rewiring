@@ -51,10 +51,10 @@ func <-
 eval(parse(text = func))
 
 # Load function for extracting raincloud plot
-func <- 
-  getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/raincloudPlot.R", 
-         ssl.verifypeer = FALSE)
-eval(parse(text = func))
+# func <- 
+#   getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/raincloudPlot.R", 
+#          ssl.verifypeer = FALSE)
+# eval(parse(text = func))
 
 
 #**** Read in parameters and data ==================================================
@@ -85,11 +85,11 @@ r_bb <- 4 # Not stored in mizerParams output
 # Define temperature-scenarios
 consTemp <- projectTemp$temperature
 
-# The time series starts in 1914. From 1997 (mid point in calibration time), we want
-# to fix the temperature at the mean of the calibration, i.e. t_ref. This insures
+# The time series starts in 1874. From 1997 (mid point in calibration time), we want
+# to fix the temperature at the mean of the calibration, i.e. t_ref. This ensures
 # we get comparable starting values for the models so that temperature is the only "treatment"
-start <- 1997-1914
-consTemp[start:137] <- t_ref
+start <- 1997-1874
+consTemp[start:177] <- t_ref
 
 # Plot
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
@@ -97,21 +97,15 @@ col <- RColorBrewer::brewer.pal("Set1", n = 3)[1:2]
 
 tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
                        Scenario = rep(c("no warming", "warming"), each = length(consTemp)),
-                       Year = 1:length(consTemp) + 1913)
+                       Year = 1:length(consTemp) + 1873)
 
-ggplot(tempScen, aes(Year, (Temperature+0.43), color = Scenario, linetype = Scenario)) +
+tempScen %>% filter(Year < 2003 & Year > 1991) %>% summarize(mean_temp = mean(Temperature))
+
+ggplot(tempScen, aes(Year, Temperature, color = Scenario, linetype = Scenario)) +
   geom_line(alpha = 0.8, size = 1.4) +
-  theme_classic(base_size = 25) +
   scale_color_manual(values = rev(col)) +
-  #geom_hline(yintercept = 10) +
-  theme(legend.position=c(.2,.75),
-        aspect.ratio = 3/4) +
   ylab("Temperature") +
   NULL
-
-str(tempScen)
-
-#ggsave("baltic/figures/supp/temperature_scenarios.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
 
 
 # B. SIMULATE TEMP-DRIVEN CHANGE IN SIZE-AT-AGE ====================================
@@ -509,15 +503,18 @@ p1 <- ggplot(mean_dat,
   scale_y_continuous(expand = c(0, 0)) + 
   scale_color_manual(values = rev(col)) +
   scale_fill_manual(values = rev(col)) +
-  theme_classic(base_size = 14) +
   guides(color = FALSE, fill = FALSE) +
   geom_line(data = refGrowth, aes(Age, value), color = "black", 
            inherit.aes = FALSE, size = 0.5, alpha = 0.7, linetype = "dashed") +
-  theme(legend.position = "bottom",
-        legend.title = element_blank()) +
   NULL
 
 p1
+
+pWord1 <- p1+ theme_classic() + theme(text = element_text(size = 12),
+                                      axis.text = element_text(size = 10),
+                                      legend.position = "bottom",
+                                      legend.title = element_blank())
+
 
 # Plot growth curves (all curves)
 p1b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
@@ -570,13 +567,13 @@ ggplot(.,
                                override.aes = list(alpha = 1,
                                                    linetype = 1,
                                                    size = 2))) +
-  theme_classic(base_size = 14) +
-  theme(legend.position = "bottom",
-        legend.direction = "vertical") +
   geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
   NULL
 
-p2
+pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 10),
+                                       legend.position = "bottom",
+                                       legend.direction = "vertical")
 
 # Plot relative growth curves (all curves)
 p2b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
@@ -604,9 +601,9 @@ p2b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
 p2b
 
 # Plot together
-p1/p2
-#ggsave("baltic/figures/growth_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord1 / pWord2
 
+ggsave("baltic/figures/growth_project.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 #** Plot mean weights by species ===================================================
@@ -635,7 +632,7 @@ ref_w <- data.frame(species = c("Cod", "Sprat", "Herring"),
                     mean_weight = refSpeciesMeanWeight)
 
 # Plot
-ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
+p3 <- ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
   facet_wrap(~ species, scales = "free", nrow = 2) +
   #coord_flip() +
   scale_color_manual(values = col) +
@@ -647,22 +644,21 @@ ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour 
   geom_boxplot(aes(x = scen, y = mean_weight),
                outlier.shape = NA, alpha = 0.1, width = .2, color = "black", size = 0.5) +
   guides(fill = FALSE) +
-  theme_classic(base_size = 14) +
-  theme(aspect.ratio = 3/4) +
   labs(x = "", y = "Mean weight [g]") +
   geom_hline(data = ref_w, aes(yintercept = mean_weight), linetype = 2) +
   guides(fill = guide_legend(#nrow = 3,
                              override.aes = list(alpha = 0.8))) +
-  theme(#legend.position = "bottom",
-        #legend.text = element_text(size = 12),
-        axis.text.x = element_blank(),
-        legend.direction = "vertical",
-        legend.position = c(1, 0),
-        legend.justification = c(1, 0)) +
   NULL
 
-#ggsave("baltic/figures/mean_weight.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 10),
+                                       axis.text.x = element_blank(),
+                                       legend.direction = "vertical",
+                                       legend.position = c(1, 0),
+                                       legend.justification = c(1, 0),
+                                       aspect.ratio = 3/4)
 
+ggsave("baltic/figures/mean_weight.png", width = 6.5, height = 6.5, dpi = 600)
 
 # ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
 #   facet_wrap(~ species, scales = "free", nrow = 3) +

@@ -1228,6 +1228,7 @@ saveRDS(mizer_param_calib, file = "baltic/params/mizer_param_calib.rds")
 write.csv(projectEffort_ct, file = "baltic/params/projectEffort.csv")
 write.csv(projectTemp, file = "baltic/params/projectTemp.csv") 
 
+params3b_upd@species_params
 
 # TEST I can get the same biomasses when I scale R_max, Kappa and gamma as when I scale only biomasses afterwards...
 # t <- params3_upd@species_params
