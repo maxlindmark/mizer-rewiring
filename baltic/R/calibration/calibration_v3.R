@@ -38,7 +38,7 @@ library(patchwork)
 #devtools::load_all(".") # THIS DOES NOT WORK ON NEW MAC; MAYBE NOT NEEDED ANYMORE SINCE
 # I PUSHED CHANGES TO THE CODE ALREADY; NO NEED TO WORK IN LOCAL LIBRAY....
 
-# Install the specicific mizer version from github
+# Install the specific mizer version from github
 # devtools::install_github("maxlindmark/mizer-rewiring", ref = "rewire-temp") 
 library(mizer)
 

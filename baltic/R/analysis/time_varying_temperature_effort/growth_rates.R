@@ -29,7 +29,12 @@ library(dplyr)
 library(patchwork)
 
 # Install and reload local mizer package
-devtools::load_all(".")
+#devtools::load_all(".") # THIS DOES NOT WORK ON NEW MAC; MAYBE NOT NEEDED ANYMORE SINCE
+# I PUSHED CHANGES TO THE CODE ALREADY; NO NEED TO WORK IN LOCAL LIBRAY....
+
+# Install the specific mizer version from github
+# devtools::install_github("maxlindmark/mizer-rewiring", ref = "rewire-temp") 
+library(mizer)
 
 # Print package versions
 # print(sessionInfo())
@@ -436,7 +441,7 @@ big_mean_weight_data_no_r <- big_mean_weight_data_no_r %>%
 big_mean_weight_data_no_r$species <- rep(ref@params@species_params$species, 200)
 
 
-# B. PLOT ==========================================================================
+# C. PLOT ==========================================================================
 #** Plot growth rates ==============================================================
 big_growth_data_w_r$scen <- "Physio. + Resource (exp)" # "With resource temp. dep."
 big_growth_data_no_r$scen <- "Physio." # "No resource temp. dep."
@@ -510,7 +515,7 @@ p1 <- ggplot(mean_dat,
 
 p1
 
-pWord1 <- p1+ theme_classic() + theme(text = element_text(size = 12),
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
                                       axis.text = element_text(size = 10),
                                       legend.position = "bottom",
                                       legend.title = element_blank())
@@ -678,7 +683,7 @@ ggsave("baltic/figures/mean_weight.png", width = 6.5, height = 6.5, dpi = 600)
 #   NULL
 
 
-#**** Some tests ===================================================================
+# D. Some tests ====================================================================
 # Testing relative growth rates are correct (seems like larger difference there than in actual growth rates)
 big_growth_data %>%
   filter(Age > 0 & Age < 16 & Species == "Cod") %>%
