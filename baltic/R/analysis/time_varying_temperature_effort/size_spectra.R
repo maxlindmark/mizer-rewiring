@@ -145,8 +145,12 @@ pars_with_res_np <- MizerParams(t_no_ea,
 
 # Define temperature-scenarios
 consTemp <- projectTemp$temperature
-start <- 1997-1914
-consTemp[start:137] <- t_ref
+
+# The time series starts in 1874. From 1997 (mid point in calibration time), we want
+# to fix the temperature at the mean of the calibration, i.e. t_ref. This ensures
+# we get comparable starting values for the models so that temperature is the only "treatment"
+start <- 1997-1874
+consTemp[start:177] <- t_ref
 
 
 # B. TEMP-DRIVEN CHANGE IN MORTALITY AND SIZE SPECTRA ==============================
@@ -612,12 +616,12 @@ pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 plotdf <- select(proj@params@species_params, species, w_mat)
 
 # Plot relative spectra
-big_spect_data %>% 
+p1 <- big_spect_data %>% 
   # Note we are doing some filtering here to be able to plot all together. Look at how large 
   # cod abundance increases rapibdly in the low fishing scenarios.
   #filter(n > 0 & re_spec > 0.85 & re_spec < 1.15 & w > 0.001) %>%
-  #filter(n > 0 & re_spec > 0.8 & re_spec < 1.2 & w > 0.001) %>%
-  filter(n > 0 & Fm %in% c(0.9, 1, 1.1) & w > 0.001 & re_spec > 0.8 & re_spec < 1.3 & w > 0.1) %>%
+  filter(n > 0 & re_spec > 0.5 & re_spec < 1.5 & w > 0.001) %>%
+  #filter(n > 0 & Fm %in% c(0.9, 1, 1.1) & w > 0.001 & re_spec > 0.8 & re_spec < 1.3 & w > 0.1) %>%
   ggplot(., aes(w, re_spec, color = factor(Fm), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_line(size = 1) + 
@@ -625,7 +629,6 @@ big_spect_data %>%
   #scale_alpha_manual(values = c(0.7, 0.7, 1, 0.7, 0.7)) +
   #scale_linetype_manual(values = c("solid", "solid", "longdash", "solid", "solid")) +
   facet_grid(scen ~ species, scales = "free") +
-  theme_classic(base_size = 13) +
   #scale_y_log10(breaks = sim) +
   scale_x_log10() +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
@@ -637,7 +640,11 @@ big_spect_data %>%
   theme(strip.text.y = element_text(size = 5)) +
   NULL
 
-#ggsave("baltic/figures/supp/spectra_FM_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
+                                      axis.text = element_text(size = 10),
+                                      strip.text.y = element_text(size = 5))
+
+ggsave("baltic/figures/supp/spectra_FM_project.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 # No fishing and absolute spectra
@@ -646,23 +653,22 @@ pal2 <- c("black", pal)
 
 unique(big_spect_data$scen)
 
-p1 <- big_spect_data %>% 
+p2 <- big_spect_data %>% 
   filter(n > 0 & Fm == 1 & w > 0.1) %>%
   ggplot(., aes(w, (n*240.342), color = factor(scen), linetype = scen)) + 
   geom_line(size = 1) + 
   scale_colour_manual(values = pal2,
                       name = "Scenario") +
-  theme_classic(base_size = 13) +
   scale_x_log10() +
   guides(linetype = FALSE) +
   scale_y_log10() +
-  theme(legend.text = element_text(size = 8)) +
   facet_wrap(~species, scales = "free", nrow = 3) +
   labs(x ="Body mass (g)",
        y = "Biomass density") +
   NULL
 
-p1
+pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 8))
 
 
 # No fishing and relative spectra
@@ -670,7 +676,7 @@ pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 
 unique(big_spect_data$scen)
 
-p2 <- big_spect_data %>% 
+p3 <- big_spect_data %>% 
   filter(n > 0 & Fm == 1 & w > 0.1 & scen %in% c("Physio. + Resource (exp.)",
                                                  "Resource (exp.)",
                                                  "Resource (obs.)",
@@ -684,23 +690,22 @@ p2 <- big_spect_data %>%
   scale_colour_manual(values = rev(pal[]),
                       name = "") +
   facet_wrap(~ species, scales = "free", nrow = 3) +
-  theme_classic(base_size = 13) +
   #scale_y_log10(breaks = sim) +
   scale_x_log10() +
-  theme(legend.position = "bottom",
-        legend.text = element_text(size = 10)) +
   guides(color = FALSE) +
   labs(x ="Body mass (g)",
        y = "Relative biomass density (warming/no warming)",
        color = "Scenario") +
   NULL
 
-p2
+pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 8),
+                                       legend.position = "bottom")
 
 # Plot relative and absolute in the same plot!
-p2+p1 
+pWord3 + pWord2
 
-#ggsave("baltic/figures/spectra_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+ggsave("baltic/figures/spectra_project.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 
@@ -729,7 +734,7 @@ big_spect_data %>%
   NULL
 
 # Relative mortality (filter really low values!)
-big_spect_data %>% 
+p4 <- big_spect_data %>% 
   filter(Fm == 1 & mort > 0.075 & scen %in% c("Physio. + Resource (exp.)",
                                               "Physio. + Resource (obs.)",
                                               "Resource (exp.)",
@@ -741,16 +746,18 @@ big_spect_data %>%
   geom_line(size = 1) + 
   scale_colour_manual(values = rev(pal)) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
-  theme_classic(base_size = 13) +
   scale_x_log10() +
   guides(linetype = FALSE) +
-  theme(#legend.position = "bottom",
-        aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
        y = "Relative predation mortality (warming/no warming)",
        color = "Scenario") +
   NULL
-#ggsave("baltic/figures/supp/mort_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+
+pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 8),
+                                       aspect.ratio = 1/2)
+
+ggsave("baltic/figures/supp/mort_project.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 #**** Plot feeding level ===========================================================
@@ -795,7 +802,7 @@ big_spect_data %>%
 #   NULL
 
 # Relative feeding level
-big_spect_data %>% 
+p4 <- big_spect_data %>% 
   filter(Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
                                "Physio. + Resource (obs.)",
                                "Resource (exp.)",
@@ -806,16 +813,19 @@ big_spect_data %>%
   geom_line(size = 1) + 
   scale_colour_manual(values = rev(pal)) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
-  theme_classic(base_size = 13) +
   scale_x_log10() +
   guides(linetype = FALSE) +
-  theme(aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
        y = "Relative Feeding level (warming/no warming)",
        color = "Scenario") +
   NULL
 
-#ggsave("baltic/figures/supp/feedingLevel_project.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
+pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 8),
+                                       aspect.ratio = 1/2)
+
+ggsave("baltic/figures/supp/feedingLevel_project.png", width = 6.5, height = 6.5, dpi = 600)
+
 
 
 #** More tests =====================================================================

@@ -1217,18 +1217,21 @@ pWord11 <- p11 + theme_classic() + theme(text = element_text(size = 12),
 ggsave("baltic/figures/supp/obs_pred_corr.png", width = 6.5, height = 6.5, dpi = 600)
 
 
-# F. SAVE OBJECTS FOR ANALYSIS ============================================================
-#**** Mizer params ========================================================================
+# F. SAVE OBJECTS FOR ANALYSIS =====================================================
+#**** Mizer params =================================================================
 mizer_param_calib <- params3b_upd
 str(mizer_param_calib)
 
 saveRDS(mizer_param_calib, file = "baltic/params/mizer_param_calib.rds") 
 
-#**** Temperature and effort vectors ======================================================
+#**** Temperature and effort vectors ===============================================
 write.csv(projectEffort_ct, file = "baltic/params/projectEffort.csv")
 write.csv(projectTemp, file = "baltic/params/projectTemp.csv") 
 
+params3b_upd@species_params
 
+
+# G. TEST ==========================================================================
 # TEST I can get the same biomasses when I scale R_max, Kappa and gamma as when I scale only biomasses afterwards...
 # t <- params3_upd@species_params
 # 
