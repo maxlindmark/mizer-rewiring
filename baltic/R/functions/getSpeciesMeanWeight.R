@@ -1,6 +1,6 @@
-# Create getSpectra function..
+# Create getSpeciesMeanWeight function..
 getSpeciesMeanWeight <- function(sim, species = 1:nrow(sim@params@species_params), ...){
-  check_species(sim, species)
+  #check_species(sim, species)
   n_species <- getN(sim, ...)
   biomass_species <- getBiomass(sim, ...)
   #n_total <- apply(n_species[, species, drop = FALSE], 1, sum)
