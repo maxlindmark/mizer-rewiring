@@ -35,7 +35,12 @@ library(dplyr)
 library(patchwork)
 
 # Install and reload local mizer package
-devtools::load_all(".")
+#devtools::load_all(".") # THIS DOES NOT WORK ON NEW MAC; MAYBE NOT NEEDED ANYMORE SINCE
+# I PUSHED CHANGES TO THE CODE ALREADY; NO NEED TO WORK IN LOCAL LIBRAY....
+
+# Install the specicific mizer version from github
+# devtools::install_github("maxlindmark/mizer-rewiring", ref = "rewire-temp") 
+library(mizer)
 
 # Print package versions
 # print(sessionInfo())
@@ -770,7 +775,7 @@ ggsave("baltic/figures/supp/growth_model_data.png", width = 6.5, height = 6.5, d
 
 
 #** Spectra and feeding level ======================================================
-p4 <- spect <- plotSpectra(m3, algae = F) + 
+p4 <- spect <- plotSpectra(m3b, algae = F) + 
   scale_color_manual(values = rev(col)) +
   NULL
 
@@ -779,7 +784,7 @@ pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
                                        aspect.ratio = 3/4)
 
 # Check feeding level
-p5 <- feedlev <- plotFeedingLevel(m3) + 
+p5 <- feedlev <- plotFeedingLevel(m3b) + 
   NULL
 
 pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
@@ -841,6 +846,22 @@ pWord6 + pWord7
 ggsave("baltic/figures/supp/SSB_fit.png", width = 6.5, height = 6.5, dpi = 600)
 
 
+#** Diet ===========================================================================
+p8 <- plotDietComp(m3b, prey = dimnames(m3b@diet_comp)$prey[1:5]) + 
+  scale_fill_manual(values = rev(col),
+                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
+  scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+  NULL
+
+pWord8 <- p8 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1,
+                                       legend.position = "bottom")
+
+ggsave("baltic/figures/supp/diet.png", width = 6.5, height = 6.5, dpi = 600)
+
+
 # E. VALIDATE WITH TIME SERIES =====================================================
 #** Set up time varying effort =====================================================
 # First I need to set-up the matricies holding time series of temperature and effort
@@ -885,19 +906,21 @@ all_effort
 # Create effort for projection with temperature by appending FMSY to effort data
 t_future <- 2050-2012
 
-projectEffort_fwr_df <- data.frame(all_effort[1:t_future,])
+projectEffort_fwr_df <- data.frame(all_effort[1:t_future, ])
 
-# Add in the means of the multispecies assessments + size spectrum model.
-# We don't really need to use assessment estimates, but since we do when calibrating
-# the model, they should perhaps be influencing here
-# Can also consider taking MSY's from the size spectrum model
+# Add in FMSY from the MIZER model.
+# Note though that the model is calibrated to FMSY from stock assessment
+# However, in order to not confound the analysis with FMSY differeing between models, 
+# I will add FMSY from the mizer model
 
 # FMSY from assessment
 asses_mod_FMSY
 
-projectEffort_fwr_df[, 1] <- asses_mod_FMSY %>% filter(Species == "Cod") %>% summarize(medFMSY = mean(FMSY))     # Cod
-projectEffort_fwr_df[, 2] <- asses_mod_FMSY %>% filter(Species == "Herring") %>% summarize(medFMSY = mean(FMSY)) # Herring
-projectEffort_fwr_df[, 3] <- asses_mod_FMSY %>% filter(Species == "Sprat") %>% summarize(medFMSY = mean(FMSY))   # Sprat
+size_spect_FMSY <- asses_mod_FMSY %>% filter(Source == "Size Spectrum Model")
+
+projectEffort_fwr_df[, 1] <- filter(size_spect_FMSY, Species == "Cod")$FMSY
+projectEffort_fwr_df[, 2] <- filter(size_spect_FMSY, Species == "Herring")$FMSY
+projectEffort_fwr_df[, 3] <- filter(size_spect_FMSY, Species == "Sprat")$FMSY
 
 projectEffort_fwr <- as.matrix(projectEffort_fwr_df)
 rownames(projectEffort_fwr) <- 2013:2050
@@ -942,7 +965,7 @@ projectTemp
 # Plot effort data
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
-p8 <- plotEffort %>% 
+p9 <- plotEffort %>% 
   gather(Species, Effort, 1:3) %>% 
   ggplot(., aes(Year, Effort, color = Species, linetype = Species)) +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
@@ -965,7 +988,7 @@ p8 <- plotEffort %>%
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
   NULL
 
-pWord8 <- p8 + theme_classic() + theme(text = element_text(size = 12),
+pWord9 <- p9 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12), 
                                        aspect.ratio = 3/4, 
                                        legend.position = c(.2, .85),
@@ -984,7 +1007,7 @@ tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 col <- RColorBrewer::brewer.pal("Set1", n = 3)[1:2]
 
-p9 <- ggplot(tempScen, aes(Year, (Temperature), color = Scenario, linetype = Scenario)) +
+p10 <- ggplot(tempScen, aes(Year, (Temperature), color = Scenario, linetype = Scenario)) +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
             aes(xmin = min(Year), 
                 xmax = max(Year),
@@ -998,20 +1021,20 @@ p9 <- ggplot(tempScen, aes(Year, (Temperature), color = Scenario, linetype = Sce
   ylab(expression(paste("Relative temperature [", degree*C, "]"))) +
   NULL
 
-pWord9 <- p9 + theme_classic() + theme(text = element_text(size = 12),
-                                       axis.text = element_text(size = 12), 
-                                       aspect.ratio = 3/4, 
-                                       legend.position = c(.25, .75),
-                                       legend.title = element_blank())
+pWord10 <- p10 + theme_classic() + theme(text = element_text(size = 12),
+                                         axis.text = element_text(size = 12), 
+                                         aspect.ratio = 3/4, 
+                                         legend.position = c(.25, .75),
+                                         legend.title = element_blank())
 
 
 # Plot effort and the two temperature-series temperature
-pWord8 / pWord9
+pWord9 / pWord10
 
 ggsave("baltic/figures/supp/effort_temp.png", width = 6.5, height = 6.5, dpi = 600)
 
 
-#** Project with temperatue and effort varying through time ========================
+#** Project with temperature and effort varying through time =======================
 # Here I want to create two models
 # m4_temp: time series with temperature + parameters for temperature
 # m4_cons: constant temperature (t_ref, i.e. no temperature effect!)
@@ -1157,7 +1180,7 @@ dat$Year <- as.integer(dat$Year)
 # Reorder factor levels
 dat$Scenario <- factor(dat$Scenario, levels = c("Constant temp", "Physio.", "Physio. + Resource (exp.)", "Stock assessment"))
 
-p10 <- dat %>% filter(Year < 2012 & Year > 1970) %>% 
+p11 <- dat %>% filter(Year < 2012 & Year > 1970) %>% 
   ggplot(., aes(Year, SSB, linetype = Scenario, color = Scenario, alpha = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
@@ -1174,7 +1197,7 @@ p10 <- dat %>% filter(Year < 2012 & Year > 1970) %>%
   scale_y_continuous(expand = c(0, 0)) +
   NULL
 
-pWord10 <- p10 + theme_classic() + theme(text = element_text(size = 12),
+pWord11 <- p11 + theme_classic() + theme(text = element_text(size = 12),
                                          axis.text = element_text(size = 12), 
                                          aspect.ratio = 1/2)
 
@@ -1196,7 +1219,7 @@ cor_df <- data.frame(Year = obs_df$Year,
 cors_con <- ddply(cor_df, c("Species"), summarise, cor = round(cor(pred_wTempR, Obs), 2))
 
 # Plot correlation between predicted and observed
-p11 <- ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
+p12 <- ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
   facet_wrap(~ Species, ncol = 3, scales = "free") +
   geom_abline(slope = 1, intercept = 0, color = "red", size = 0.7) +
   geom_point(size = 2) +
@@ -1208,7 +1231,7 @@ p11 <- ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
   scale_color_viridis() +
   NULL
 
-pWord11 <- p11 + theme_classic() + theme(text = element_text(size = 12),
+pWord12 <- p12 + theme_classic() + theme(text = element_text(size = 12),
                                          axis.text = element_text(size = 12), 
                                          legend.text = element_text(size = 8),
                                          legend.position = "bottom",
