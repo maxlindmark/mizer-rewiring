@@ -27,7 +27,12 @@ library(dplyr)
 library(patchwork)
 
 # Install and reload local mizer package
-devtools::load_all(".")
+#devtools::load_all(".") # THIS DOES NOT WORK ON NEW MAC; MAYBE NOT NEEDED ANYMORE SINCE
+# I PUSHED CHANGES TO THE CODE ALREADY; NO NEED TO WORK IN LOCAL LIBRAY....
+
+# Install the specific mizer version from github
+# devtools::install_github("maxlindmark/mizer-rewiring", ref = "rewire-temp") 
+library(mizer)
 
 # Print package versions
 # print(sessionInfo())
