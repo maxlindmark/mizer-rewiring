@@ -754,18 +754,8 @@ ggsave("baltic/figures/supp/SSB_warm_cold.png", width = 6.5, height = 6.5, dpi =
 
 
 # C. HEATMAP EFFORT~TEMPERATURE FOR LOOP ===========================================
-# The below code is not used because it is (too) difficult to set the fishing mortalities
-# for the other species while varying the others. The problem is that in the code above,
-# when I find the species FMSY, i keep the others at their FMSY from assessment, which I 
-# use for calibration. If I 
-
 simFMSY <- projectEffort_m[177, ]
 baseEffort <- simFMSY
-
-# Using params from calibration instead
-# baseEffort <- c(Cod = params@species_params$AveEffort[1],
-#                 Herring = params@species_params$AveEffort[3],
-#                 Sprat = params@species_params$AveEffort[2])
 
 baseTemp <- t_ref
 t_max <- 100
@@ -782,35 +772,6 @@ refYield <- data.frame(Yield = c(getYield(ref)[dim(ref@effort)[1], 1],
                                  getYield(ref)[dim(ref@effort)[1], 2],
                                  getYield(ref)[dim(ref@effort)[1], 3]),
                        Species = ref@params@species_params$species)
-
-# > refYield
-# Yield Species
-# 1 2.1028437     Cod
-# 2 0.3307698   Sprat
-# 3 0.2813981 Herring
-
-# test_effort <- baseEffort
-# test_effort[1] <- 0.84
-# #test_effort[1] <- baseEffort[1] * 2
-# #test_effort <- baseEffort * 2
-#
-# ref_test <- project(pars_res_phys,
-#                dt = dt,
-#                effort = test_effort,
-#                temperature = rep(baseTemp, t_max),
-#                diet_steps = 10,
-#                t_max = t_max)
-#
-# refYield_test <- data.frame(Yield = c(getYield(ref_test)[dim(ref_test@effort)[1], 1],
-#                                       getYield(ref_test)[dim(ref_test@effort)[1], 2],
-#                                       getYield(ref_test)[dim(ref_test@effort)[1], 3]),
-#                        Species = ref_test@params@species_params$species)
-#
-# refYield_test$Yield
-# refYield$Yield
-#
-# refYield_test$Yield / refYield$Yield
-
 
 
 #**** for loop through different fishing effort (with temp. dep. resource) ============
