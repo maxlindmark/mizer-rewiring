@@ -897,6 +897,8 @@ p3 <- ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
        y = "Fishing mortality relative\n to MSSM FMSY",
        fill = "Yield relative to FMSY +\nconstant temp.") +
   coord_cartesian(expand = 0) +
+  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1, color = "darkred") + 
+  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1, nudge_x = 0.1, color = "darkred") +
   NULL
 
 pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
@@ -917,6 +919,8 @@ ggplot(., aes(temp_scal, Fm_scal, fill = Yield_rel)) +
        fill = "Yield relative to FMSY +\nconstant temp.") +
   coord_cartesian(expand = 0) +
   ggtitle("Cod") +
+  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "white") + 
+  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "black", size = 2) +
   NULL
 
 pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 10),
@@ -937,6 +941,8 @@ ggplot(., aes(temp_scal, Fm_scal, fill = Yield_rel)) +
        fill = "Yield relative to FMSY +\nconstant temp.") +
   coord_cartesian(expand = 0) +
   ggtitle("Herring") +
+  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "white") + 
+  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "black", size = 2) +
   NULL
 
 pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 10),
@@ -957,6 +963,8 @@ p6 <- big_yield_data %>% filter(Species == "Sprat") %>%
        fill = "Yield relative to FMSY +\nconstant temp.") +
   coord_cartesian(expand = 0) +
   ggtitle("Sprat") +
+  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "white") + 
+  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "black", size = 2) +
   NULL
 
 pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 10),
