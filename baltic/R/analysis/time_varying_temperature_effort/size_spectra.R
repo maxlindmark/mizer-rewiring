@@ -162,13 +162,19 @@ consTemp[start:177] <- t_ref
 # for-loop to take random samples for distributions representing activation energies
 # Then compare that to a projection with a constant temperature
 
+# ***** NOTE that I do not currently use the full data I loop in here. I don't use the 
+# variation in fishing mortality. That is because unless you tune one species at the 
+# (which the code currently does not), you may see opposite effects of fishing on 
+# spectra compared to what you'd expect, e.g. because their predators or competitiors
+# decline. This is a result I'm not sure I want to dig into at this point. Maybe
+
+
 #**** Project reference scenario ===================================================
 ref <- project(pars_no_res, 
                dt = dt,
                effort = projectEffort_m,
                temperature = consTemp,
-               diet_steps = 10,
-               t_max = t_max)
+               diet_steps = 10)
 
 refSpect <- getSpectra(ref)
 refMort <- getMortality(ref)
@@ -176,6 +182,12 @@ refMort <- getMortality(ref)
 refSpect
 
 plotSpectra(ref)
+
+# Testing to scale to right volume
+# aa <- plotSpectra(ref)
+# ref@n <- ref@n*249
+# bb <- plotSpectra(ref)
+# aa/bb
 
 # Testing mortality is correct
 plot(ref)
@@ -193,11 +205,11 @@ FL_df <- function(object){
   vec <- getFeedingLevel(object)
   str(vec)
   
-  FL <- data.frame(w = rep(as.numeric(names(vec[137, 1, 1:100])), 3), 
-                   value = c(as.numeric(vec[137, 1, 1:100]),
-                             as.numeric(vec[137, 2, 1:100]),
-                             as.numeric(vec[137, 3, 1:100])),
-                   Species = rep(names(vec[137, 1:3, 1]), each = 100))
+  FL <- data.frame(w = rep(as.numeric(names(vec[177, 1, 1:100])), 3), 
+                   value = c(as.numeric(vec[177, 1, 1:100]),
+                             as.numeric(vec[177, 2, 1:100]),
+                             as.numeric(vec[177, 3, 1:100])),
+                   Species = rep(names(vec[177, 1:3, 1]), each = 100))
   
   FL <- arrange(FL, Species, w)
 }
@@ -205,10 +217,69 @@ FL_df <- function(object){
 refFL <- FL_df(ref)
 
 # plot(refFL$w, refMort$w); abline(0, 1, col = "red")
-# unique(refFL$Species) 
+# unique(refFL$Species)
 # unique(refMort$Species)
 # head(refFL)
 # head(refMort)
+
+
+
+####------ TEST -----####
+# Testing if abundance of large declines when I fish on one species at the time
+# projectEffort_new <- projectEffort_m
+#   
+# projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * 1.2
+#   
+# proj <- project(pars_with_res, 
+#                 dt = dt,
+#                 effort = projectEffort_new,
+#                 temperature = consTemp,
+#                 diet_steps = 10)   
+#   
+# # Apply getSpectra function to get abundance at size
+# spect <- getSpectra(proj)
+# 
+# # Add in iteration
+# spect$sim <- i
+# 
+# # Relative spectra
+# spect$re_spec <- getSpectra(proj)$n / getSpectra(ref)$n #spect$n / refSpect$n
+# 
+# spect %>% filter(n > 0) %>% ggplot(., aes(w, re_spec)) +
+#   geom_line() +
+#   facet_grid(~species, scales = "free_x") +
+#   theme(aspect.ratio = 3/4) +
+#   geom_hline(yintercept = 1, col = "red") +
+#   NULL
+#   
+# 
+# ## Now try with only sprat fishing
+# projectEffort_new <- projectEffort_m
+# 
+# projectEffort_new[140:nrow(projectEffort_m), 3] <- projectEffort_m[140:nrow(projectEffort_m), 3] * 1.2
+# 
+# proj <- project(pars_with_res, 
+#                 dt = dt,
+#                 effort = projectEffort_new,
+#                 temperature = consTemp,
+#                 diet_steps = 10)   
+# 
+# # Apply getSpectra function to get abundance at size
+# spect <- getSpectra(proj)
+# 
+# # Add in iteration
+# spect$sim <- i
+# 
+# # Relative spectra
+# spect$re_spec <- getSpectra(proj)$n / getSpectra(ref)$n #spect$n / refSpect$n
+# 
+# spect %>% filter(n > 0) %>% ggplot(., aes(w, re_spec)) +
+#   geom_line() +
+#   facet_grid(~species, scales = "free_x") +
+#   theme(aspect.ratio = 3/4) +
+#   geom_hline(yintercept = 1, col = "red") +
+#   NULL
+####------ END TEST -----####
 
 
 #**** for loop through different fishing effort (with temp dep resource) ============
@@ -220,13 +291,13 @@ groj <- c()
 spect <- c()
 data_list_with_res <- list()
 
-# The projected fishing mortality starts at row 100
+# The projected fishing mortality starts at row 140
 
 for (i in iter) {
 
   projectEffort_new <- projectEffort_m
     
-  projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
+  projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * sim[i]
   
   proj <- project(pars_with_res, 
                   dt = dt,
@@ -272,6 +343,22 @@ for (i in iter) {
 
 big_spect_data_w_r <- dplyr::bind_rows(data_list_with_res)
 
+# Plot diet to check if changes in spectra can be due to predation
+col <- RColorBrewer::brewer.pal("Dark2", n = 5)
+pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
+  scale_fill_manual(values = rev(col),
+                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
+  scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+  NULL
+
+pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1,
+                                       legend.position = "bottom")
+
+ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res.png", width = 6.5, height = 6.5, dpi = 600)
+
 
 #**** for loop through different fishing effort (with temp dep resource BARNES) ============
 sim <- seq(0.8, 1.2, 0.1) # Factor for scaling fishing mortality
@@ -282,13 +369,13 @@ groj <- c()
 spect <- c()
 data_list_with_res_barnes <- list()
 
-# The projected fishing mortality starts at row 100
+# The projected fishing mortality starts at row 140
 
 for (i in iter) {
   
   projectEffort_new <- projectEffort_m
   
-  projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
+  projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * sim[i]
   
   proj <- project(pars_with_res_barnes, 
                   dt = dt,
@@ -334,6 +421,22 @@ for (i in iter) {
 
 big_spect_data_w_r_b <- dplyr::bind_rows(data_list_with_res_barnes)
 
+# Plot diet to check if changes in spectra can be due to predation
+pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
+  scale_fill_manual(values = rev(col),
+                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
+  scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+  NULL
+
+pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1,
+                                       legend.position = "bottom")
+
+ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res_barnes.png", width = 6.5, height = 6.5, dpi = 600)
+
+
 
 #**** for loop through different fishing effort (with temp dep resource - NO PHYS) =
 sim <- seq(0.8, 1.2, 0.1) # Factor for scaling fishing mortality
@@ -344,13 +447,13 @@ groj <- c()
 spect <- c()
 data_list_with_res_np <- list()
 
-# The projected fishing mortality starts at row 100
+# The projected fishing mortality starts at row 140
 
 for (i in iter) {
   
   projectEffort_new <- projectEffort_m
   
-  projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
+  projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * sim[i]
   
   proj <- project(pars_with_res_np, 
                   dt = dt,
@@ -396,6 +499,21 @@ for (i in iter) {
 
 big_spect_data_w_r_np <- dplyr::bind_rows(data_list_with_res_np)
 
+# Plot diet to check if changes in spectra can be due to predation
+pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
+  scale_fill_manual(values = rev(col),
+                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
+  scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+  NULL
+
+pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1,
+                                       legend.position = "bottom")
+
+ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res_np.png", width = 6.5, height = 6.5, dpi = 600)
+
 
 #**** for loop through different fishing effort (with temp dep resource BARNES - NO PHYS) 
 sim <- seq(0.8, 1.2, 0.1) # Factor for scaling fishing mortality
@@ -406,13 +524,13 @@ groj <- c()
 spect <- c()
 data_list_with_res_barnes_np <- list()
 
-# The projected fishing mortality starts at row 100
+# The projected fishing mortality starts at row 140
 
 for (i in iter) {
   
   projectEffort_new <- projectEffort_m
   
-  projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
+  projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * sim[i]
   
   proj <- project(pars_with_res_barnes_np, 
                   dt = dt,
@@ -458,6 +576,20 @@ for (i in iter) {
 
 big_spect_data_w_r_b_np <- dplyr::bind_rows(data_list_with_res_barnes_np)
 
+# Plot diet to check if changes in spectra can be due to predation
+pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
+  scale_fill_manual(values = rev(col),
+                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
+  scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+  NULL
+
+pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1,
+                                       legend.position = "bottom")
+
+ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res_barnes_np.png", width = 6.5, height = 6.5, dpi = 600)
 
 #**** for loop through different fishing effort (no temp dep resource) ============
 tt <- c()
@@ -465,13 +597,13 @@ groj <- c()
 spect <- c()
 data_list_no_res <- list()
 
-# The projected fishing mortality starts at row 100
+# The projected fishing mortality starts at row 140
 
 for (i in iter) {
 
   projectEffort_new <- projectEffort_m
   
-  projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
+  projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * sim[i]
   
   #plot(y = as.numeric(projectEffort_m[, 1]), x = 1:137)
   #lines(y = as.numeric(projectEffort_new[, 1]), x = 1:137, col = "blue")
@@ -520,6 +652,21 @@ for (i in iter) {
 
 big_spect_data_no_r <- dplyr::bind_rows(data_list_no_res)
 
+# Plot diet to check if changes in spectra can be due to predation
+pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
+  scale_fill_manual(values = rev(col),
+                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
+  scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+  NULL
+
+pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1,
+                                       legend.position = "bottom")
+
+ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_no_res.png", width = 6.5, height = 6.5, dpi = 600)
+
 
 #**** for loop through different fishing effort (constant temperature) =============
 tt <- c()
@@ -527,13 +674,13 @@ groj <- c()
 spect <- c()
 data_list_con_temp <- list()
 
-# The projected fishing mortality starts at row 100
+# The projected fishing mortality starts at row 140
 
 for (i in iter) {
 
   projectEffort_new <- projectEffort_m
   
-  projectEffort_new[100:nrow(projectEffort_m), ] <- projectEffort_m[100:nrow(projectEffort_m), ] * sim[i]
+  projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * sim[i]
   
   proj <- project(pars_with_res, 
                   dt = dt,
@@ -578,6 +725,21 @@ for (i in iter) {
 
 big_spect_data_con_temp <- dplyr::bind_rows(data_list_con_temp)
 
+# Plot diet to check if changes in spectra can be due to predation
+pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
+  scale_fill_manual(values = rev(col),
+                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
+  scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+  NULL
+
+pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1,
+                                       legend.position = "bottom")
+
+ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res.png", width = 6.5, height = 6.5, dpi = 600)
+
 
 
 # C. PLOT ==========================================================================
@@ -608,7 +770,7 @@ big_spect_data <- rbind(big_spect_data_w_r,
 big_spect_data$scen <- as.factor(big_spect_data$scen)
 
 # Reorder factor levels
-big_spect_data$species <- factor(big_spect_data$species, levels = c("Sprat", "Herring", "Cod"))
+#big_spect_data$species <- factor(big_spect_data$species, levels = c("Sprat", "Herring", "Cod"))
 
 
 #**** Plot size-spectra ============================================================
@@ -623,9 +785,9 @@ plotdf <- select(proj@params@species_params, species, w_mat)
 # Plot relative spectra
 p1 <- big_spect_data %>% 
   # Note we are doing some filtering here to be able to plot all together. Look at how large 
-  # cod abundance increases rapibdly in the low fishing scenarios.
+  # cod abundance increases rapidly in the low fishing scenarios.
   #filter(n > 0 & re_spec > 0.85 & re_spec < 1.15 & w > 0.001) %>%
-  filter(n > 0 & re_spec > 0.5 & re_spec < 1.5 & w > 0.001) %>%
+  filter(n > 0 & re_spec > 0.25 & re_spec < 1.75 & w > 0.001) %>%
   #filter(n > 0 & Fm %in% c(0.9, 1, 1.1) & w > 0.001 & re_spec > 0.8 & re_spec < 1.3 & w > 0.1) %>%
   ggplot(., aes(w, re_spec, color = factor(Fm), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
@@ -660,7 +822,7 @@ unique(big_spect_data$scen)
 
 p2 <- big_spect_data %>% 
   filter(n > 0 & Fm == 1 & w > 0.1) %>%
-  ggplot(., aes(w, (n*240.342), color = factor(scen), linetype = scen)) + 
+  ggplot(., aes(w, (n*249), color = factor(scen), linetype = scen)) + 
   geom_line(size = 1) + 
   scale_colour_manual(values = pal2,
                       name = "Scenario") +
@@ -680,6 +842,9 @@ pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 12),
 pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 
 unique(big_spect_data$scen)
+
+# Use scientific notation for this plot
+options(scipen = 0)
 
 p3 <- big_spect_data %>% 
   filter(n > 0 & Fm == 1 & w > 0.1 & scen %in% c("Physio. + Resource (exp.)",
@@ -740,11 +905,11 @@ big_spect_data %>%
 
 # Relative mortality (filter really low values!)
 p4 <- big_spect_data %>% 
-  filter(Fm == 1 & mort > 0.075 & scen %in% c("Physio. + Resource (exp.)",
-                                              "Physio. + Resource (obs.)",
-                                              "Resource (exp.)",
-                                              "Resource (obs.)",
-                                              "Physio.")) %>%
+  filter(Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
+                               "Physio. + Resource (obs.)",
+                               "Resource (exp.)",
+                               "Resource (obs.)",
+                               "Physio.")) %>%
   ggplot(., aes(w, re_mort, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
@@ -807,7 +972,7 @@ big_spect_data %>%
 #   NULL
 
 # Relative feeding level
-p4 <- big_spect_data %>% 
+p5 <- big_spect_data %>% 
   filter(Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
                                "Physio. + Resource (obs.)",
                                "Resource (exp.)",
@@ -825,7 +990,7 @@ p4 <- big_spect_data %>%
        color = "Scenario") +
   NULL
 
-pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
+pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 8),
                                        aspect.ratio = 1/2)
 

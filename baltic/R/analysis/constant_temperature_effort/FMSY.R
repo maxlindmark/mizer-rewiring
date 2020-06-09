@@ -143,7 +143,7 @@ consTemp[start:177] <- t_ref
 # exactly translateable to the time-varying effort and temperature projections.
 
 F_range <- seq(0, 1.1, 0.01) # Can decrease step later, becomes too slow now
-t_max <- 100
+t_max <- 200
 index <- 1:length(F_range)
 
 
@@ -673,7 +673,6 @@ ggplot(sprFmsy_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_lin
 
 
 #**** All together =================================================================
-#col <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 col <- RColorBrewer::brewer.pal(n = 3, "Set1")[1:2]
 
 Fmsy <- rbind(codFmsy_phys, sprFmsy_phys, herFmsy_phys,
@@ -720,45 +719,49 @@ pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
                                       axis.text = element_text(size = 10),
                                       legend.position = "bottom",
                                       aspect.ratio = 3/4,
-                                      legend.text = element_text(size = 6),
+                                      legend.text = element_text(size = 7.5),
                                       legend.title = element_text(size = 10))
 
 ggsave("baltic/figures/FMSY_warm_cold.png", width = 6.5, height = 6.5, dpi = 600)
 
 
-p2 <- Fmsy %>% 
-  filter(type == "ssb") %>% 
-  filter(biomass > 0.001) %>% 
-  ggplot(., aes(Fm, biomass*240.342, linetype = scen2, color = scen)) + 
-  geom_line(alpha = 0.8, size = 1.2) +
-  facet_wrap(~ species, scales = "free") +
-  scale_color_manual(values = c(col[2], col[1], col[3]), 
-                     labels = c(expression("T"[ref]), 
-                                expression(paste("T"[ref], "+2", degree*C)))) +
-  labs(x = "Fishing mortality [1/year]", 
-       y = "SSB [1000 tonnes]",
-       color = "Scenario",
-       linetype = "Metric") +
-  coord_cartesian(expand = 0) +
-  NULL
-
-pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 12),
-                                      axis.text = element_text(size = 10),
-                                      legend.position = "bottom",
-                                      aspect.ratio = 3/4,
-                                      legend.text = element_text(size = 6),
-                                      legend.title = element_text(size = 10))
-
-ggsave("baltic/figures/supp/SSB_warm_cold.png", width = 6.5, height = 6.5, dpi = 600)
+# p2 <- Fmsy %>% 
+#   filter(type == "ssb") %>% 
+#   filter(biomass > 0.001) %>% 
+#   ggplot(., aes(Fm, biomass*240.342, linetype = scen2, color = scen)) + 
+#   geom_line(alpha = 0.8, size = 1.2) +
+#   facet_wrap(~ species, scales = "free") +
+#   scale_color_manual(values = c(col[2], col[1], col[3]), 
+#                      labels = c(expression("T"[ref]), 
+#                                 expression(paste("T"[ref], "+2", degree*C)))) +
+#   labs(x = "Fishing mortality [1/year]", 
+#        y = "SSB [1000 tonnes]",
+#        color = "Scenario",
+#        linetype = "Metric") +
+#   coord_cartesian(expand = 0) +
+#   NULL
+# 
+# pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 12),
+#                                       axis.text = element_text(size = 10),
+#                                       legend.position = "bottom",
+#                                       aspect.ratio = 3/4,
+#                                       legend.text = element_text(size = 6),
+#                                       legend.title = element_text(size = 10))
+# 
+# ggsave("baltic/figures/supp/SSB_warm_cold.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 
 # C. HEATMAP EFFORT~TEMPERATURE FOR LOOP ===========================================
+# Be aware of the indexing... herring and sprat are sometimes 2 and sometimes 3 in the 
+# column order...
+
 simFMSY <- projectEffort_m[177, ]
 baseEffort <- simFMSY
 
 baseTemp <- t_ref
-t_max <- 100
+t_max <- 200
+
 
 #**** Project reference scenario ===================================================
 ref <- project(pars_res_phys,
@@ -776,8 +779,8 @@ refYield <- data.frame(Yield = c(getYield(ref)[dim(ref@effort)[1], 1],
 
 #**** for loop through different fishing effort (with temp. dep. resource) ============
 data_list <- list()
-temp <- seq(0.75, 1.25, 0.02)
-eff <- seq(0.25, 3, 0.1) # Factor for scaling fishing mortality
+temp <- seq(0.75, 1.25, 0.025)
+eff <- seq(0.1, 2, 0.1) # Factor for scaling fishing mortality
 
 temp_eff <- data.frame(expand.grid(eff = eff, temp = temp))
 iter <- seq(from = 1, to = nrow(temp_eff))
@@ -854,7 +857,7 @@ baseEffort_var <- baseEffort
 
 for (i in iter) {
 
-  baseEffort_var[2] <- baseEffort[2] * temp_eff$eff[i] #
+  baseEffort_var[3] <- baseEffort[3] * temp_eff$eff[i] #
   baseTemp_var <- baseTemp * temp_eff$temp[i]
 
   proj <- project(pars_res_phys,
@@ -888,66 +891,50 @@ big_yield_data <- rbind(big_yield_data_cod, big_yield_data_herring, big_yield_da
 big_yield_data %>% filter(temp_scal == 1)
 
 
-# All together
-p3 <- ggplot(big_yield_data, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
-  geom_tile(color = NA) +
-  facet_grid(~ Species, scales = "free") +
-  scale_fill_viridis() +
-  labs(x = c(expression("Temperature factor to T"[ref])),
-       y = "Fishing mortality relative\n to MSSM FMSY",
-       fill = "Yield relative to FMSY +\nconstant temp.") +
-  coord_cartesian(expand = 0) +
-  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1, color = "darkred") + 
-  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1, nudge_x = 0.1, color = "darkred") +
-  NULL
-
-pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
-                                      axis.text = element_text(size = 10),
-                                      aspect.ratio = 3/4,
-                                      legend.position = "bottom")
-
-ggsave("baltic/figures/supp/yield_heat_v1.png", width = 6.5, height = 6.5, dpi = 600)
-
-
-# All separate
+# Plot
 p4 <- big_yield_data %>% filter(Species == "Cod") %>%
-ggplot(., aes(temp_scal, Fm_scal, fill = Yield_rel)) +
+ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
   geom_tile(color = NA) +
   scale_fill_viridis() +
-  labs(x = c(expression("Temperature factor to T"[ref])),
-       y = "Fishing mortality relative\n to MSSM FMSY",
-       fill = "Yield relative to FMSY +\nconstant temp.") +
+  labs(#y = c(expression("Temperature, proportion of T"[ref])),
+       y = "",
+       #x = "F (proportion of FMSY)",
+       x = "",
+       fill = "Relative\nyield") +
   coord_cartesian(expand = 0) +
   ggtitle("Cod") +
-  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "white") + 
-  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "black", size = 2) +
+  geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
+  metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
   NULL
 
-pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 10),
-                                      axis.text = element_text(size = 8),
-                                      legend.text = element_text(size = 6),
-                                      aspect.ratio = 3/4,
-                                      #legend.position = "bottom",
-                                      legend.key.height = unit(0.75, "line"),
-                                      legend.key.width = unit(0.5, "line"))
+pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 10),
+                                       legend.text = element_text(size = 6),
+                                       legend.title = element_text(size = 8),
+                                       aspect.ratio = 3/4,
+                                       #legend.position = "bottom",
+                                       legend.key.height = unit(0.75, "line"),
+                                       legend.key.width = unit(0.5, "line"))
 
 
 p5 <- big_yield_data %>% filter(Species == "Herring") %>%
-ggplot(., aes(temp_scal, Fm_scal, fill = Yield_rel)) +
+ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
   geom_tile(color = NA) +
   scale_fill_viridis() +
-  labs(x = c(expression("Temperature factor to T"[ref])),
-       y = "Fishing mortality relative\n to MSSM FMSY",
-       fill = "Yield relative to FMSY +\nconstant temp.") +
+  labs(y = c(expression("Temperature, proportion of T"[ref])),
+       #x = "F (proportion of FMSY)",
+       x = "",
+       fill = "Relative\nyield") +
   coord_cartesian(expand = 0) +
   ggtitle("Herring") +
-  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "white") + 
-  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "black", size = 2) +
+  geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
+  metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
   NULL
 
-pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 10),
-                                       axis.text = element_text(size = 8),
+pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 10),
                                        legend.text = element_text(size = 6),
+                                       legend.title = element_text(size = 8),
                                        aspect.ratio = 3/4,
                                        #legend.position = "bottom",
                                        legend.key.height = unit(0.75, "line"),
@@ -955,21 +942,24 @@ pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 10),
 
 
 p6 <- big_yield_data %>% filter(Species == "Sprat") %>%
-  ggplot(., aes(temp_scal, Fm_scal, fill = Yield_rel)) +
+  ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
   geom_tile(color = NA) +
   scale_fill_viridis() +
-  labs(x = c(expression("Temperature factor to T"[ref])),
-       y = "Fishing mortality relative\n to MSSM FMSY",
-       fill = "Yield relative to FMSY +\nconstant temp.") +
+  labs(#y = c(expression("Temperature, proportion of T"[ref])),
+       y = "",
+       x = "F, proportion of FMSY",
+       #x = "",
+       fill = "Relative\nyield") +
   coord_cartesian(expand = 0) +
   ggtitle("Sprat") +
-  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "white") + 
-  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.9, 1, 1.1), color = "black", size = 2) +
+  geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
+  metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
   NULL
 
-pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 10),
-                                       axis.text = element_text(size = 8),
+pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 10),
                                        legend.text = element_text(size = 6),
+                                       legend.title = element_text(size = 8),
                                        aspect.ratio = 3/4,
                                        #legend.position = "bottom",
                                        legend.key.height = unit(0.75, "line"),
@@ -977,7 +967,9 @@ pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 10),
 
 pWord4 / pWord5 / pWord6
 
-ggsave("baltic/figures/supp/yield_heat_v2.png", width = 6.5, height = 6.5, dpi = 600)
+ggsave("baltic/figures/yield_heat.png", width = 6.5, height = 6.5, dpi = 600)
+
+
 
 
 # The below code changes all fishing mortalities at the same time. I instead want to
