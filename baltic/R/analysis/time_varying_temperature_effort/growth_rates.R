@@ -132,126 +132,126 @@ refSpeciesMeanWeight <- getSpeciesMeanWeight(ref)[nrow(projectEffort_m), ]
 
 
 #**** Barnes - with resource - no physiological scaling ============================
-sim <- 1:200
-
-t <- c()
-tt <- c()
-groj <- c()
-growth <- c()
-data_list_with_res_no_phys_barn <- list()
-mean_weight_list_with_res_no_phys_barn <- list()
-
-for (i in sim) {
-
-t <- params@species_params
-
-t$ea_met <- 0
-t$ea_int <- 0
-t$ea_mor <- 0
-
-tt <- MizerParams(t, 
-                  ea_gro = 0, #0.41, #0.43, # ea$gro[i],
-                  ea_car = ea$b_car[i], #-0.41, # 0,  # -0.41, # ea$car[i], # -ea$gro[i] 
-                  kappa_ben = kappa_ben,
-                  kappa = kappa,
-                  w_bb_cutoff = w_bb_cutoff,
-                  w_pp_cutoff = w_pp_cutoff,
-                  r_pp = r_pp,
-                  r_bb = r_bb,
-                  t_ref = t_ref)
-
-proj <- project(tt, 
-                dt = dt,
-                effort = projectEffort_m,
-                temperature = projectTemp$temperature,
-                diet_steps = 10) 
-
-growth <- getGrowth(proj)
-
-growth$ea_met <- proj@params@species_params$ea_met[1]
-growth$ea_mor <- proj@params@species_params$ea_mor[1]
-growth$ea_int <- proj@params@species_params$ea_int[1]
-
-growth$ea_gro <- proj@params@ea_gro
-growth$ea_car <- proj@params@ea_car
-
-growth$sim <- 1 # i
-
-growth$re_growth <- growth$value / refGrowth$value
-
-data_list_with_res_no_phys_barn[[i]] <- growth
- 
-mean_weight_list_with_res_no_phys_barn[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
-
-}
-
-big_growth_data_w_r_n_p_barn <- dplyr::bind_rows(data_list_with_res_no_phys_barn)
-big_mean_weight_data_w_r_n_p_barn <- dplyr::bind_rows(mean_weight_list_with_res_no_phys_barn)
-big_mean_weight_data_w_r_n_p_barn <- big_mean_weight_data_w_r_n_p_barn %>% 
-  dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
-big_mean_weight_data_w_r_n_p_barn$species <- rep(ref@params@species_params$species, 200)
+# sim <- 1:200
+# 
+# t <- c()
+# tt <- c()
+# groj <- c()
+# growth <- c()
+# data_list_with_res_no_phys_barn <- list()
+# mean_weight_list_with_res_no_phys_barn <- list()
+# 
+# for (i in sim) {
+# 
+# t <- params@species_params
+# 
+# t$ea_met <- 0
+# t$ea_int <- 0
+# t$ea_mor <- 0
+# 
+# tt <- MizerParams(t, 
+#                   ea_gro = 0, #0.41, #0.43, # ea$gro[i],
+#                   ea_car = ea$b_car[i], #-0.41, # 0,  # -0.41, # ea$car[i], # -ea$gro[i] 
+#                   kappa_ben = kappa_ben,
+#                   kappa = kappa,
+#                   w_bb_cutoff = w_bb_cutoff,
+#                   w_pp_cutoff = w_pp_cutoff,
+#                   r_pp = r_pp,
+#                   r_bb = r_bb,
+#                   t_ref = t_ref)
+# 
+# proj <- project(tt, 
+#                 dt = dt,
+#                 effort = projectEffort_m,
+#                 temperature = projectTemp$temperature,
+#                 diet_steps = 10) 
+# 
+# growth <- getGrowth(proj)
+# 
+# growth$ea_met <- proj@params@species_params$ea_met[1]
+# growth$ea_mor <- proj@params@species_params$ea_mor[1]
+# growth$ea_int <- proj@params@species_params$ea_int[1]
+# 
+# growth$ea_gro <- proj@params@ea_gro
+# growth$ea_car <- proj@params@ea_car
+# 
+# growth$sim <- 1 # i
+# 
+# growth$re_growth <- growth$value / refGrowth$value
+# 
+# data_list_with_res_no_phys_barn[[i]] <- growth
+#  
+# mean_weight_list_with_res_no_phys_barn[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
+# 
+# }
+# 
+# big_growth_data_w_r_n_p_barn <- dplyr::bind_rows(data_list_with_res_no_phys_barn)
+# big_mean_weight_data_w_r_n_p_barn <- dplyr::bind_rows(mean_weight_list_with_res_no_phys_barn)
+# big_mean_weight_data_w_r_n_p_barn <- big_mean_weight_data_w_r_n_p_barn %>% 
+#   dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
+# big_mean_weight_data_w_r_n_p_barn$species <- rep(ref@params@species_params$species, 200)
 
 
 #**** for loop (Barnes - with resource) =====================================================
-sim <- 1:200
-
-t <- c()
-tt <- c()
-groj <- c()
-growth <- c()
-data_list_with_res_barn <- list()
-mean_weight_list_with_res_barn <- list()
-
-for (i in sim) {
-  
-  t <- params@species_params
-  
-  t$ea_met <- ea$met[i]
-  t$ea_int <- ea$int[i]
-  t$ea_mor <- ea$mor[i]
-  
-  tt <- MizerParams(t, 
-                    ea_gro = 0, #ea$gro[i],
-                    ea_car = ea$b_car[i],
-                    kappa_ben = kappa_ben,
-                    kappa = kappa,
-                    w_bb_cutoff = w_bb_cutoff,
-                    w_pp_cutoff = w_pp_cutoff,
-                    r_pp = r_pp,
-                    r_bb = r_bb,
-                    t_ref = t_ref)
-  
-  proj <- project(tt, 
-                  dt = dt,
-                  effort = projectEffort_m,
-                  temperature = projectTemp$temperature,
-                  diet_steps = 10,
-                  t_max = t_max)   
-  
-  growth <- getGrowth(proj)
-  
-  growth$ea_met <- proj@params@species_params$ea_met[1]
-  growth$ea_mor <- proj@params@species_params$ea_mor[1]
-  growth$ea_int <- proj@params@species_params$ea_int[1]
-  
-  growth$ea_gro <- proj@params@ea_gro
-  growth$ea_car <- proj@params@ea_car
-  
-  growth$sim <- i
-  
-  growth$re_growth <- growth$value / refGrowth$value
-  
-  data_list_with_res_barn[[i]] <- growth
-  
-  mean_weight_list_with_res_barn[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
-  
-}
-
-big_growth_data_w_r_barn <- dplyr::bind_rows(data_list_with_res_barn)
-big_mean_weight_data_w_r_barn <- dplyr::bind_rows(mean_weight_list_with_res_barn)
-big_mean_weight_data_w_r_barn <- big_mean_weight_data_w_r_barn %>% 
-  dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
-big_mean_weight_data_w_r_barn$species <- rep(ref@params@species_params$species, 200)
+# sim <- 1:200
+# 
+# t <- c()
+# tt <- c()
+# groj <- c()
+# growth <- c()
+# data_list_with_res_barn <- list()
+# mean_weight_list_with_res_barn <- list()
+# 
+# for (i in sim) {
+#   
+#   t <- params@species_params
+#   
+#   t$ea_met <- ea$met[i]
+#   t$ea_int <- ea$int[i]
+#   t$ea_mor <- ea$mor[i]
+#   
+#   tt <- MizerParams(t, 
+#                     ea_gro = 0, #ea$gro[i],
+#                     ea_car = ea$b_car[i],
+#                     kappa_ben = kappa_ben,
+#                     kappa = kappa,
+#                     w_bb_cutoff = w_bb_cutoff,
+#                     w_pp_cutoff = w_pp_cutoff,
+#                     r_pp = r_pp,
+#                     r_bb = r_bb,
+#                     t_ref = t_ref)
+#   
+#   proj <- project(tt, 
+#                   dt = dt,
+#                   effort = projectEffort_m,
+#                   temperature = projectTemp$temperature,
+#                   diet_steps = 10,
+#                   t_max = t_max)   
+#   
+#   growth <- getGrowth(proj)
+#   
+#   growth$ea_met <- proj@params@species_params$ea_met[1]
+#   growth$ea_mor <- proj@params@species_params$ea_mor[1]
+#   growth$ea_int <- proj@params@species_params$ea_int[1]
+#   
+#   growth$ea_gro <- proj@params@ea_gro
+#   growth$ea_car <- proj@params@ea_car
+#   
+#   growth$sim <- i
+#   
+#   growth$re_growth <- growth$value / refGrowth$value
+#   
+#   data_list_with_res_barn[[i]] <- growth
+#   
+#   mean_weight_list_with_res_barn[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
+#   
+# }
+# 
+# big_growth_data_w_r_barn <- dplyr::bind_rows(data_list_with_res_barn)
+# big_mean_weight_data_w_r_barn <- dplyr::bind_rows(mean_weight_list_with_res_barn)
+# big_mean_weight_data_w_r_barn <- big_mean_weight_data_w_r_barn %>% 
+#   dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
+# big_mean_weight_data_w_r_barn$species <- rep(ref@params@species_params$species, 200)
 
 
 
@@ -443,23 +443,24 @@ big_mean_weight_data_no_r$species <- rep(ref@params@species_params$species, 200)
 
 # C. PLOT ==========================================================================
 #** Plot growth rates ==============================================================
-big_growth_data_w_r$scen <- "Physio. + Resource (exp)" # "With resource temp. dep."
+big_growth_data_w_r$scen <- "Physio. + Resource" # "With resource temp. dep."
 big_growth_data_no_r$scen <- "Physio." # "No resource temp. dep."
-big_growth_data_w_r_n_p$scen <- "Resource (exp.)" # "With resource temp. dep. no. phys"
-big_growth_data_w_r_barn$scen <- "Physio. + Resource (obs.)" # "With resource temp. dep. barn"
-big_growth_data_w_r_n_p_barn$scen <- "Resource (obs.)" # "With resource temp. dep. barn. no. phys. "
+big_growth_data_w_r_n_p$scen <- "Resource" # "With resource temp. dep. no. phys"
+#big_growth_data_w_r_barn$scen <- "Physio. + Resource (obs.)" # "With resource temp. dep. barn"
+#big_growth_data_w_r_n_p_barn$scen <- "Resource (obs.)" # "With resource temp. dep. barn. no. phys. "
 
 big_growth_data_w_r$sim <- paste("wr", big_growth_data_w_r$sim, sep = "")
 big_growth_data_no_r$sim <- paste("nr", big_growth_data_no_r$sim, sep = "")
 big_growth_data_w_r_n_p$sim <- paste("wr_np", big_growth_data_w_r_n_p$sim, sep = "")
-big_growth_data_w_r_barn$sim <- paste("wr_bar", big_growth_data_w_r_barn$sim, sep = "")
-big_growth_data_w_r_n_p_barn$sim <- paste("wr_np_bar", big_growth_data_w_r_n_p_barn$sim, sep = "")
+#big_growth_data_w_r_barn$sim <- paste("wr_bar", big_growth_data_w_r_barn$sim, sep = "")
+#big_growth_data_w_r_n_p_barn$sim <- paste("wr_np_bar", big_growth_data_w_r_n_p_barn$sim, sep = "")
 
 big_growth_data <- rbind(big_growth_data_w_r, 
                          big_growth_data_no_r, 
-                         big_growth_data_w_r_n_p,
-                         big_growth_data_w_r_barn,
-                         big_growth_data_w_r_n_p_barn)
+                         big_growth_data_w_r_n_p#,
+                         #big_growth_data_w_r_barn,
+                         #big_growth_data_w_r_n_p_barn
+                         )
 
 head(big_growth_data)
 str(big_growth_data)
@@ -516,9 +517,9 @@ p1 <- ggplot(mean_dat,
 p1
 
 pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
-                                      axis.text = element_text(size = 10),
-                                      legend.position = "bottom",
-                                      legend.title = element_blank())
+                                       axis.text = element_text(size = 10),
+                                       legend.position = "bottom",
+                                       legend.title = element_blank())
 
 
 # Plot growth curves (all curves)
@@ -568,7 +569,7 @@ ggplot(.,
                      name = "Scenario") +
   scale_fill_manual(values = rev(col)) +
   guides(fill = FALSE,
-         colour = guide_legend(nrow = 3,
+         colour = guide_legend(nrow = 1,
                                override.aes = list(alpha = 1,
                                                    linetype = 1,
                                                    size = 2))) +
@@ -577,8 +578,7 @@ ggplot(.,
 
 pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 10),
-                                       legend.position = "bottom",
-                                       legend.direction = "vertical")
+                                       legend.position = "bottom")
 
 # Plot relative growth curves (all curves)
 p2b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
@@ -598,8 +598,9 @@ p2b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
                                                    linetype = 1))) +
   guides(linetype = FALSE) +
   theme_classic(base_size = 14) +
-  theme(legend.position = "bottom",
-        legend.direction = "vertical") +
+  theme(legend.position = "bottom"#,
+        #legend.direction = "vertical"
+        ) +
   geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
   NULL
 
@@ -612,17 +613,18 @@ ggsave("baltic/figures/growth_project.png", width = 6.5, height = 6.5, dpi = 600
 
 
 #** Plot mean weights by species ===================================================
-big_mean_weight_data_w_r$scen <- "Physio. + Resource (exp)" # "With resource temp. dep."
+big_mean_weight_data_w_r$scen <- "Physio. + Resource" # "With resource temp. dep."
 big_mean_weight_data_no_r$scen <- "Physio." # "No resource temp. dep."
-big_mean_weight_data_w_r_n_p$scen <- "Resource (exp.)" # "With resource temp. dep. no. phys"
-big_mean_weight_data_w_r_barn$scen <- "Physio. + Resource (obs.)" # "With resource temp. dep. barn"
-big_mean_weight_data_w_r_n_p_barn$scen <- "Resource (obs.)" # "With resource temp. dep. barn. no. phys. "
+big_mean_weight_data_w_r_n_p$scen <- "Resource" # "With resource temp. dep. no. phys"
+#big_mean_weight_data_w_r_barn$scen <- "Physio. + Resource (obs.)" # "With resource temp. dep. barn"
+#big_mean_weight_data_w_r_n_p_barn$scen <- "Resource (obs.)" # "With resource temp. dep. barn. no. phys. "
 
 big_mean_weight_data <- rbind(big_mean_weight_data_w_r, 
                               big_mean_weight_data_no_r,
-                              big_mean_weight_data_w_r_n_p,
-                              big_mean_weight_data_w_r_barn,
-                              big_mean_weight_data_w_r_n_p_barn)
+                              big_mean_weight_data_w_r_n_p#,
+                              #big_mean_weight_data_w_r_barn,
+                              #big_mean_weight_data_w_r_n_p_barn
+                              )
 
 big_mean_weight_data$scen <- as.factor(big_mean_weight_data$scen)
 
@@ -659,9 +661,11 @@ pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 10),
                                        axis.text.x = element_blank(),
                                        legend.direction = "vertical",
-                                       legend.position = c(1, 0),
+                                       legend.position = c(0.9, 0.2),
                                        legend.justification = c(1, 0),
                                        aspect.ratio = 3/4)
+
+pWord3
 
 ggsave("baltic/figures/mean_weight.png", width = 6.5, height = 6.5, dpi = 600)
 

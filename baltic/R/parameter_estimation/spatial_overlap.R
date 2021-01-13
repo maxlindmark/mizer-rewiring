@@ -455,23 +455,35 @@ p
 unique(p_dat$Species)
 
 # Without flounder
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# For adding maps to plots
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Specify map ranges
+ymin = 54; ymax = 60.5; xmin = 12; xmax = 30
+
 p1 <- 
   p_dat %>% filter(Species %in% c("Cod", "Sprat", "Herring")) %>% 
   ggplot(., aes(x = lon, y = lat)) +
   geom_point(aes(size = proportion), color = viridis(n = 1, begin = 0.2)) + 
-  geom_polygon(data = map1, aes(x = long, y = lat, group = group), 
-               colour = "grey80", size = 0.9, fill = "grey80") +
-  coord_cartesian(xlim = c(12, 30), ylim = c(54, 60.5)) +
   scale_x_continuous(name = "Longitude") +
   scale_y_continuous(name = "Latitude") + 
   scale_size_continuous(range = c(0.001, 3)) +
   #guides(size = FALSE) +
-  facet_wrap(~ Species) +
+  facet_wrap(~ Species, ncol = 2) +
+  geom_sf(data = world, inherit.aes = F, size = 0.2) +
+  coord_sf(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
   NULL
 
 pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
-                                       axis.text = element_text(size = 12),
-                                       aspect.ratio = 1)
+                                       legend.direction = "vertical",
+                                       legend.position = c(0.8, 0.1),
+                                       legend.justification = c(1, 0),
+                                       axis.text = element_text(size = 12))
+
+pWord1
 
 ggsave("baltic/figures/supp/interaction_map.png", width = 6.5, height = 6.5, dpi = 600)
 

@@ -200,7 +200,7 @@ codFmsy_res_phys <- dplyr::bind_rows(data_list)
 
 codFmsy_res_phys$species <- "Cod"
 
-codFmsy_res_phys$scen2 <- "Physio. + Resource (exp.)"
+codFmsy_res_phys$scen2 <- "Physio. + Resource"
 
 ggplot(codFmsy_res_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
@@ -258,7 +258,7 @@ herFmsy_res_phys <- dplyr::bind_rows(data_list)
 
 herFmsy_res_phys$species <- "Herring"
 
-herFmsy_res_phys$scen2 <- "Physio. + Resource (exp.)"
+herFmsy_res_phys$scen2 <- "Physio. + Resource"
 
 ggplot(herFmsy_res_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
@@ -316,7 +316,7 @@ sprFmsy_res_phys <- dplyr::bind_rows(data_list)
 
 sprFmsy_res_phys$species <- "Sprat"
 
-sprFmsy_res_phys$scen2 <- "Physio. + Resource (exp.)"
+sprFmsy_res_phys$scen2 <- "Physio. + Resource"
 
 ggplot(sprFmsy_res_phys, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
@@ -375,7 +375,7 @@ codFmsy_res <- dplyr::bind_rows(data_list)
 
 codFmsy_res$species <- "Cod"
 
-codFmsy_res$scen2 <- "Resource (exp.)"
+codFmsy_res$scen2 <- "Resource"
 
 ggplot(codFmsy_res, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
@@ -433,7 +433,7 @@ herFmsy_res <- dplyr::bind_rows(data_list)
 
 herFmsy_res$species <- "Herring"
 
-herFmsy_res$scen2 <- "Resource (exp.)"
+herFmsy_res$scen2 <- "Resource"
 
 ggplot(herFmsy_res, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
@@ -491,7 +491,7 @@ sprFmsy_res <- dplyr::bind_rows(data_list)
 
 sprFmsy_res$species <- "Sprat"
 
-sprFmsy_res$scen2 <- "Resource (exp.)"
+sprFmsy_res$scen2 <- "Resource"
 
 ggplot(sprFmsy_res, aes(Fm, biomass, linetype = type, color = scen)) + geom_line() 
 
@@ -700,16 +700,16 @@ p1 <- Fmsy %>%
        y = "Yield [1000 tonnes/year]",
        color = "Scenario",
        linetype = "Metric") +
-  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio. + Resource (exp.)"), linetype = 3, 
+  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio. + Resource"), linetype = 3, 
                aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")),
                col = col[1], alpha  = 0.7) +
-  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Resource (exp.)"), linetype = 2, 
+  geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Resource"), linetype = 2, 
                aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")),
                col = col[1], alpha  = 0.7) +
   geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio."), linetype = 1, 
                aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")), 
                col = col[1], alpha  = 0.7) +
-  geom_segment(data = filter(Fmsy_sum, scen == "cold" & scen2 == "Physio. + Resource (exp.)"), linetype = 1, 
+  geom_segment(data = filter(Fmsy_sum, scen == "cold" & scen2 == "Physio. + Resource"), linetype = 1, 
                aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")), 
                col = col[2], alpha  = 0.7) +
   coord_cartesian(expand = 0) +
@@ -909,6 +909,7 @@ ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
 
 pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 10),
+                                       plot.title = element_text(size = 12),
                                        legend.text = element_text(size = 6),
                                        legend.title = element_text(size = 8),
                                        aspect.ratio = 3/4,
@@ -933,6 +934,7 @@ ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
 
 pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 10),
+                                       plot.title = element_text(size = 12),
                                        legend.text = element_text(size = 6),
                                        legend.title = element_text(size = 8),
                                        aspect.ratio = 3/4,
@@ -957,6 +959,7 @@ p6 <- big_yield_data %>% filter(Species == "Sprat") %>%
   NULL
 
 pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
+                                       plot.title = element_text(size = 12),
                                        axis.text = element_text(size = 10),
                                        legend.text = element_text(size = 6),
                                        legend.title = element_text(size = 8),
@@ -968,8 +971,6 @@ pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
 pWord4 / pWord5 / pWord6
 
 ggsave("baltic/figures/yield_heat.png", width = 6.5, height = 6.5, dpi = 600)
-
-
 
 
 # The below code changes all fishing mortalities at the same time. I instead want to

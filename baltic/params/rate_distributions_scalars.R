@@ -65,10 +65,10 @@ gro_q <- qnorm(c(0.025, 0.975), gro_u, gro_sd)
 gro <- rnorm(n = n, gro_u, gro_sd)
 
 # Resource carrying capacity (# Barnes et al  (201) JOURNAL OF PLANKTON RESEARCH. 95% of area within -(-0.99) - 0.59)
-b_car_u <- -0.7953
-b_car_sd <- 0.1
-b_car_q <- qnorm(c(0.025, 0.975), b_car_u, b_car_sd)
-b_car <- rnorm(n = n, b_car_u, b_car_sd)
+# b_car_u <- -0.7953
+# b_car_sd <- 0.1
+# b_car_q <- qnorm(c(0.025, 0.975), b_car_u, b_car_sd)
+# b_car <- rnorm(n = n, b_car_u, b_car_sd)
 
 # Carrying capacity (theoretical range, based on Gilbert et al (2014), ELE)
 # NOT USED IN PROJECTION
@@ -76,15 +76,15 @@ car <- runif(n = n, -0.8, 0)
 
 # Put them all together & rename factor levels for plotting
 #ea <- data.frame(met, mor, int, gro, car) # This is with uniform carrying capacity
-ea <- data.frame(met, mor, int, gro, -gro, b_car) # This is carrying = - growth
+ea <- data.frame(met, mor, int, gro, -gro) #, b_car) # This is carrying = - growth
 
 ea_dat <- ea %>% 
-  pivot_longer(1:6, names_to = "rate", values_to = "activation_energy") %>% 
+  pivot_longer(1:5, names_to = "rate", values_to = "activation_energy") %>% 
   mutate(rate = fct_recode(rate, 
                            #"Resource\ncarrying capacity" = "car",
-                           "Resource\ncarrying capacity (exp)" = "X.gro",
-                           "Resource\ncarrying capacity (obs)" = "b_car",
-                           "Resource growth rate (exp)" = "gro",
+                           "Resource\ncarrying capacity" = "X.gro",
+                           #"Resource\ncarrying capacity (obs)" = "b_car",
+                           "Resource growth rate" = "gro",
                            "Maximum\nconsumption rate" = "int",
                            "Metabolic rate" = "met",
                            "Background\nmortality rate" = "mor"))
@@ -92,7 +92,9 @@ ea_dat <- ea %>%
 # Plot samples
 # Reorder levels
 ea_dat$rate2 <- factor(ea_dat$rate, levels = c("Maximum\nconsumption rate", "Metabolic rate", "Background\nmortality rate", 
-                                               "Resource growth rate (exp)", "Resource\ncarrying capacity (exp)", "Resource\ncarrying capacity (obs)"))
+                                               "Resource growth rate", "Resource\ncarrying capacity"
+                                               #, "Resource\ncarrying capacity (obs)"
+                                               ))
 
 p1 <- ggplot(ea_dat, aes(activation_energy)) + 
   facet_wrap(~rate2, scales = "free") +
@@ -102,7 +104,10 @@ p1 <- ggplot(ea_dat, aes(activation_energy)) +
   NULL
 
 pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
-                                       axis.text = element_text(size = 12))
+                                       axis.text = element_text(size = 12),
+                                       aspect.ratio = 1)
+
+pWord1
 
 ggsave("baltic/figures/supp/random_activation_energies.png", width = 6.5, height = 6.5, dpi = 600)
 

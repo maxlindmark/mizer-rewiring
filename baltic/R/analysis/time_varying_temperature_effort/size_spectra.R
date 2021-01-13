@@ -108,16 +108,16 @@ pars_with_res <- MizerParams(t,
                              r_bb = r_bb,
                              t_ref = t_ref)
 
-pars_with_res_barnes <- MizerParams(t, 
-                                    ea_gro = 0,
-                                    ea_car = mean(ea$b_car),
-                                    kappa_ben = kappa_ben,
-                                    kappa = kappa,
-                                    w_bb_cutoff = w_bb_cutoff,
-                                    w_pp_cutoff = w_pp_cutoff,
-                                    r_pp = r_pp,
-                                    r_bb = r_bb,
-                                    t_ref = t_ref)
+# pars_with_res_barnes <- MizerParams(t, 
+#                                     ea_gro = 0,
+#                                     ea_car = mean(ea$b_car),
+#                                     kappa_ben = kappa_ben,
+#                                     kappa = kappa,
+#                                     w_bb_cutoff = w_bb_cutoff,
+#                                     w_pp_cutoff = w_pp_cutoff,
+#                                     r_pp = r_pp,
+#                                     r_bb = r_bb,
+#                                     t_ref = t_ref)
 
 
 # No physiological scaling scenarios:
@@ -126,16 +126,16 @@ t_no_ea$ea_int <- 0
 t_no_ea$ea_met <- 0
 t_no_ea$ea_mor <- 0
 
-pars_with_res_barnes_np <- MizerParams(t_no_ea, 
-                                       ea_gro = 0,
-                                       ea_car = mean(ea$b_car),
-                                       kappa_ben = kappa_ben,
-                                       kappa = kappa,
-                                       w_bb_cutoff = w_bb_cutoff,
-                                       w_pp_cutoff = w_pp_cutoff,
-                                       r_pp = r_pp,
-                                       r_bb = r_bb,
-                                       t_ref = t_ref)
+# pars_with_res_barnes_np <- MizerParams(t_no_ea, 
+#                                        ea_gro = 0,
+#                                        ea_car = mean(ea$b_car),
+#                                        kappa_ben = kappa_ben,
+#                                        kappa = kappa,
+#                                        w_bb_cutoff = w_bb_cutoff,
+#                                        w_pp_cutoff = w_pp_cutoff,
+#                                        r_pp = r_pp,
+#                                        r_bb = r_bb,
+#                                        t_ref = t_ref)
 
 pars_with_res_np <- MizerParams(t_no_ea, 
                                 ea_gro = mean(ea$gro),
@@ -361,80 +361,80 @@ ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res.png", width = 
 
 
 #**** for loop through different fishing effort (with temp dep resource BARNES) ============
-sim <- seq(0.8, 1.2, 0.1) # Factor for scaling fishing mortality
-iter <- seq(from = 1, to = length(sim))
-
-tt <- c()
-groj <- c()
-spect <- c()
-data_list_with_res_barnes <- list()
-
-# The projected fishing mortality starts at row 140
-
-for (i in iter) {
-  
-  projectEffort_new <- projectEffort_m
-  
-  projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * sim[i]
-  
-  proj <- project(pars_with_res_barnes, 
-                  dt = dt,
-                  effort = projectEffort_new,
-                  temperature = projectTemp$temperature,
-                  diet_steps = 10,
-                  t_max = t_max)   
-  
-  # Apply getSpectra function to get abundance at size
-  spect <- getSpectra(proj)
-  
-  # Add in iteration
-  spect$sim <- i
-  
-  # Relative spectra
-  spect$re_spec <- getSpectra(proj)$n / getSpectra(ref)$n #spect$n / refSpect$n
-  
-  # Extract mortality (predation) - modified from plotM2
-  mort <- getMortality(proj)
-  
-  # Add in fishing mortality
-  spect$Fm <- rep(as.numeric(proj@effort[dim(proj@effort)[1], ]), each = nrow(spect)/length(unique(spect$species)))
-  
-  # Add in natural mortality
-  spect$mort <- mort$value
-  
-  # Add in fishing mortality scalar
-  spect$Fm <- sim[i]
-  
-  # Relative mortality
-  spect$re_mort <- mort$value / refMort$value #spect$n / refSpect$n
-  
-  # Add feeding level
-  fl <- FL_df(proj)
-  spect$feedingLevel <- fl$value
-  
-  # Relative feeding level
-  spect$re_feedingLevel <- spect$feedingLevel / refFL$value 
-  
-  data_list_with_res_barnes[[i]] <- spect
-  
-}
-
-big_spect_data_w_r_b <- dplyr::bind_rows(data_list_with_res_barnes)
-
-# Plot diet to check if changes in spectra can be due to predation
-pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
-  scale_fill_manual(values = rev(col),
-                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
-  scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
-  scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
-  NULL
-
-pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
-                                       axis.text = element_text(size = 12),
-                                       aspect.ratio = 1,
-                                       legend.position = "bottom")
-
-ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res_barnes.png", width = 6.5, height = 6.5, dpi = 600)
+# sim <- seq(0.8, 1.2, 0.1) # Factor for scaling fishing mortality
+# iter <- seq(from = 1, to = length(sim))
+# 
+# tt <- c()
+# groj <- c()
+# spect <- c()
+# data_list_with_res_barnes <- list()
+# 
+# # The projected fishing mortality starts at row 140
+# 
+# for (i in iter) {
+#   
+#   projectEffort_new <- projectEffort_m
+#   
+#   projectEffort_new[140:nrow(projectEffort_m), ] <- projectEffort_m[140:nrow(projectEffort_m), ] * sim[i]
+#   
+#   proj <- project(pars_with_res_barnes, 
+#                   dt = dt,
+#                   effort = projectEffort_new,
+#                   temperature = projectTemp$temperature,
+#                   diet_steps = 10,
+#                   t_max = t_max)   
+#   
+#   # Apply getSpectra function to get abundance at size
+#   spect <- getSpectra(proj)
+#   
+#   # Add in iteration
+#   spect$sim <- i
+#   
+#   # Relative spectra
+#   spect$re_spec <- getSpectra(proj)$n / getSpectra(ref)$n #spect$n / refSpect$n
+#   
+#   # Extract mortality (predation) - modified from plotM2
+#   mort <- getMortality(proj)
+#   
+#   # Add in fishing mortality
+#   spect$Fm <- rep(as.numeric(proj@effort[dim(proj@effort)[1], ]), each = nrow(spect)/length(unique(spect$species)))
+#   
+#   # Add in natural mortality
+#   spect$mort <- mort$value
+#   
+#   # Add in fishing mortality scalar
+#   spect$Fm <- sim[i]
+#   
+#   # Relative mortality
+#   spect$re_mort <- mort$value / refMort$value #spect$n / refSpect$n
+#   
+#   # Add feeding level
+#   fl <- FL_df(proj)
+#   spect$feedingLevel <- fl$value
+#   
+#   # Relative feeding level
+#   spect$re_feedingLevel <- spect$feedingLevel / refFL$value 
+#   
+#   data_list_with_res_barnes[[i]] <- spect
+#   
+# }
+# 
+# big_spect_data_w_r_b <- dplyr::bind_rows(data_list_with_res_barnes)
+# 
+# # Plot diet to check if changes in spectra can be due to predation
+# pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
+#   scale_fill_manual(values = rev(col),
+#                     labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+#   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
+#   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
+#   NULL
+# 
+# pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
+#                                        axis.text = element_text(size = 12),
+#                                        aspect.ratio = 1,
+#                                        legend.position = "bottom")
+# 
+# ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res_barnes.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 
@@ -746,24 +746,24 @@ ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res.png", width = 
 #**** Arrange data  ================================================================
 options(scipen = 10000) # Set higher level before using scientific notation over normal
 
-big_spect_data_w_r$scen <- "Physio. + Resource (exp.)"
-big_spect_data_w_r_b$scen <- "Physio. + Resource (obs.)"
-big_spect_data_w_r_np$scen <- "Resource (exp.)"
-big_spect_data_w_r_b_np$scen <- "Resource (obs.)"
+big_spect_data_w_r$scen <- "Physio. + Resource"
+#big_spect_data_w_r_b$scen <- "Physio. + Resource (obs.)"
+big_spect_data_w_r_np$scen <- "Resource"
+#big_spect_data_w_r_b_np$scen <- "Resource (obs.)"
 big_spect_data_no_r$scen <- "Physio."
 big_spect_data_con_temp$scen <- "No warming"
 
 big_spect_data_w_r$sim <- paste("wr", big_spect_data_w_r$sim, sep = "")
-big_spect_data_w_r_b$sim <- paste("wr_b", big_spect_data_w_r_b$sim, sep = "")
+#big_spect_data_w_r_b$sim <- paste("wr_b", big_spect_data_w_r_b$sim, sep = "")
 big_spect_data_w_r_np$sim <- paste("wr_np", big_spect_data_w_r_np$sim, sep = "")
-big_spect_data_w_r_b_np$sim <- paste("wr_b_np", big_spect_data_w_r_b_np$sim, sep = "")
+#big_spect_data_w_r_b_np$sim <- paste("wr_b_np", big_spect_data_w_r_b_np$sim, sep = "")
 big_spect_data_no_r$sim <- paste("nr", big_spect_data_no_r$sim, sep = "")
 big_spect_data_con_temp$sim <- paste("ct", big_spect_data_con_temp$sim, sep = "")
 
 big_spect_data <- rbind(big_spect_data_w_r, 
-                        big_spect_data_w_r_b,
+                        #big_spect_data_w_r_b,
                         big_spect_data_w_r_np, 
-                        big_spect_data_w_r_b_np,
+                        #big_spect_data_w_r_b_np,
                         big_spect_data_no_r, 
                         big_spect_data_con_temp)
 
@@ -847,10 +847,10 @@ unique(big_spect_data$scen)
 options(scipen = 0)
 
 p3 <- big_spect_data %>% 
-  filter(n > 0 & Fm == 1 & w > 0.1 & scen %in% c("Physio. + Resource (exp.)",
-                                                 "Resource (exp.)",
-                                                 "Resource (obs.)",
-                                                 "Physio. + Resource (obs.)",
+  filter(n > 0 & Fm == 1 & w > 0.1 & scen %in% c("Physio. + Resource",
+                                                 "Resource",
+                                                 #"Resource (obs.)",
+                                                 #"Physio. + Resource (obs.)",
                                                  "Physio.")) %>%
   ggplot(., aes(w, re_spec, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
@@ -882,10 +882,10 @@ ggsave("baltic/figures/spectra_project.png", width = 6.5, height = 6.5, dpi = 60
 #**** Plot mortality ===============================================================
 # Absolute mortality
 big_spect_data %>% 
-  filter(n > 0 & Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
-                                       "Physio. + Resource (obs.)",
+  filter(n > 0 & Fm == 1 & scen %in% c("Physio. + Resource",
+                                       #"Physio. + Resource (obs.)",
                                        "Resource (exp.)",
-                                       "Resource (obs.)",
+                                       #"Resource (obs.)",
                                        "Physio.")) %>%
   ggplot(., aes(w, mort, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
@@ -905,10 +905,10 @@ big_spect_data %>%
 
 # Relative mortality (filter really low values!)
 p4 <- big_spect_data %>% 
-  filter(Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
-                               "Physio. + Resource (obs.)",
-                               "Resource (exp.)",
-                               "Resource (obs.)",
+  filter(Fm == 1 & scen %in% c("Physio. + Resource",
+                               #"Physio. + Resource (obs.)",
+                               "Resource",
+                               #"Resource (obs.)",
                                "Physio.")) %>%
   ggplot(., aes(w, re_mort, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
@@ -933,10 +933,10 @@ ggsave("baltic/figures/supp/mort_project.png", width = 6.5, height = 6.5, dpi = 
 #**** Plot feeding level ===========================================================
 # Absolute feeding level
 big_spect_data %>% 
-  filter(Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
-                               "Physio. + Resource (obs.)",
-                               "Resource (exp.)",
-                               "Resource (obs.)",
+  filter(Fm == 1 & scen %in% c("Physio. + Resource",
+                               #"Physio. + Resource (obs.)",
+                               "Resource",
+                               #"Resource (obs.)",
                                "Physio.")) %>%
   ggplot(., aes(w, feedingLevel, color = factor(scen), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
@@ -973,10 +973,10 @@ big_spect_data %>%
 
 # Relative feeding level
 p5 <- big_spect_data %>% 
-  filter(Fm == 1 & scen %in% c("Physio. + Resource (exp.)",
-                               "Physio. + Resource (obs.)",
-                               "Resource (exp.)",
-                               "Resource (obs.)",
+  filter(Fm == 1 & scen %in% c("Physio. + Resource",
+                               #"Physio. + Resource (obs.)",
+                               "Resource",
+                               #"Resource (obs.)",
                                "Physio.")) %>%
   ggplot(., aes(w, re_feedingLevel, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
