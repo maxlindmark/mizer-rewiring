@@ -42,19 +42,19 @@ set.seed(4361)
 n <- 200
 
 # Metabolic rate (Lindmark et al (in prep))
-met_u <- 0.61
-met_sd <- 0.032
+met_u <- 0.62
+met_sd <- 0.025
 met_q <- qnorm(c(0.025, 0.975), met_u, met_sd)
 met <- rnorm(n = n, met_u, met_sd)
 
 # Background Mortality (assumed to be = metabolic rate)
-mor_u <- 0.61
-mor_sd <- 0.032
+mor_u <- 0.62
+mor_sd <- 0.025
 mor <- rnorm(n = n, mor_u, mor_sd)
 
 # Maximum consumption rate (Lindmark et al (in prep))
 int_u <- 0.69
-int_sd <- 0.075
+int_sd <- 0.078
 int_q <- qnorm(c(0.025, 0.975), int_u, int_sd)
 int <- rnorm(n = n, int_u, int_sd)
 
