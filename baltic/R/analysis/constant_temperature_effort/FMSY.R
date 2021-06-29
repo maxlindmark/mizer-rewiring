@@ -922,7 +922,7 @@ p5 <- big_yield_data %>% filter(Species == "Herring") %>%
 ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
   geom_tile(color = NA) +
   scale_fill_viridis() +
-  labs(y = c(expression("Temperature, proportion of T"[ref])),
+  labs(y = c(expression("Temperature/T"[ref])),
        #x = "F (proportion of FMSY)",
        x = "",
        fill = "Relative\nyield") +
@@ -949,7 +949,7 @@ p6 <- big_yield_data %>% filter(Species == "Sprat") %>%
   scale_fill_viridis() +
   labs(#y = c(expression("Temperature, proportion of T"[ref])),
        y = "",
-       x = "F, proportion of FMSY",
+       x = "F/FMSY",
        #x = "",
        fill = "Relative\nyield") +
   coord_cartesian(expand = 0) +

@@ -13,7 +13,7 @@
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#======== A. LOAD LIBRARIES AND READ DATA ========
+#======== A. LOAD LIBRARIES AND READ DATA ===========================================
 rm(list = ls())
 
 # Load packages
@@ -25,7 +25,7 @@ library(tidyr)     # v0.8.1
 library(patchwork) # v0.0.1
 
 # Stomach data: http://ecosystemdata.ices.dk/stomachdata/download.aspx 
-#  (filter only by cod, Gadus morhua)
+# (filter only by cod, Gadus morhua)
 dat <- read.csv("baltic/data/PPMR/cod/StomachDataSet201932090580.csv", sep = ",")
 
 head(dat)
@@ -195,8 +195,8 @@ dat_agg %>%
   distinct(ICES_ItemID, .keep_all = TRUE) %>% 
   summarize(mean   = mean(log10(PPMR)),
             sd     = sd(log10(PPMR)),
-            mean_n = 10^(mean(log10(PPMR))),
-            sd_n   = 10^(sd(log10(PPMR))))
+            mean_n = 10^(mean(log(PPMR))),
+            sd_n   = 10^(sd(log(PPMR))))
 
 # Plot log10(PPMR)
 p1 <- dat_agg %>% 
@@ -205,7 +205,7 @@ p1 <- dat_agg %>%
   geom_histogram(size = 3) +
   geom_vline(xintercept = 2.63, color = "red", linetype = 2, size = 1) +
   coord_cartesian(expand = 0) +
-  annotate("text", label = "mean PPMR=426\nsd PPMR=5.63", 
+  annotate("text", label = "mean PPMR=2.63\nsd PPMR=5.63", 
            x = Inf, y = Inf, size = 4.5, col = "blue",
            vjust = 1, hjust = 1) +
   labs(y = "Count") +
@@ -214,5 +214,64 @@ p1 <- dat_agg %>%
 pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12))
   
+pWord1
+
+ggsave("baltic/figures/supp/PPMR.png", width = 3.5, height = 3.5, dpi = 600)
+
+
+## NOW estimate the parameters using the function instead
+d <- dat_agg %>%
+  distinct(ICES_ItemID, .keep_all = TRUE) %>% 
+  mutate(log_ppmr = log(PPMR))
+
+hist(d$log_ppmr)
+
+elnorm(d$log_ppmr, method = "mle/mme", ci = FALSE, ci.type = "two-sided", 
+       ci.method = "exact", conf.level = 0.95)
+
+elnorm(d$PPMR, method = "mle/mme", ci = FALSE, ci.type = "two-sided", 
+       ci.method = "exact", conf.level = 0.95)
+
+
+# $distribution
+# [1] "Lognormal"
+# 
+# $sample.size
+# [1] 1073
+# 
+# $parameters
+# meanlog     sdlog 
+# 1.7596521 0.2923861 
+
+
+
+
+
+# Calculate ln mean and standard deviation
+dat_agg %>%
+  distinct(ICES_ItemID, .keep_all = TRUE) %>% 
+  summarize(mean   = mean(log(PPMR)),
+            sd     = sd(log(PPMR)),
+            mean_n = exp(mean(log(PPMR))),
+            sd_n   = exp(sd(log(PPMR))))
+
+# Plot log(PPMR)
+p1 <- dat_agg %>% 
+  distinct(ICES_ItemID, .keep_all = TRUE) %>% 
+  ggplot(., aes(log(PPMR))) +
+  geom_histogram(size = 3) +
+  geom_vline(xintercept = 6.056243, color = "red", linetype = 2, size = 1) +
+  coord_cartesian(expand = 0) +
+  annotate("text", label = "mean PPMR=6.05\nsd PPMR=1.73", 
+           x = Inf, y = Inf, size = 4.5, col = "blue",
+           vjust = 1, hjust = 1) +
+  labs(y = "Count") +
+  NULL
+
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12))
+
+pWord1
+
 ggsave("baltic/figures/supp/PPMR.png", width = 3.5, height = 3.5, dpi = 600)
 

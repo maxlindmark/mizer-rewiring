@@ -30,6 +30,7 @@ library(RCurl)
 library(magrittr)
 library(viridis)
 library(tidyr)
+library(plyr)
 library(dplyr)
 # devtools::install_github("thomasp85/patchwork")
 library(patchwork)
@@ -450,11 +451,14 @@ ssb_model <- getSSB(m3)[t_max, ] * m3@params@species_params$sd25.29.32_m.2 / 1e9
 ssb_data <- balticParams$AveSpawnBiomass
 ssb_model/ssb_data
 
+> ssb_model/ssb_data
+Cod    Sprat  Herring 
+1.038210 1.044248 1.050059 
+
 # Seems OK!
 
-
 #** 4. Check recruitment & density dependence ======================================
-# Evalute how much density dependence there is in the model from the stock-recruit relationship
+# Evaluate how much density dependence there is in the model from the stock-recruit relationship
 # Calculate the density independent recruitment (total egg production) R_{p.i} before density dependence
 rdi <- getRDI(m3@params,
               m3@n[t_max,,],
@@ -478,13 +482,13 @@ rdd <- getRDD(m3@params,
 rdi / rdd
 # > rdi / rdd
 # Cod     Sprat   Herring 
-# 547.84001  27.97723  79.87104 
+# 554.29910  28.47088  79.35805 
 
 # Get RDD to rmax ratio
 rdd / params3_upd@species_params$r_max
 # > rdd / params3_upd@species_params$r_max
 # Cod     Sprat   Herring 
-# 0.9981746 0.9642567 0.9874798 
+# 0.9981959 0.9648764 0.9873989 
 # Very close to r_max...
 
 # Get RDI to rmax ratio
@@ -531,7 +535,7 @@ ssb_data <- balticParams$AveSpawnBiomass
 ssb_model/ssb_data
 # > ssb_model/ssb_data
 # Cod     Sprat   Herring 
-# 0.6707212 0.8496077 1.0329188
+# 0.6775174 0.8466963 1.0334025 
 # A bit worse fit, but "better" density dependence, i.e. not too much...
 
 # Re-evalute how much density dependence there is in the model from the stock-recruit relationship
@@ -558,17 +562,17 @@ rdd <- getRDD(m3b@params,
 rdi / rdd
 # > rdi / rdd
 # Cod    Sprat  Herring 
-# 2.739093 3.189151 7.203846 
+# 2.780075 3.220745 7.160041
 
 rdd / params3b_upd@species_params$r_max
 # > rdd / params3b_upd@species_params$r_max
 # Cod     Sprat   Herring 
-# 0.6349157 0.6864370 0.8611853 
+# 0.6402974 0.6895128 0.8603360
 
 rdi / params3b_upd@species_params$r_max
 # > rdi / params3b_upd@species_params$r_max
 # Cod    Sprat  Herring 
-# 1.739093 2.189151 6.203846 
+# 1.780075 2.220745 6.160041
 
 
 #** 5. Estimate FMSY from model - compare with assessment ==========================

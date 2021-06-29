@@ -640,7 +640,7 @@ ref_w <- data.frame(species = c("Cod", "Sprat", "Herring"),
 
 # Plot
 p3 <- ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
-  facet_wrap(~ species, scales = "free", nrow = 2) +
+  facet_wrap(~ species, scales = "free", nrow = 3) +
   #coord_flip() +
   scale_color_manual(values = col) +
   scale_fill_manual(values = col, 
@@ -661,7 +661,7 @@ pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 10),
                                        axis.text.x = element_blank(),
                                        legend.direction = "vertical",
-                                       legend.position = c(0.9, 0.2),
+                                       legend.position = "bottom",
                                        legend.justification = c(1, 0),
                                        aspect.ratio = 3/4)
 
