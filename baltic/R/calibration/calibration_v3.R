@@ -698,11 +698,12 @@ Fmsy <- rbind(codFmsy, sprFmsy, herFmsy)
 #** FMSY ===========================================================================
 p1 <- Fmsy %>% filter(Y > 0.01) %>% ggplot(., aes(Fm, (Y*249), color = Species)) + 
   geom_line(alpha = 0.8) +
-  scale_color_manual(values = rev(col)) +
+  #scale_color_manual(values = rev(col)) +
+  scale_color_viridis(discrete = TRUE, option = "cividis") +
   annotate("text", -Inf, Inf, label = "A", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
-  labs(x = "Fishing mortality [1/year]", 
-       y = "Yield [1000 tonnes/year]") +
+  labs(x = "Fishing mortality (1/year)", 
+       y = "Yield (1000 tonnes/year)") +
   NULL
 
 pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
@@ -740,9 +741,8 @@ asses_mod_FMSY <- rbind(codassesFMSY, sprassesFMSY, herassesFMSY)
 
 
 p2 <- ggplot(asses_mod_FMSY, aes(Species, FMSY, shape = Source, fill = Source)) + 
-  geom_point(size = 6, alpha = 0.7, color = "white") +
-  scale_color_manual(values = col) +
-  scale_fill_manual(values = col) +
+  geom_point(size = 6, alpha = 0.7, color = "black") +
+  scale_fill_viridis(discrete = TRUE, option = "magma") +
   scale_shape_manual(values = seq(21, 25)) +
   annotate("text", -Inf, Inf, label = "B", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
@@ -757,6 +757,7 @@ ggsave("baltic/figures/supp/FMSY.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 #** Growth =========================================================================
+col <- viridis(n=3)
 p3 <- plotGrowthCurves(m3b, max_age = 15) + 
   scale_color_manual(values = rep(col[1], 3)) +
   facet_wrap(~ Species, scales = "free", ncol = 1) +
@@ -765,22 +766,27 @@ p3 <- plotGrowthCurves(m3b, max_age = 15) +
              color = "white", shape = 21, alpha = 0.1) +
   geom_hline(data = vbge_pred, aes(yintercept = w_mat), 
              color = "black", size = 0.8, linetype = 2) +
-  geom_line(aes(x = Age, y = value), 
-            color = col[5], size = 1.3, alpha = 0.8) +
+  # geom_line(aes(x = Age, y = value), 
+  #           color = col[5], size = 1.3, alpha = 0.8) +
+  # geom_line(data = subset(vbge_pred, age < 16), aes(age, weight), 
+  #           color = col[4], size = 1.3, linetype = "twodash", alpha = 0.8) +
+  # geom_line(aes(x = Age, y = value), 
+  #           color = col[2], size = 1.3, alpha = 0.8) +
   geom_line(data = subset(vbge_pred, age < 16), aes(age, weight), 
-            color = col[4], size = 1.3, linetype = "twodash", alpha = 0.8) +
+            color = col[3], size = 1.3, linetype = "twodash", alpha = 0.8) +
   guides(color = FALSE, linetype = FALSE) +
   NULL
 
 pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12),
                                        aspect.ratio = 1/2)
+
 ggsave("baltic/figures/supp/growth_model_data.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 #** Spectra and feeding level ======================================================
 p4 <- spect <- plotSpectra(m3b, algae = F) + 
-  scale_color_manual(values = rev(col)) +
+  scale_color_manual(values = c(viridis(n = 3, option = "cividis"), "gray", "black")) +
   NULL
 
 pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
@@ -788,7 +794,8 @@ pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
                                        aspect.ratio = 3/4)
 
 # Check feeding level
-p5 <- feedlev <- plotFeedingLevel(m3b) + 
+p5 <- plotFeedingLevel(m3b) + 
+  scale_color_viridis(discrete = TRUE, option = "cividis") +
   NULL
 
 pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
@@ -810,7 +817,8 @@ ssb_eval <- data.frame(SSB = c(obs, pred),
 
 p6 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) + 
   geom_point(size = 4, alpha = 0.8) +
-  scale_fill_manual(values = rev(col)) +
+  #scale_fill_manual(values = rev(col)) +
+  scale_fill_viridis(discrete = TRUE, option = "cividis") +
   scale_shape_manual(values = c(24, 21),
                      guide = guide_legend(override.aes = list(colour = "black", 
                                                               fill = "black",
@@ -823,7 +831,7 @@ p6 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) +
 
 pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12),
-                                       legend.position = c(.85, .2),
+                                       legend.position = c(.8, .2),
                                        legend.title = element_blank(),
                                        aspect.ratio = 1)
 
@@ -832,7 +840,8 @@ ssb_eval_l <- data.frame(obs = log10(obs), pred = log10(pred), Species = balticP
 
 p7 <- ggplot(ssb_eval_l, aes(obs, pred, fill = Species, shape = Species)) +
   geom_point(size = 4, alpha = 0.8) +
-  scale_fill_manual(values = rev(col)) +
+  #scale_fill_manual(values = rev(col)) +
+  scale_fill_viridis(discrete = TRUE, option = "cividis") +
   scale_shape_manual(values = c(21, 22, 24)) +
   labs(x = "Log10(Observed SSB)", y = "Log10(Predicted SSB)") +
   geom_abline(slope = 1, intercept = 0, color = "red", linetype = 2) +
@@ -852,16 +861,16 @@ ggsave("baltic/figures/supp/SSB_fit.png", width = 6.5, height = 6.5, dpi = 600)
 
 #** Diet ===========================================================================
 p8 <- plotDietComp(m3b, prey = dimnames(m3b@diet_comp)$prey[1:5]) + 
-  scale_fill_manual(values = rev(col),
-                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  # scale_fill_manual(values = rev(col),
+  #                   labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_fill_viridis(discrete = TRUE, option = "magma", labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
   NULL
 
 pWord8 <- p8 + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12),
-                                       aspect.ratio = 1,
-                                       legend.position = "bottom")
+                                       aspect.ratio = 1)
 
 ggsave("baltic/figures/supp/diet.png", width = 6.5, height = 6.5, dpi = 600)
 
@@ -967,7 +976,7 @@ projectTemp
 
 #** Plot effort and temperature scenarios ==========================================
 # Plot effort data
-col <- RColorBrewer::brewer.pal("Dark2", n = 5)
+#col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 
 p9 <- plotEffort %>% 
   gather(Species, Effort, 1:3) %>% 
@@ -986,7 +995,8 @@ p9 <- plotEffort %>%
             fill  = "gray80") +
   geom_line(size = 1.2, alpha = 0.8) +
   coord_cartesian(expand = 0) +
-  scale_color_manual(values = rev(col)) +
+  #scale_color_manual(values = rev(col)) +
+  scale_color_viridis(discrete = TRUE, option = "cividis") +
   labs(x = "Year", y = "Fishing mortality (F)") +
   annotate("text", -Inf, Inf, label = "A", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +
@@ -1008,7 +1018,6 @@ tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
                        Scenario = rep(c("no warming", "warming"), each = length(consTemp)),
                        Year = 1:length(consTemp) + (min(plotEffort$Year) - 1))
 
-col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 col <- RColorBrewer::brewer.pal("Set1", n = 3)[1:2]
 
 p10 <- ggplot(tempScen, aes(Year, (Temperature), color = Scenario, linetype = Scenario)) +
@@ -1154,7 +1163,7 @@ str(pred_ssb_noResT)
 pred_ssb_wiResT <- data.frame(getSSB(m4_wiRes))
 pred_ssb_wiResT$Year_ct <- as.numeric(rownames(getSSB(m4_wiRes)))
 pred_ssb_wiResT$Year <- pred_ssb_wiResT$Year_ct + (min(plotEffort$Year)-1) 
-pred_ssb_wiResT$Scenario <- "Physio. + Resource (exp.)"
+pred_ssb_wiResT$Scenario <- "Physio. + Resource"
 str(pred_ssb_wiResT)
 
 # Predicted ssb - no temperature at all after calibration (t_ref)
@@ -1182,10 +1191,10 @@ dat$Year <- as.integer(dat$Year)
 
 # Plot predicted and observed ssb by species, normalize by max within species
 # Reorder factor levels
-dat$Scenario <- factor(dat$Scenario, levels = c("Constant temp", "Physio.", "Physio. + Resource (exp.)", "Stock assessment"))
+dat$Scenario <- factor(dat$Scenario, levels = c("Constant temp", "Physio.", "Physio. + Resource", "Stock assessment"))
 
 p11 <- dat %>% filter(Year < 2012 & Year > 1970) %>% 
-  ggplot(., aes(Year, SSB, linetype = Scenario, color = Scenario, alpha = Scenario)) +
+  ggplot(., aes(Year, SSB, linetype = Scenario, color = Scenario)) +
   facet_wrap(~ Species, ncol = 1, scales = "free") +
   geom_rect(data = ref_time, inherit.aes = FALSE, 
             aes(xmin = min(Year), 
@@ -1195,8 +1204,10 @@ p11 <- dat %>% filter(Year < 2012 & Year > 1970) %>%
             fill  = "gray90") +
   geom_line(size = 1.5) +
   scale_linetype_manual(values = c("twodash", "dashed", "dotted", "solid")) +
-  scale_color_manual(values = c(rev(col)[1:3], "gray30")) +
-  scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.5)) +
+  #scale_color_manual(values = c(rev(col)[1:3], "gray30")) +
+  #scale_color_viridis(discrete = TRUE, option = magma) +
+  scale_color_manual(values = c(RColorBrewer::brewer.pal("Set1", n = 3)[2], viridis(n = 3)[1:2], "grey")) +
+  #scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.8)) +
   labs(y = "Spawning stock biomass (1000 tonnes)", x = "Year") +
   scale_y_continuous(expand = c(0, 0)) +
   NULL
@@ -1211,7 +1222,7 @@ ggsave("baltic/figures/supp/time_series_pred_ssb.png", width = 6.5, height = 6.5
 #**** Calculate and plot correlation coefficients ==================================
 # Since the temperature-scenarios are so similar, I'm just calculating the correlations
 obs_df <- filter(dat, Scenario == "Stock assessment" & Year < 2013)
-pred_wTempR_df <- filter(dat, Scenario == "Physio. + Resource (exp.)" & Year < 2013)
+pred_wTempR_df <- filter(dat, Scenario == "Physio. + Resource" & Year < 2013)
 
 # For the scenario with temperature-dependent resources
 cor_df <- data.frame(Year = obs_df$Year,
@@ -1219,27 +1230,50 @@ cor_df <- data.frame(Year = obs_df$Year,
                      pred_wTempR = pred_wTempR_df$SSB,
                      Species = obs_df$Species)
 
-# Calculate correlations between predictions from _resource_temp and observations
+cor_df <- cor_df %>% mutate(old = ifelse(Year > 1991, "N", "Y"))
+
+# Calculate correlations between predictions from _resource_temp and observations on the full and the post calibration times
 cors_con <- ddply(cor_df, c("Species"), summarise, cor = round(cor(pred_wTempR, Obs), 2))
+cors_con_new <- ddply(filter(cor_df, Year > 1991), c("Species"), summarise, cor = round(cor(pred_wTempR, Obs), 2))
 
 # Plot correlation between predicted and observed
-p12 <- ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
+p12a <- ggplot(filter(cor_df, Year > 1991), aes(Obs, pred_wTempR, color = Year)) +
+  facet_wrap(~ Species, ncol = 3, scales = "free") +
+  geom_abline(slope = 1, intercept = 0, color = "red", size = 0.7) +
+  geom_point(size = 2) +
+  labs(y = "Predicted", x = "Observed") +
+  scale_y_continuous(expand = c(0, 0)) + 
+  geom_text(data = cors_con_new, aes(label = paste("r = ", cor, sep = "")), 
+            x = c(150, 800, 1700), y = c(60, 600, 930),
+            fontface = "italic", size = 4, inherit.aes = FALSE) +
+  scale_color_viridis(option = "magma") +
+  NULL
+
+pWord12a <- p12a + theme_classic() + theme(text = element_text(size = 12),
+                                           axis.text = element_text(size = 10), 
+                                           legend.text = element_text(size = 8),
+                                           legend.position = "bottom",
+                                           aspect.ratio = 1)
+
+p12b <- ggplot(cor_df, aes(Obs, pred_wTempR, color = Year)) +
   facet_wrap(~ Species, ncol = 3, scales = "free") +
   geom_abline(slope = 1, intercept = 0, color = "red", size = 0.7) +
   geom_point(size = 2) +
   labs(y = "Predicted", x = "Observed") +
   scale_y_continuous(expand = c(0, 0)) + 
   geom_text(data = cors_con, aes(label = paste("r = ", cor, sep = "")), 
-            x = c(550, 1500, 1700), y = c(60, 600, 930),
+            x = c(550, 1500, 1600), y = c(60, 600, 930),
             fontface = "italic", size = 4, inherit.aes = FALSE) +
-  scale_color_viridis() +
+  scale_color_viridis(option = "magma") +
   NULL
 
-pWord12 <- p12 + theme_classic() + theme(text = element_text(size = 12),
-                                         axis.text = element_text(size = 12), 
-                                         legend.text = element_text(size = 8),
-                                         legend.position = "bottom",
-                                         aspect.ratio = 1)
+pWord12b <- p12b + theme_classic() + theme(text = element_text(size = 12),
+                                           axis.text = element_text(size = 10), 
+                                           legend.text = element_text(size = 8),
+                                           legend.position = "bottom",
+                                           aspect.ratio = 1)
+
+pWord12a / pWord12b
 
 ggsave("baltic/figures/supp/obs_pred_corr.png", width = 6.5, height = 6.5, dpi = 600)
 

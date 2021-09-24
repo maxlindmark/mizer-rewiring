@@ -504,11 +504,13 @@ p1 <- ggplot(mean_dat,
   geom_line(data = mean_dat, aes(Age, mean_val, color = factor(scen)),
             inherit.aes = FALSE, size = 0.5) +
   geom_ribbon(alpha = 0.175, color = NA) +  
-  labs(y = "Body mass [g]") +
+  labs(y = "Body mass (g)") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0)) + 
-  scale_color_manual(values = rev(col)) +
-  scale_fill_manual(values = rev(col)) +
+  # scale_color_manual(values = rev(col)) +
+  # scale_fill_manual(values = rev(col)) +
+  scale_fill_viridis(discrete = TRUE) +
+  scale_color_viridis(discrete = TRUE) +
   guides(color = FALSE, fill = FALSE) +
   geom_line(data = refGrowth, aes(Age, value), color = "black", 
            inherit.aes = FALSE, size = 0.5, alpha = 0.7, linetype = "dashed") +
@@ -526,10 +528,11 @@ pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
 p1b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
   ggplot(., aes(x = Age, y = value, color = factor(scen), group = sim)) +
   geom_line(size = 0.3, alpha = 0.05) +
-  labs(y = "Body mass [g]") +
+  labs(y = "Body mass (g)") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0)) +
-  scale_color_manual(values = rev(col)) +
+  #scale_color_manual(values = rev(col)) +
+  scale_color_viridis(discrete = TRUE) +
   theme_classic(base_size = 14) +
   guides(color = FALSE, fill = FALSE) +
   geom_line(data = filter(refGrowth, Age < 16), aes(Age, value), color = "black",
@@ -565,9 +568,11 @@ ggplot(.,
   scale_y_continuous(expand = c(0, 0),
                      #limits = c(0.95, 2.2)
                      ) + 
-  scale_color_manual(values = rev(col),
-                     name = "Scenario") +
-  scale_fill_manual(values = rev(col)) +
+  # scale_color_manual(values = rev(col),
+  #                    name = "Scenario") +
+  # scale_fill_manual(values = rev(col)) +
+  scale_color_viridis(discrete = TRUE, name = "Scenario") +
+  scale_fill_viridis(discrete = TRUE) +
   guides(fill = FALSE,
          colour = guide_legend(nrow = 1,
                                override.aes = list(alpha = 1,
@@ -591,8 +596,9 @@ p2b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
   scale_y_continuous(expand = c(0, 0)
                      #, limits = c(0.95, 2.2)
                      ) +
-  scale_color_manual(values = rev(col),
-                     name = "Scenario") +
+  # scale_color_manual(values = rev(col),
+  #                    name = "Scenario") +
+  scale_color_viridis(discrete = TRUE, name = "Scenario") +
   guides(colour = guide_legend(nrow = 3,
                                override.aes = list(alpha = 1,
                                                    linetype = 1))) +
@@ -642,16 +648,17 @@ ref_w <- data.frame(species = c("Cod", "Sprat", "Herring"),
 p3 <- ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   #coord_flip() +
-  scale_color_manual(values = col) +
-  scale_fill_manual(values = col, 
-                    name = "Scenario") +
+  # scale_color_manual(values = col) +
+  # scale_fill_manual(values = col, name = "Scenario") +
+  scale_color_viridis(discrete = TRUE, name = "Scenario") +
+  scale_fill_viridis(discrete = TRUE, name = "Scenario") +
   # this doesn't work with facet_wrap's free scales...
   # geom_flat_violin(position = position_nudge(x = .25, y = 0), adjust = 2, trim = FALSE, alpha = 0.7) +
   geom_point(position = position_jitter(width = .15), size = 1.1, alpha = 0.9, shape = 21, color = "white") +
   geom_boxplot(aes(x = scen, y = mean_weight),
                outlier.shape = NA, alpha = 0.1, width = .2, color = "black", size = 0.5) +
   guides(fill = FALSE) +
-  labs(x = "", y = "Mean weight [g]") +
+  labs(x = "", y = "Mean weight (g)") +
   geom_hline(data = ref_w, aes(yintercept = mean_weight), linetype = 2) +
   guides(fill = guide_legend(#nrow = 3,
                              override.aes = list(alpha = 0.8))) +

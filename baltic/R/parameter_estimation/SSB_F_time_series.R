@@ -107,7 +107,8 @@ p1 <- dat %>%
              aes(Year, mean_SSB), size = 1.2) +
   theme(aspect.ratio = 1) +
   ylab("Spawning stock biomass\n(1000 tonnes)") +
-  scale_color_manual(values = col) +
+  #scale_color_manual(values = col) +
+  scale_color_viridis(discrete = TRUE, option = "cividis") +
   scale_y_continuous(expand = c(0, 0)) +
   guides(color = FALSE) +
   annotate("text", -Inf, Inf, label = "A", size = 4, 
@@ -132,7 +133,8 @@ p2 <- dat %>%
              aes(Year, mean_F), size = 1.2) +
   theme(aspect.ratio = 1) +
   ylab("F") +
-  scale_color_manual(values = col) +
+  #scale_color_manual(values = col) +
+  scale_color_viridis(discrete = TRUE, option = "cividis") +
   scale_y_continuous(expand = c(0, 0)) +
   annotate("text", -Inf, Inf, label = "B", size = 4, 
            fontface = "bold", hjust = -0.5, vjust = 1.3) +

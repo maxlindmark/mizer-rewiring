@@ -346,16 +346,16 @@ big_spect_data_w_r <- dplyr::bind_rows(data_list_with_res)
 # Plot diet to check if changes in spectra can be due to predation
 col <- RColorBrewer::brewer.pal("Dark2", n = 5)
 pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
-  scale_fill_manual(values = rev(col),
-                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  # scale_fill_manual(values = rev(col),
+  #                   labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_fill_viridis(discrete = TRUE) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
   NULL
 
 pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12),
-                                       aspect.ratio = 1,
-                                       legend.position = "bottom")
+                                       aspect.ratio = 1)
 
 ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res.png", width = 6.5, height = 6.5, dpi = 600)
 
@@ -501,16 +501,16 @@ big_spect_data_w_r_np <- dplyr::bind_rows(data_list_with_res_np)
 
 # Plot diet to check if changes in spectra can be due to predation
 pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
-  scale_fill_manual(values = rev(col),
-                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  # scale_fill_manual(values = rev(col),
+  #                   labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_fill_viridis(discrete = TRUE) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
   NULL
 
 pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12),
-                                       aspect.ratio = 1,
-                                       legend.position = "bottom")
+                                       aspect.ratio = 1)
 
 ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res_np.png", width = 6.5, height = 6.5, dpi = 600)
 
@@ -578,16 +578,16 @@ big_spect_data_w_r_b_np <- dplyr::bind_rows(data_list_with_res_barnes_np)
 
 # Plot diet to check if changes in spectra can be due to predation
 pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
-  scale_fill_manual(values = rev(col),
-                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  # scale_fill_manual(values = rev(col),
+  #                   labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_fill_viridis(discrete = TRUE) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
   NULL
 
 pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12),
-                                       aspect.ratio = 1,
-                                       legend.position = "bottom")
+                                       aspect.ratio = 1)
 
 ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res_barnes_np.png", width = 6.5, height = 6.5, dpi = 600)
 
@@ -654,16 +654,16 @@ big_spect_data_no_r <- dplyr::bind_rows(data_list_no_res)
 
 # Plot diet to check if changes in spectra can be due to predation
 pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
-  scale_fill_manual(values = rev(col),
-                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  # scale_fill_manual(values = rev(col),
+  #                   labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_fill_viridis(discrete = TRUE) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
   NULL
 
 pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12),
-                                       aspect.ratio = 1,
-                                       legend.position = "bottom")
+                                       aspect.ratio = 1)
 
 ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_no_res.png", width = 6.5, height = 6.5, dpi = 600)
 
@@ -727,16 +727,16 @@ big_spect_data_con_temp <- dplyr::bind_rows(data_list_con_temp)
 
 # Plot diet to check if changes in spectra can be due to predation
 pd <- plotDietComp(proj, prey = dimnames(proj@diet_comp)$prey[1:5]) + 
-  scale_fill_manual(values = rev(col),
-                    labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  # scale_fill_manual(values = rev(col),
+  #                   labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
+  scale_fill_viridis(discrete = TRUE) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
   NULL
 
 pWordd <- pd + theme_classic() + theme(text = element_text(size = 12),
                                        axis.text = element_text(size = 12),
-                                       aspect.ratio = 1,
-                                       legend.position = "bottom")
+                                       aspect.ratio = 1)
 
 ggsave("baltic/figures/supp/diet_at_F_scenario/diet_pars_with_res.png", width = 6.5, height = 6.5, dpi = 600)
 
@@ -780,7 +780,7 @@ big_spect_data$scen <- as.factor(big_spect_data$scen)
 pal <- RColorBrewer::brewer.pal(n = 5, "Dark2")
 
 # Plot all together
-plotdf <- select(proj@params@species_params, species, w_mat)
+plotdf <- select(proj@params@species_params, species, w_mat, w_inf)
 
 # Plot relative spectra
 p1 <- big_spect_data %>% 
@@ -792,7 +792,8 @@ p1 <- big_spect_data %>%
   ggplot(., aes(w, re_spec, color = factor(Fm), group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_line(size = 1) + 
-  scale_colour_manual(values = pal) +
+  #scale_colour_manual(values = pal) +
+  scale_colour_viridis(discrete = TRUE) +
   #scale_alpha_manual(values = c(0.7, 0.7, 1, 0.7, 0.7)) +
   #scale_linetype_manual(values = c("solid", "solid", "longdash", "solid", "solid")) +
   facet_grid(scen ~ species, scales = "free") +
@@ -824,10 +825,12 @@ p2 <- big_spect_data %>%
   filter(n > 0 & Fm == 1 & w > 0.1) %>%
   ggplot(., aes(w, (n*249), color = factor(scen), linetype = scen)) + 
   geom_line(size = 1) + 
-  scale_colour_manual(values = pal2,
-                      name = "Scenario") +
+  #scale_colour_manual(values = pal2, name = "Scenario") +
+  scale_colour_manual(values = c(RColorBrewer::brewer.pal("Set1", n = 3)[2], viridis(n = 3)), name = "Scenario") +
+  scale_linetype_manual(values = c(c(2, 1, 1, 1))) +
   scale_x_log10() +
-  guides(linetype = FALSE) +
+  guides(linetype = FALSE, color = guide_legend(override.aes = list(linetype = c(2, 1, 1, 1),
+                                                                    size = rep(0.7, 4)))) +
   scale_y_log10() +
   facet_wrap(~species, scales = "free", nrow = 3) +
   labs(x ="Body mass (g)",
@@ -856,9 +859,8 @@ p3 <- big_spect_data %>%
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
-  #scale_colour_viridis(option = "cividis", discrete = T) +
-  scale_colour_manual(values = rev(pal[]),
-                      name = "") +
+  scale_colour_viridis(discrete = T, name = "Scenario") +
+  #scale_colour_manual(values = rev(pal[]), name = "") +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   #scale_y_log10(breaks = sim) +
   scale_x_log10() +
@@ -880,79 +882,89 @@ ggsave("baltic/figures/spectra_project.png", width = 6.5, height = 6.5, dpi = 60
 
 
 #**** Plot mortality ===============================================================
+# First fix the data so I don't plot outside species size range
+big_spect_data <- left_join(big_spect_data, plotdf)
+
+big_spect_data <- left_join(big_spect_data, plotdf) %>% mutate(true_size = ifelse(w < w_inf, "Y", "N"))
+  
+
 # Absolute mortality
-big_spect_data %>% 
+p4a <- big_spect_data %>% 
   filter(n > 0 & Fm == 1 & scen %in% c("Physio. + Resource",
-                                       #"Physio. + Resource (obs.)",
-                                       "Resource (exp.)",
-                                       #"Resource (obs.)",
+                                       "Resource",
                                        "Physio.")) %>%
   ggplot(., aes(w, mort, color = factor(scen), linetype = scen, group = sim)) + 
-  geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal)) +
+  scale_colour_viridis(discrete = TRUE) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
-  theme_classic(base_size = 13) +
+  theme_classic(base_size = 12) +
   scale_x_log10() +
   guides(linetype = FALSE) +
-  theme(legend.position = "bottom",
-        aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
        y = "Predation mortality",
        color = "Scenario") +
   NULL
 
+pWord4a <- p4a + theme_classic() + theme(text = element_text(size = 10),
+                                         axis.text = element_text(size = 8),
+                                         aspect.ratio = 1/2)
+
 # Relative mortality (filter really low values!)
-p4 <- big_spect_data %>% 
+# First remove sizes above w_inf...
+p4b <- big_spect_data %>% 
   filter(Fm == 1 & scen %in% c("Physio. + Resource",
-                               #"Physio. + Resource (obs.)",
                                "Resource",
-                               #"Resource (obs.)",
                                "Physio.")) %>%
+  filter(true_size == "Y") %>% 
   ggplot(., aes(w, re_mort, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
   geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal)) +
+  scale_colour_viridis(discrete = TRUE) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   scale_x_log10() +
-  guides(linetype = FALSE) +
+  guides(linetype = FALSE, color = FALSE) +
   labs(x ="Body mass (g)",
        y = "Relative predation mortality (warming/no warming)",
        color = "Scenario") +
   NULL
 
-pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
-                                       axis.text = element_text(size = 8),
-                                       aspect.ratio = 1/2)
+pWord4b <- p4b + theme_classic() + theme(text = element_text(size = 10),
+                                         axis.text = element_text(size = 8),
+                                         plot.margin = unit(c(0,0.4,0,0), "cm"),
+                                         aspect.ratio = 1/2)
+
+pWord4b + pWord4a
 
 ggsave("baltic/figures/supp/mort_project.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 #**** Plot feeding level ===========================================================
 # Absolute feeding level
-big_spect_data %>% 
+p5a <- big_spect_data %>% 
   filter(Fm == 1 & scen %in% c("Physio. + Resource",
-                               #"Physio. + Resource (obs.)",
                                "Resource",
-                               #"Resource (obs.)",
                                "Physio.")) %>%
-  ggplot(., aes(w, feedingLevel, color = factor(scen), group = sim)) + 
-  geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
+  ggplot(., aes(w, feedingLevel, color = factor(scen), linetype = factor(scen), group = sim)) + 
   geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal), 
-                      labels = c("Physiology", "Physiology + Resource")) +
+  geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
+  scale_colour_viridis(discrete = TRUE) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   theme_classic(base_size = 13) +
   scale_x_log10() +
   ylim(0, 1) +
+  guides(linetype = FALSE) +
   theme(legend.position = "bottom",
         aspect.ratio = 1/2) +
   labs(x ="Body mass (g)",
        y = "Feeding level",
        color = "Scenario") +
   NULL
+
+pWord5a <- p5a + theme_classic() + theme(text = element_text(size = 10),
+                                         axis.text = element_text(size = 8),
+                                         aspect.ratio = 1/2)
 
 # plotFeedingLevel(ref) + facet_wrap(~Species, nrow = 3)
 # refFL %>% 
@@ -972,27 +984,30 @@ big_spect_data %>%
 #   NULL
 
 # Relative feeding level
-p5 <- big_spect_data %>% 
+p5b <- big_spect_data %>% 
   filter(Fm == 1 & scen %in% c("Physio. + Resource",
-                               #"Physio. + Resource (obs.)",
                                "Resource",
-                               #"Resource (obs.)",
                                "Physio.")) %>%
+  filter(true_size == "Y") %>% 
   ggplot(., aes(w, re_feedingLevel, color = factor(scen), linetype = scen, group = sim)) + 
   geom_hline(yintercept = 1, color = "black", linetype = "dotted", size = 0.7, alpha = 0.6) +
+  geom_vline(data = plotdf, aes(xintercept = w_mat), color = "red", linetype = "dotted") +
   geom_line(size = 1) + 
-  scale_colour_manual(values = rev(pal)) +
+  scale_colour_viridis(discrete = TRUE) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
   scale_x_log10() +
-  guides(linetype = FALSE) +
+  guides(linetype = FALSE, color = FALSE) +
   labs(x ="Body mass (g)",
        y = "Relative Feeding level (warming/no warming)",
        color = "Scenario") +
   NULL
 
-pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
+pWord5b <- p5b + theme_classic() + theme(text = element_text(size = 10),
                                        axis.text = element_text(size = 8),
+                                       plot.margin = unit(c(0,0.4,0,0), "cm"),
                                        aspect.ratio = 1/2)
+
+pWord5b + pWord5a
 
 ggsave("baltic/figures/supp/feedingLevel_project.png", width = 6.5, height = 6.5, dpi = 600)
 

@@ -8,7 +8,7 @@
 #
 # B. FMSY at two different temperatures
 # 
-# C. Analyisis of changes in yield with fishing warming (Heatmap)
+# C. Analysis of changes in yield with fishing warming (Heatmap)
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -28,8 +28,7 @@ library(dplyr)
 library(patchwork)
 
 # Install and reload local mizer package
-#devtools::load_all(".") # THIS DOES NOT WORK ON NEW MAC; MAYBE NOT NEEDED ANYMORE SINCE
-# I PUSHED CHANGES TO THE CODE ALREADY; NO NEED TO WORK IN LOCAL LIBRAY....
+#devtools::load_all(".")
 
 # Install the specific mizer version from github
 # devtools::install_github("maxlindmark/mizer-rewiring", ref = "rewire-temp") 
@@ -696,8 +695,8 @@ p1 <- Fmsy %>%
   scale_color_manual(values = c(col[2], col[1], col[3]), 
                      labels = c(expression("T"[ref]), 
                                 expression(paste("T"[ref], "+2", degree*C)))) +
-  labs(x = "Fishing mortality [1/year]", 
-       y = "Yield [1000 tonnes/year]",
+  labs(x = "Fishing mortality (1/year)", 
+       y = "Yield (1000 tonnes/year)",
        color = "Scenario",
        linetype = "Metric") +
   geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio. + Resource"), linetype = 3, 
@@ -777,10 +776,10 @@ refYield <- data.frame(Yield = c(getYield(ref)[dim(ref@effort)[1], 1],
                        Species = ref@params@species_params$species)
 
 
-#**** for loop through different fishing effort (with temp. dep. resource) ============
+#**** for loop through different fishing effort (with temp. dep. resource & phys) ====
 data_list <- list()
-temp <- seq(0.75, 1.25, 0.025)
-eff <- seq(0.1, 2, 0.1) # Factor for scaling fishing mortality
+temp <- seq(0.75, 1.25, 0.01)
+eff <- seq(0.1, 2, 0.05) # Factor for scaling fishing mortality
 
 temp_eff <- data.frame(expand.grid(eff = eff, temp = temp))
 iter <- seq(from = 1, to = nrow(temp_eff))
@@ -884,81 +883,258 @@ for (i in iter) {
 # Add data
 big_yield_data_sprat <- dplyr::bind_rows(data_list)
 
-# Merge all data
 
+#**** for loop through different fishing effort (with temp. dep. resource) =========
+data_list2 <- list()
+
+## Cod
+baseEffort_var <- baseEffort
+
+for (i in iter) {
+  
+  baseEffort_var[1] <- baseEffort[1] * temp_eff$eff[i] #
+  baseTemp_var <- baseTemp * temp_eff$temp[i]
+  
+  proj <- project(pars_res,
+                  dt = dt,
+                  effort = baseEffort_var,
+                  temperature = rep(baseTemp_var, t_max),
+                  diet_steps = 10,
+                  t_max = t_max)
+  
+  # Extract yield at last iteration
+  proYield <- data.frame(Yield = getYield(proj)[dim(proj@effort)[1], 1],
+                         Species = "Cod",
+                         Fm = proj@effort[dim(proj@effort)[1], 1],
+                         temp = proj@temperature[dim(proj@temperature)[1], 1],
+                         Fm_scal = temp_eff$eff[i],
+                         temp_scal = temp_eff$temp[i])
+  
+  proYield$Yield_rel <- proYield$Yield / refYield$Yield[1]
+  
+  data_list2[[i]] <- proYield
+  
+}
+
+# Add data
+big_yield_data_cod2 <- dplyr::bind_rows(data_list2)
+
+
+## Herring
+baseEffort_var <- baseEffort
+
+for (i in iter) {
+  
+  baseEffort_var[2] <- baseEffort[2] * temp_eff$eff[i] #
+  baseTemp_var <- baseTemp * temp_eff$temp[i]
+  
+  proj <- project(pars_res,
+                  dt = dt,
+                  effort = baseEffort_var,
+                  temperature = rep(baseTemp_var, t_max),
+                  diet_steps = 10,
+                  t_max = t_max)
+  
+  # Extract yield at last iteration
+  proYield <- data.frame(Yield = getYield(proj)[dim(proj@effort)[1], 3],
+                         Species = "Herring",
+                         Fm = proj@effort[dim(proj@effort)[1], 3],
+                         temp = proj@temperature[dim(proj@temperature)[1], 1],
+                         Fm_scal = temp_eff$eff[i],
+                         temp_scal = temp_eff$temp[i])
+  
+  proYield$Yield_rel <- proYield$Yield / refYield$Yield[3]
+  
+  data_list2[[i]] <- proYield
+  
+}
+
+# Add data
+big_yield_data_herring2 <- dplyr::bind_rows(data_list2)
+
+
+## Sprat
+baseEffort_var <- baseEffort
+
+for (i in iter) {
+  
+  baseEffort_var[3] <- baseEffort[3] * temp_eff$eff[i] #
+  baseTemp_var <- baseTemp * temp_eff$temp[i]
+  
+  proj <- project(pars_res,
+                  dt = dt,
+                  effort = baseEffort_var,
+                  temperature = rep(baseTemp_var, t_max),
+                  diet_steps = 10,
+                  t_max = t_max)
+  
+  # Extract yield at last iteration
+  proYield <- data.frame(Yield = getYield(proj)[dim(proj@effort)[1], 2],
+                         Species = "Sprat",
+                         Fm = proj@effort[dim(proj@effort)[1], 2],
+                         temp = proj@temperature[dim(proj@temperature)[1], 1],
+                         Fm_scal = temp_eff$eff[i],
+                         temp_scal = temp_eff$temp[i])
+  
+  proYield$Yield_rel <- proYield$Yield / refYield$Yield[2]
+  
+  data_list2[[i]] <- proYield
+  
+}
+
+# Add data
+big_yield_data_sprat2 <- dplyr::bind_rows(data_list2)
+
+
+
+
+#**** for loop through different fishing effort (with temp. dep. physiology) =======
+data_list3 <- list()
+
+## Cod
+baseEffort_var <- baseEffort
+
+for (i in iter) {
+  
+  baseEffort_var[1] <- baseEffort[1] * temp_eff$eff[i] #
+  baseTemp_var <- baseTemp * temp_eff$temp[i]
+  
+  proj <- project(pars_phys,
+                  dt = dt,
+                  effort = baseEffort_var,
+                  temperature = rep(baseTemp_var, t_max),
+                  diet_steps = 10,
+                  t_max = t_max)
+  
+  # Extract yield at last iteration
+  proYield <- data.frame(Yield = getYield(proj)[dim(proj@effort)[1], 1],
+                         Species = "Cod",
+                         Fm = proj@effort[dim(proj@effort)[1], 1],
+                         temp = proj@temperature[dim(proj@temperature)[1], 1],
+                         Fm_scal = temp_eff$eff[i],
+                         temp_scal = temp_eff$temp[i])
+  
+  proYield$Yield_rel <- proYield$Yield / refYield$Yield[1]
+  
+  data_list3[[i]] <- proYield
+  
+}
+
+# Add data
+big_yield_data_cod3 <- dplyr::bind_rows(data_list3)
+
+
+## Herring
+baseEffort_var <- baseEffort
+
+for (i in iter) {
+  
+  baseEffort_var[2] <- baseEffort[2] * temp_eff$eff[i] #
+  baseTemp_var <- baseTemp * temp_eff$temp[i]
+  
+  proj <- project(pars_phys,
+                  dt = dt,
+                  effort = baseEffort_var,
+                  temperature = rep(baseTemp_var, t_max),
+                  diet_steps = 10,
+                  t_max = t_max)
+  
+  # Extract yield at last iteration
+  proYield <- data.frame(Yield = getYield(proj)[dim(proj@effort)[1], 3],
+                         Species = "Herring",
+                         Fm = proj@effort[dim(proj@effort)[1], 3],
+                         temp = proj@temperature[dim(proj@temperature)[1], 1],
+                         Fm_scal = temp_eff$eff[i],
+                         temp_scal = temp_eff$temp[i])
+  
+  proYield$Yield_rel <- proYield$Yield / refYield$Yield[3]
+  
+  data_list3[[i]] <- proYield
+  
+}
+
+# Add data
+big_yield_data_herring3 <- dplyr::bind_rows(data_list3)
+
+
+## Sprat
+baseEffort_var <- baseEffort
+
+for (i in iter) {
+  
+  baseEffort_var[3] <- baseEffort[3] * temp_eff$eff[i] #
+  baseTemp_var <- baseTemp * temp_eff$temp[i]
+  
+  proj <- project(pars_phys,
+                  dt = dt,
+                  effort = baseEffort_var,
+                  temperature = rep(baseTemp_var, t_max),
+                  diet_steps = 10,
+                  t_max = t_max)
+  
+  # Extract yield at last iteration
+  proYield <- data.frame(Yield = getYield(proj)[dim(proj@effort)[1], 2],
+                         Species = "Sprat",
+                         Fm = proj@effort[dim(proj@effort)[1], 2],
+                         temp = proj@temperature[dim(proj@temperature)[1], 1],
+                         Fm_scal = temp_eff$eff[i],
+                         temp_scal = temp_eff$temp[i])
+  
+  proYield$Yield_rel <- proYield$Yield / refYield$Yield[2]
+  
+  data_list3[[i]] <- proYield
+  
+}
+
+# Add data
+big_yield_data_sprat3 <- dplyr::bind_rows(data_list3)
+
+
+
+#**** Merge all data ===============================================================
 big_yield_data <- rbind(big_yield_data_cod, big_yield_data_herring, big_yield_data_sprat)
+big_yield_data$Scen <- "Physio. + Resource"
 
-big_yield_data %>% filter(temp_scal == 1)
+big_yield_data2 <- rbind(big_yield_data_cod2, big_yield_data_herring2, big_yield_data_sprat2)
+big_yield_data2$Scen <- "Resource"
 
+big_yield_data3 <- rbind(big_yield_data_cod3, big_yield_data_herring3, big_yield_data_sprat3)
+big_yield_data3$Scen <- "Physio."
+
+#big_yield_data %>% filter(temp_scal == 1)
+big_yield_data4 <- rbind(big_yield_data, big_yield_data2, big_yield_data3)
+
+# Now find FMSY across all temperature grid cells
+big_yield_data5 <- big_yield_data4 %>% 
+  group_by(Species, Scen, temp_scal) %>% 
+  mutate(FMSY = ifelse(Yield_rel == max(Yield_rel), "Y", "N"))
+  
 
 # Plot
-p4 <- big_yield_data %>% filter(Species == "Cod") %>%
-ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
-  geom_tile(color = NA) +
-  scale_fill_viridis() +
-  labs(#y = c(expression("Temperature, proportion of T"[ref])),
-       y = "",
-       #x = "F (proportion of FMSY)",
-       x = "",
+py <- ggplot(big_yield_data5, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
+  geom_raster() +
+  scale_fill_viridis(option = "magma") +
+  #labs(y = c(expression("Temperature (proportion of T"[ref])),
+  labs(x = c(expression(paste("Temperature (proportion of T"[ref], ")", sep = ""))),
+       y = c(expression(paste("F (proportion of F"[MSY], ")", sep = ""))),
        fill = "Relative\nyield") +
   coord_cartesian(expand = 0) +
-  ggtitle("Cod") +
-  geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
-  metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
+  facet_grid(Species ~ Scen) + 
+  geom_vline(xintercept = 1, color = "black", size = 0.2, alpha = 0.5) +
+  geom_hline(yintercept = 1, color = "black", size = 0.2, alpha = 0.5) +
+  theme(aspect.ratio = 1) +
+  geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.95, 1, 1.05), color = "white", size = 0.3) +
+  geom_point(data = filter(big_yield_data5, FMSY == "Y"),
+             aes(temp_scal, Fm_scal), color = "gray", size = 0.5) + # Add the FMSYs as zeroes
+  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 0.95,
+                          size = 2.5, color = "black", label.placement = metR::label_placement_random()) +
+  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1,
+                          size = 2.5, color = "black", label.placement = metR::label_placement_random()) +
+  metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1.05, 
+                          size = 2.5, color = "black", label.placement = metR::label_placement_random()) +
   NULL
 
-pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
-                                       axis.text = element_text(size = 10),
-                                       plot.title = element_text(size = 12),
-                                       legend.text = element_text(size = 6),
-                                       legend.title = element_text(size = 8),
-                                       aspect.ratio = 3/4,
-                                       #legend.position = "bottom",
-                                       legend.key.height = unit(0.75, "line"),
-                                       legend.key.width = unit(0.5, "line"))
-
-
-p5 <- big_yield_data %>% filter(Species == "Herring") %>%
-ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
-  geom_tile(color = NA) +
-  scale_fill_viridis() +
-  labs(y = c(expression("Temperature/T"[ref])),
-       #x = "F (proportion of FMSY)",
-       x = "",
-       fill = "Relative\nyield") +
-  coord_cartesian(expand = 0) +
-  ggtitle("Herring") +
-  geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
-  metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
-  NULL
-
-pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
-                                       axis.text = element_text(size = 10),
-                                       plot.title = element_text(size = 12),
-                                       legend.text = element_text(size = 6),
-                                       legend.title = element_text(size = 8),
-                                       aspect.ratio = 3/4,
-                                       #legend.position = "bottom",
-                                       legend.key.height = unit(0.75, "line"),
-                                       legend.key.width = unit(0.5, "line"))
-
-
-p6 <- big_yield_data %>% filter(Species == "Sprat") %>%
-  ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
-  geom_tile(color = NA) +
-  scale_fill_viridis() +
-  labs(#y = c(expression("Temperature, proportion of T"[ref])),
-       y = "",
-       x = "F/FMSY",
-       #x = "",
-       fill = "Relative\nyield") +
-  coord_cartesian(expand = 0) +
-  ggtitle("Sprat") +
-  geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
-  metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
-  NULL
-
-pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
+pWordy <- py + theme_classic() + theme(text = element_text(size = 12),
                                        plot.title = element_text(size = 12),
                                        axis.text = element_text(size = 10),
                                        legend.text = element_text(size = 6),
@@ -968,9 +1144,90 @@ pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
                                        legend.key.height = unit(0.75, "line"),
                                        legend.key.width = unit(0.5, "line"))
 
-pWord4 / pWord5 / pWord6
+pWordy
 
 ggsave("baltic/figures/yield_heat.png", width = 6.5, height = 6.5, dpi = 600)
+
+
+# p4 <- big_yield_data %>% filter(Species == "Cod") %>%
+# ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
+#   geom_tile(color = NA) +
+#   scale_fill_viridis() +
+#   labs(#y = c(expression("Temperature, proportion of T"[ref])),
+#        y = "",
+#        #x = "F (proportion of FMSY)",
+#        x = "",
+#        fill = "Relative\nyield") +
+#   coord_cartesian(expand = 0) +
+#   ggtitle("Cod") +
+#   geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
+#   metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
+#   NULL
+# 
+# pWord4 <- p4 + theme_classic() + theme(text = element_text(size = 12),
+#                                        axis.text = element_text(size = 10),
+#                                        plot.title = element_text(size = 12),
+#                                        legend.text = element_text(size = 6),
+#                                        legend.title = element_text(size = 8),
+#                                        aspect.ratio = 3/4,
+#                                        #legend.position = "bottom",
+#                                        legend.key.height = unit(0.75, "line"),
+#                                        legend.key.width = unit(0.5, "line"))
+# 
+# 
+# p5 <- big_yield_data %>% filter(Species == "Herring") %>%
+# ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
+#   geom_tile(color = NA) +
+#   scale_fill_viridis() +
+#   labs(y = c(expression("Temperature/T"[ref])),
+#        #x = "F (proportion of FMSY)",
+#        x = "",
+#        fill = "Relative\nyield") +
+#   coord_cartesian(expand = 0) +
+#   ggtitle("Herring") +
+#   geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
+#   metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
+#   NULL
+# 
+# pWord5 <- p5 + theme_classic() + theme(text = element_text(size = 12),
+#                                        axis.text = element_text(size = 10),
+#                                        plot.title = element_text(size = 12),
+#                                        legend.text = element_text(size = 6),
+#                                        legend.title = element_text(size = 8),
+#                                        aspect.ratio = 3/4,
+#                                        #legend.position = "bottom",
+#                                        legend.key.height = unit(0.75, "line"),
+#                                        legend.key.width = unit(0.5, "line"))
+# 
+# 
+# p6 <- big_yield_data %>% filter(Species == "Sprat") %>%
+#   ggplot(., aes(Fm_scal, temp_scal, fill = Yield_rel)) +
+#   geom_tile(color = NA) +
+#   scale_fill_viridis() +
+#   labs(#y = c(expression("Temperature, proportion of T"[ref])),
+#        y = "",
+#        x = "F/FMSY",
+#        #x = "",
+#        fill = "Relative\nyield") +
+#   coord_cartesian(expand = 0) +
+#   ggtitle("Sprat") +
+#   geom_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "white") + 
+#   metR::geom_text_contour(aes(Fm_scal, temp_scal, z = Yield_rel), breaks = 1, color = "black", size = 2.5) +
+#   NULL
+# 
+# pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
+#                                        plot.title = element_text(size = 12),
+#                                        axis.text = element_text(size = 10),
+#                                        legend.text = element_text(size = 6),
+#                                        legend.title = element_text(size = 8),
+#                                        aspect.ratio = 3/4,
+#                                        #legend.position = "bottom",
+#                                        legend.key.height = unit(0.75, "line"),
+#                                        legend.key.width = unit(0.5, "line"))
+# 
+# pWord4 / pWord5 / pWord6
+
+# ggsave("baltic/figures/yield_heat.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 # The below code changes all fishing mortalities at the same time. I instead want to
