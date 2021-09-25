@@ -1124,8 +1124,8 @@ py <- ggplot(big_yield_data5, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
   geom_hline(yintercept = 1, color = "black", size = 0.2, alpha = 0.5) +
   theme(aspect.ratio = 1) +
   geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.95, 1, 1.05), color = "white", size = 0.3) +
-  geom_point(data = filter(big_yield_data5, FMSY == "Y"),
-             aes(temp_scal, Fm_scal), color = "gray", size = 0.5) + # Add the FMSYs as zeroes
+  geom_line(data = filter(big_yield_data5, FMSY == "Y"),
+            aes(temp_scal, Fm_scal), linetype = 2, color = "white", size = 0.5) + # Add the FMSYs as zeroes
   metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 0.95,
                           size = 2.5, color = "black", label.placement = metR::label_placement_random()) +
   metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1,
