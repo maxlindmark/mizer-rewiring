@@ -5,7 +5,7 @@
 # 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# A. LOAD LIBRARIES ================================================================
+# LOAD LIBRARIES ================================================================
 rm(list = ls())
 
 # When doing a fresh start I need to check I'm in the right libpath to get the right mizer version
@@ -23,9 +23,10 @@ library(tidyr)
 library(dplyr)
 # devtools::install_github("thomasp85/patchwork")
 library(patchwork)
+library(mizer)
 
 # Install and reload local mizer package
-devtools::load_all(".")
+# devtools::load_all(".")
 
 # Print package versions
 # print(sessionInfo())
@@ -35,7 +36,7 @@ devtools::load_all(".")
 # [11] RColorBrewer_1.1-2 usethis_1.4.0 devtools_2.0.2 ggplot2_3.1.1  
 
 
-# B. READ DATA =====================================================================
+# READ DATA =====================================================================
 #**** Species parameters ===========================================================
 balticParams <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/params/species_params.csv"), sep = ";")
 
@@ -50,7 +51,7 @@ balticParams$sd25.29.32_m.2 <- 2.49e+11
 
 
 #**** Temperature time series =======================================================
-# This is a preliminary data set but from the correct model. Will clean this up later.
+# This is a preliminary data set but from the correct model. 
 temp_datRCP8.5 <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/data/Climate/Test_RCP8.5_from_graph.csv"), sep = ";", stringsAsFactors = FALSE)
 
 head(temp_datRCP8.5)
@@ -69,6 +70,7 @@ tempDat <- data.frame(temp_datRCP8.5 %>%
 update_geom_defaults("line", list(size = 1.75))
 col <- colorRampPalette(brewer.pal(5, "Dark2"))(5)
 
+# A. TESTING EACAR and EAGRO BEHAVE ================================================
 # Set defaults for regeneration and size ranges of background resources
 r_pp <-  4
 r_bb <-  4
@@ -121,11 +123,10 @@ m1 <- project(params,
 str(m1) # parameters, yes
 
 tail(getSSB(m1), 2)
-#> tail(getSSB(m1), 2)
 # sp
 # time          Cod    Sprat   Herring
-# 26 0.0003235197 4.582229 0.1581226
-# 27 0.0003894221 5.236273 0.1945952
+# 26 7.386347e-05 4.569863 0.1575045
+# 27 9.367804e-05 5.215214 0.1937429
 
 
 #** 3.CHANGE EA ========================================================
@@ -152,16 +153,15 @@ m2 <- project(params2,
 str(m2@params)
 
 tail(getSSB(m2), 2)
-#> tail(getSSB(m2), 2)
 # sp
 # time          Cod    Sprat   Herring
-# 26 0.0003235197 4.582229 0.1581226
-# 27 0.0003894221 5.236273 0.1945952
+# 26 7.386347e-05 4.569863 0.1575045
+# 27 9.367804e-05 5.215214 0.1937429
 
 # Looks good because it's the same as m1... now try and change temperature as well
 
 
-#** 3.CHANGE EA AND TEMPERATURE ====================================================
+#** 4.CHANGE EA AND TEMPERATURE ====================================================
 #--- Change temperature and set all activation energies to 0 except for resources
 # Create mizerParam object
 
@@ -204,21 +204,9 @@ str(m4@carTempScalar)
 tail(getSSB(m4), 2)
 # > tail(getSSB(m4), 2)
 # sp
-# time            Cod       Sprat     Herring
-# 26 0.000003021371 0.009925334 0.001357944
-# 27 0.000003224152 0.011417240 0.001461222
-
-# > tail(getSSB(m2), 2)
-# sp
-# time          Cod    Sprat   Herring
-# 26 0.0003235197 4.582229 0.1581226
-# 27 0.0003894221 5.236273 0.1945952
-
-# > tail(getSSB(m1), 2)
-# sp
-# time          Cod    Sprat   Herring
-# 26 0.0003235197 4.582229 0.1581226
-# 27 0.0003894221 5.236273 0.1945952
+# time          Cod       Sprat     Herring
+# 26 1.508564e-06 0.009916111 0.001344420
+# 27 1.560965e-06 0.011406101 0.001446482
 
 # Ok, biomasses are changing at 12C also when only the resource-parameters change, meaning they have an effect.
 # If the resource activation energies are set to 0, I should get the same SSB as in m1
@@ -250,18 +238,10 @@ tail(getSSB(m5), 2)
 # > tail(getSSB(m5), 2)
 # sp
 # time          Cod    Sprat   Herring
-# 26 0.0003235197 4.582229 0.1581226
-# 27 0.0003894221 5.236273 0.1945952
+# 26 7.386347e-05 4.569863 0.1575045
+# 27 9.367804e-05 5.215214 0.1937429
 
-tail(getSSB(m1), 2)
-# > tail(getSSB(m1), 2)
-# sp
-# time          Cod    Sprat   Herring
-# 26 0.0003235197 4.582229 0.1581226
-# 27 0.0003894221 5.236273 0.1945952
-
-# And they are in fact the same.
-
+# And they are in fact the same as m1
 
 # Now turn off ind-rates activation energies. Increase temp. What is the new rr_pp and cc_pp (and rr_bb and cc_bb)? Do I get the same results as when I simply define kappa and lambda to those values?
 
@@ -339,106 +319,141 @@ m7 <- project(params7,
 tail(getSSB(m6), 2)
 # sp
 # time          Cod    Sprat   Herring
-# 26 0.0003265373 4.711890 0.1608606
-# 27 0.0003939234 5.399794 0.1986076
+# 26 7.459378e-05 4.677298 0.1599131
+# 27 9.482658e-05 5.349834 0.1972559
 
 tail(getSSB(m7), 2)
-# > tail(getSSB(m7), 2)
 # sp
 # time          Cod    Sprat   Herring
-# 26 0.0003265373 4.711890 0.1608606
-# 27 0.0003939234 5.399794 0.1986076
+# 26 7.459378e-05 4.677298 0.1599131
+# 27 9.482658e-05 5.349834 0.1972559
 
 ## Yey!! Exactly the same....
 
 
-# # TO DO: Test with time-varying temperature! First recap how that is constructed... then compare to a scalar that i calculate straight from the tempFun. In both cases, plot the scalar!
-# params8 <- MizerParams(balticParams,
-#                        kappa_ben = kappa_ben,
-#                        kappa = kappa,
-#                        w_bb_cutoff = w_bb_cutoff,
-#                        w_pp_cutoff = w_pp_cutoff,
-#                        r_pp = r_pp,
-#                        r_bb = r_bb,
-#                        ea_gro = 0.63,
-#                        ea_car = -0.63)
-# 
-# params8@species_params$ea_met <- 0
-# params8@species_params$ea_int <- 0
-# params8@species_params$ea_mat <- 0
-# params8@species_params$ea_mor <- 0
-# params8@species_params
-# 
-# # Create a temperature-vector that is as long as t_max
-# temperature <- rnorm(mean = 10, sd = 2, t_max)
-# 
-# m8 <- project(params8,
-#               temperature = temperature,
-#               dt = 0.1,
-#               effort = effort,
-#               diet_steps = 10,
-#               t_max = t_max) 
-# 
-# tail(getSSB(m8), 2)
-# # > tail(getSSB(m8), 2)
-# # sp
-# # time          Cod    Sprat   Herring
-# # 26 0.0006575440 6.321939 0.2620813
-# # 27 0.0008102771 6.731523 0.3198012
-# 
-# # Now test if I can retrieve the scalar:
-# str(m8)
-# 
-# m8_groTempScalar <- m8@groTempScalar
-# 
-# str(m8_groTempScalar)
-# class(m8_groTempScalar)
-# head(m8_groTempScalar)
-# dim(m8_groTempScalar)
-# 
-# # Ok, so I want the columns now (270, for each iteration). There are 10 identical column names (dim names) because dt = 0.1.
-# 
-# # Now plot scalar as a function of temperature (large points):
-# plot(rep(temperature, each = 1/dt), m8_groTempScalar[1, ], cex = 2)
-# 
-# # And the equation:
-# fun_groTempScalar <- tempFun(temperature = temperature, 
-#                              t_ref = 10, Ea = 0.63, c_a = 0, 
-#                              w = 1)
-# 
-# str(fun_groTempScalar)
-# class(fun_groTempScalar)
-# 
-# # Add points to the plot
-# points(rep(temperature, each = 1/dt),
-#        rep(fun_groTempScalar[1,], each = 10), 
-#        col = "red", pch = 16)
+# B. TESTING THE MAGNITUDE OF EFFECT ===============================================
+# Reference model without temperature effects
+
+#**** Read in parameters and data ==================================================
+# Read in params object
+params <- readRDS("baltic/params/mizer_param_calib.rds")
+
+# Read in activation energy data frame
+ea <- read.csv("baltic/params/samples_activation_energy.csv")#[, 2:6]
+ea <- ea %>% dplyr::rename("car" = "X.gro")
+
+# Read in effort and temperature for projections
+projectEffort <- read.csv("baltic/params/projectEffort.csv")[, 2:4]
+projectTemp <- read.csv("baltic/params/projectTemp.csv")
+
+projectEffort_m <- as.matrix(projectEffort)
+rownames(projectEffort_m) <- 1:nrow(projectEffort)
+
+# Define general parameters
+dt <- 0.2
+t_ref <- params@t_ref
+kappa_ben <- params@kappa_ben
+kappa <- params@kappa
+w_bb_cutoff <- 20 # Not stored in mizerParams output
+w_pp_cutoff <- 1 # Not stored in mizerParams outputs
+r_pp <- 4 # Not stored in mizerParams output
+r_bb <- 4 # Not stored in mizerParams output
+
+# Define temperature-scenarios
+consTemp <- projectTemp$temperature
+
+ref <- project(params, 
+               dt = dt,
+               effort = projectEffort_m[1:90, ],
+               temperature = rep(10, nrow(projectEffort_m[1:90, ])),
+               diet_steps = 10,
+               t_max = t_max,
+               kappa_ben = kappa_ben,
+               kappa = kappa,
+               w_bb_cutoff = w_bb_cutoff,
+               w_pp_cutoff = w_pp_cutoff,
+               r_pp = r_pp,
+               r_bb = r_bb,
+               t_ref = t_ref)   
+
+plot(ref)
+
+ref@params@kappa_ben
+
+# Ok, so the above is the final calibrated model run until just before I implement
+# historical fishing mortality. 
+
+# What is the "intercept" of the resource carrying capacity?
+plot(ref)
+
+ref@params@kappa_ben
+
+df <- data.frame(ref@n_bb[90, ])
+df$w <- rownames(df)
+df <- df %>%
+  rename(N = ref.n_bb.90...) %>% 
+  filter(N > 0) %>% 
+  mutate(w = as.numeric(w))
+
+ggplot(df, aes(log(w), log(N))) + geom_point()
+
+ggplot(df, aes(w, N)) + geom_point()
+
+summary(lm(log(df$N) ~ log(df$w)))
 
 
-# A. TESTING WITH TIME-VARYING TEMPERATURE =========================================
+# Now simulate with 1C warming
+t <- params@species_params
+
+tt <- MizerParams(t, 
+                  ea_gro = mean(ea$gro),
+                  ea_car = mean(ea$car), # -ea$gro[i] 
+                  kappa_ben = kappa_ben,
+                  kappa = kappa,
+                  w_bb_cutoff = w_bb_cutoff,
+                  w_pp_cutoff = w_pp_cutoff,
+                  r_pp = r_pp,
+                  r_bb = r_bb,
+                  t_ref = t_ref)
+
+m1c <- project(tt, 
+               dt = dt,
+               effort = projectEffort_m[1:90, ],
+               temperature = rep(11, nrow(projectEffort_m[1:90, ])),
+               diet_steps = 10,
+               t_max = t_max)   
+
+m1c@params@kappa_ben
+
+str(m1c)
+
+m1c@carTempScalar
+
+1-0.9105542
+
+# Now compare linearized abundance ~w plots with and without 1 C warming
+df2 <- data.frame(m1c@n_bb[90, ])
+df2$w <- rownames(df2)
+df2 <- df2 %>%
+  rename(N = m1c.n_bb.90...) %>% 
+  filter(N > 0) %>% 
+  mutate(w = as.numeric(w))
+
+summary(lm(log(df$N) ~ log(df$w)))
+summary(lm(log(df2$N) ~ log(df2$w)))
+
+inter_ref <- 2.187e+00
+inter_m1c <- 2.093e+00
+
+inter_m1c/inter_ref
+
+
+getAnywhere("project")
+
+
+
+# C. TESTING WITH TIME-VARYING TEMPERATURE =========================================
 rm(list = ls())
-
-# Load libraries, install if needed
-library(ggplot2)
-library(devtools)
-library(RColorBrewer)
-library(RCurl)
-library(magrittr)
-library(viridis)
-library(tidyr)
-library(dplyr)
-# devtools::install_github("thomasp85/patchwork")
-library(patchwork)
-
-# Install and reload local mizer package
-devtools::load_all(".")
-
-# Print package versions
-# print(sessionInfo())
-# other attached packages:
-# mizer_1.1          testthat_2.3.0     patchwork_0.0.1    dplyr_0.8.3        tidyr_1.0.0        
-# viridis_0.5.1      viridisLite_0.3.0  magrittr_1.5       RCurl_1.95-4.12   
-# bitops_1.0-6       RColorBrewer_1.1-2 devtools_2.2.1     usethis_1.5.1      ggplot2_3.2.1     
 
 # Load function for extracting size-at-age
 func <- 
@@ -451,13 +466,6 @@ func <-
   getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/getSpeciesMeanWeight.R", 
          ssl.verifypeer = FALSE)
 eval(parse(text = func))
-
-# Load function for extracting raincloud plot
-func <- 
-  getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/raincloudPlot.R", 
-         ssl.verifypeer = FALSE)
-eval(parse(text = func))
-
 
 #**** Read in parameters and data ==================================================
 # Read in params object
@@ -484,65 +492,7 @@ w_pp_cutoff <- 1 # Not stored in mizerParams outputs
 r_pp <- 4 # Not stored in mizerParams output
 r_bb <- 4 # Not stored in mizerParams output
 
-# Define temperature-scenarios
-consTemp <- projectTemp$temperature
-
-# The time series starts in 1914. From 1997 (mid point in calibration time), we want
-# to fix the temperature at the mean of the calibration, i.e. t_ref. This insures
-# we get comparable starting values for the models so that temperature is the only "treatment"
-start <- 1997-1914
-consTemp[start:137] <- t_ref
-
-# Plot
-col <- RColorBrewer::brewer.pal("Dark2", n = 5)
-col <- RColorBrewer::brewer.pal("Set1", n = 3)[1:2]
-
-tempScen <- data.frame(Temperature = c(consTemp, projectTemp$temperature),
-                       Scenario = rep(c("no warming", "warming"), each = length(consTemp)),
-                       Year = 1:length(consTemp) + 1913)
-
-ggplot(tempScen, aes(Year, Temperature, color = Scenario, linetype = Scenario)) +
-  geom_line(alpha = 0.8, size = 1.4) +
-  theme_classic(base_size = 25) +
-  scale_color_manual(values = rev(col)) +
-  theme(legend.position=c(.2,.75),
-        aspect.ratio = 3/4) +
-  NULL
-
-#ggsave("baltic/figures/supp/temperature_scenarios.pdf", plot = last_plot(), width = 19, height = 19, units = "cm")
-
-
-# B. SIMULATE TEMP-DRIVEN CHANGE IN SIZE-AT-AGE ====================================
-# for-loop to take random samples for distributions representing activation energies
-# Then compare that to a projection with a constant temperature
-
-#**** Project without temp (reference) =============================================
-ref <- project(params, 
-               dt = dt,
-               effort = projectEffort_m,
-               temperature = consTemp,
-               diet_steps = 10,
-               t_max = t_max)   
-
-
-refGrowth <- getGrowth(ref)
-refMeanWeight <- getMeanWeight(ref)
-refSpeciesMeanWeight <- getSpeciesMeanWeight(ref)[nrow(projectEffort_m), ] 
-
-
-#**** Barnes - with resource - no physiological scaling ============================
-# NO LOOP NEEDED YET
-# sim <- 1:200
-
-t <- c()
-tt <- c()
-groj <- c()
-growth <- c()
-# data_list_with_res_no_phys_barn <- list()
-# mean_weight_list_with_res_no_phys_barn <- list()
-
-# for (i in sim) {
-
+# Simulate with extreme temperature event 
 t <- params@species_params
 
 t$ea_met <- 0
@@ -550,8 +500,8 @@ t$ea_int <- 0
 t$ea_mor <- 0
 
 tt <- MizerParams(t, 
-                  ea_gro = 0, #0.41, #0.43, # ea$gro[i],
-                  ea_car = -0.4, #-0.41, # 0,  # -0.41, # ea$car[i], # -ea$gro[i] 
+                  ea_gro = 0, 
+                  ea_car = -0.4, 
                   kappa_ben = kappa_ben,
                   kappa = kappa,
                   w_bb_cutoff = w_bb_cutoff,
@@ -561,11 +511,6 @@ tt <- MizerParams(t,
                   t_ref = t_ref)
 
 test_temp <- projectTemp$temperature
-# test_temp[length(test_temp)- 2] <- 
-# test_temp[length(test_temp)- 1] <- 20000
-# test_temp[length(test_temp)] <- 20000
-# test_temp[(length(test_temp)/2)] <- 20000
-# test_temp[20:60] <- 20000
 test_temp[(length(test_temp)/2):length(test_temp)] <- 20000000000
 
 tt@ea_gro
@@ -575,22 +520,8 @@ tt@species_params$ea_mor
 proj <- project(tt, 
                 dt = dt,
                 effort = projectEffort_m,
-                temperature = test_temp, # projectTemp$temperature,
-                #temperature = projectTemp$temperature,
-                diet_steps = 10) # ,
-#t_max = t_max)   
+                temperature = test_temp, 
+                diet_steps = 10)
 
 plotBiomass(proj)
-
-
-
-
-
-
-
-
-
-
-
-
 
