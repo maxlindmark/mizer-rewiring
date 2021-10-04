@@ -236,10 +236,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
       intTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
                                             Ea = params@species_params$ea_int[iSpecies], 
                                             c_a = params@species_params$ca_int[iSpecies],  w = params@w)
-      
-      morTempScalar[iSpecies,,] <-  tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
-                                            Ea = params@species_params$ea_mor[iSpecies], 
-                                            c_a = params@species_params$ca_mor[iSpecies],  w = params@w)
+
     }
     
     # ML: Populate the scalars for resource growth and carrying capacity using the tempFun as above 
