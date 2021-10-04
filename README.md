@@ -70,7 +70,3 @@ therefore available from R's build-it package manager.
 
 See the accompanying [vignette](https://cran.r-project.org/web/packages/mizer/vignettes/mizer_vignette.pdf) 
 for more details on how the package works, including detailed examples.
-
-#[![Rdoc](http://www.rdocumentation.org/badges/version/mizer)](http://www.rdocumentation.org/packages/mizer)
-
-#[![Travis-CI Build Status](https://travis-ci.org/sizespectrum/mizer.svg?branch=master)](https://travis-ci.org/sizespectrum/mizer)
