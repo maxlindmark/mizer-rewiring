@@ -49,10 +49,6 @@ ICES Database of Trawl Surveys (DATRAS), Extraction 1 JAN 2018 of International 
 
 **Herring**: ICES. 2015. *Report of the Baltic Fisheries Assessment Working Group (WGBFAS)*, 14-21 April 2015, ICES HQ, Copenhagen, Denmark. ICES CM 2015/ACOM:10. [from XSA model]
 
-*Eventually have a look at this guide to good "Read me's": https://gist.github.com/PurpleBooth/109311bb0361f32d87a2 and this example: https://github.com/seananderson/heavy-tails*
-
-
-
 
 # mizer
 
@@ -75,6 +71,6 @@ therefore available from R's build-it package manager.
 See the accompanying [vignette](https://cran.r-project.org/web/packages/mizer/vignettes/mizer_vignette.pdf) 
 for more details on how the package works, including detailed examples.
 
-[![Rdoc](http://www.rdocumentation.org/badges/version/mizer)](http://www.rdocumentation.org/packages/mizer)
+#[![Rdoc](http://www.rdocumentation.org/badges/version/mizer)](http://www.rdocumentation.org/packages/mizer)
 
-[![Travis-CI Build Status](https://travis-ci.org/sizespectrum/mizer.svg?branch=master)](https://travis-ci.org/sizespectrum/mizer)
+#[![Travis-CI Build Status](https://travis-ci.org/sizespectrum/mizer.svg?branch=master)](https://travis-ci.org/sizespectrum/mizer)
