@@ -418,6 +418,23 @@ ref11C <- project(params11,
 
 1- (ref11C@carTempScalar[1] * ref11C@params@kappa_ben / ref@params@kappa_ben)
 
+ref11C
+
+
+ref_df <- data.frame(n = ref@n_bb[90, ], w = as.numeric(rownames(data.frame(ref@n_bb[90, ])))) %>% filter(n > 0)
+ref11C_df <- data.frame(n = ref11C@n_bb[90, ], w = as.numeric(rownames(data.frame(ref11C@n_bb[90, ])))) %>% filter(n > 0)
+
+# geometric mean weight of resource spectra:
+mean(ref_df$w)
+gmw <- exp(mean(log(ref_df$w)))
+
+# ref_df %>% filter(w > gmw - 0.0001 & w < gmw + 0.0001)
+
+filter(ref11C_df, w == 0.000411)$n / filter(ref_df, w == 0.000411)$n
+(ref11C@carTempScalar[1] * ref11C@params@kappa_ben / ref@params@kappa_ben)
+
+# Percent change
+((filter(ref11C_df, w == 0.000411)$n - filter(ref_df, w == 0.000411)$n) / filter(ref_df, w == 0.000411)$n)*100
 
 
 # C. TESTING WITH TIME-VARYING TEMPERATURE =========================================
