@@ -119,6 +119,9 @@ m1 <- project(params,
               diet_steps = 10,
               t_max = t_max) 
 
+plotBiomass(m1)
+
+
 # Check scalars are there
 str(m1) # parameters, yes
 
@@ -383,72 +386,37 @@ ref@params@kappa_ben
 # Ok, so the above is the final calibrated model run until just before I implement
 # historical fishing mortality. 
 
-# What is the "intercept" of the resource carrying capacity?
-plot(ref)
+# The carrying capacity temp scalar is implemented as follows: 
+#params@cc_pp[1] / (params@w_full[1]^(-lambda))
+#sim@params@cc_pp*carTempScalar[1, i_time]
 
-ref@params@kappa_ben
-
-df <- data.frame(ref@n_bb[90, ])
-df$w <- rownames(df)
-df <- df %>%
-  rename(N = ref.n_bb.90...) %>% 
-  filter(N > 0) %>% 
-  mutate(w = as.numeric(w))
-
-ggplot(df, aes(log(w), log(N))) + geom_point()
-
-ggplot(df, aes(w, N)) + geom_point()
-
-summary(lm(log(df$N) ~ log(df$w)))
+# Now check 11 C
+params11 <- MizerParams(params@species_params,
+                       kappa_ben = kappa_ben,
+                       kappa = kappa,
+                       w_bb_cutoff = w_bb_cutoff,
+                       w_pp_cutoff = w_pp_cutoff,
+                       r_pp = r_pp,
+                       r_bb = r_bb,
+                       ea_gro = 0,
+                       ea_car = -0.63)
 
 
-# Now simulate with 1C warming
-t <- params@species_params
-
-tt <- MizerParams(t, 
-                  ea_gro = mean(ea$gro),
-                  ea_car = mean(ea$car), # -ea$gro[i] 
-                  kappa_ben = kappa_ben,
-                  kappa = kappa,
-                  w_bb_cutoff = w_bb_cutoff,
-                  w_pp_cutoff = w_pp_cutoff,
-                  r_pp = r_pp,
-                  r_bb = r_bb,
-                  t_ref = t_ref)
-
-m1c <- project(tt, 
+ref11C <- project(params11, 
                dt = dt,
                effort = projectEffort_m[1:90, ],
                temperature = rep(11, nrow(projectEffort_m[1:90, ])),
                diet_steps = 10,
-               t_max = t_max)   
+               t_max = t_max,
+               kappa_ben = kappa_ben,
+               kappa = kappa,
+               w_bb_cutoff = w_bb_cutoff,
+               w_pp_cutoff = w_pp_cutoff,
+               r_pp = r_pp,
+               r_bb = r_bb,
+               t_ref = t_ref)   
 
-m1c@params@kappa_ben
-
-str(m1c)
-
-m1c@carTempScalar
-
-1-0.9105542
-
-# Now compare linearized abundance ~w plots with and without 1 C warming
-df2 <- data.frame(m1c@n_bb[90, ])
-df2$w <- rownames(df2)
-df2 <- df2 %>%
-  rename(N = m1c.n_bb.90...) %>% 
-  filter(N > 0) %>% 
-  mutate(w = as.numeric(w))
-
-summary(lm(log(df$N) ~ log(df$w)))
-summary(lm(log(df2$N) ~ log(df2$w)))
-
-inter_ref <- 2.187e+00
-inter_m1c <- 2.093e+00
-
-inter_m1c/inter_ref
-
-
-getAnywhere("project")
+1- (ref11C@carTempScalar[1] * ref11C@params@kappa_ben / ref@params@kappa_ben)
 
 
 
