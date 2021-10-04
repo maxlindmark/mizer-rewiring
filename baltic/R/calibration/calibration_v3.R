@@ -17,6 +17,8 @@
 #
 # F. Save params object for analysis
 #
+# G. Some tests...
+#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # A. LOAD LIBRARIES ================================================================
@@ -763,12 +765,6 @@ p3 <- plotGrowthCurves(m3b, max_age = 15) +
              color = "white", shape = 21, alpha = 0.1) +
   geom_hline(data = vbge_pred, aes(yintercept = w_mat), 
              color = "black", size = 0.8, linetype = 2) +
-  # geom_line(aes(x = Age, y = value), 
-  #           color = col[5], size = 1.3, alpha = 0.8) +
-  # geom_line(data = subset(vbge_pred, age < 16), aes(age, weight), 
-  #           color = col[4], size = 1.3, linetype = "twodash", alpha = 0.8) +
-  # geom_line(aes(x = Age, y = value), 
-  #           color = col[2], size = 1.3, alpha = 0.8) +
   geom_line(data = subset(vbge_pred, age < 16), aes(age, weight), 
             color = col[3], size = 1.3, linetype = "twodash", alpha = 0.8) +
   guides(color = FALSE, linetype = FALSE) +
@@ -814,7 +810,6 @@ ssb_eval <- data.frame(SSB = c(obs, pred),
 
 p6 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) + 
   geom_point(size = 4, alpha = 0.8) +
-  #scale_fill_manual(values = rev(col)) +
   scale_fill_viridis(discrete = TRUE, option = "cividis") +
   scale_shape_manual(values = c(24, 21),
                      guide = guide_legend(override.aes = list(colour = "black", 
@@ -832,12 +827,11 @@ pWord6 <- p6 + theme_classic() + theme(text = element_text(size = 12),
                                        legend.title = element_blank(),
                                        aspect.ratio = 1)
 
-      
+
 ssb_eval_l <- data.frame(obs = log10(obs), pred = log10(pred), Species = balticParams$species)
 
 p7 <- ggplot(ssb_eval_l, aes(obs, pred, fill = Species, shape = Species)) +
   geom_point(size = 4, alpha = 0.8) +
-  #scale_fill_manual(values = rev(col)) +
   scale_fill_viridis(discrete = TRUE, option = "cividis") +
   scale_shape_manual(values = c(21, 22, 24)) +
   labs(x = "Log10(Observed SSB)", y = "Log10(Predicted SSB)") +
@@ -858,8 +852,6 @@ ggsave("baltic/figures/supp/SSB_fit.png", width = 6.5, height = 6.5, dpi = 600)
 
 #** Diet ===========================================================================
 p8 <- plotDietComp(m3b, prey = dimnames(m3b@diet_comp)$prey[1:5]) + 
-  # scale_fill_manual(values = rev(col),
-  #                   labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
   scale_fill_viridis(discrete = TRUE, option = "magma", labels = c("Cod", "Sprat", "Herring", "Plankton", "Benthos")) +
   scale_x_continuous(name = "log10 predator mass (g)", expand = c(0,0)) +
   scale_y_continuous(name = "Proportion of diet by mass (g)", expand = c(0,0)) +
@@ -992,7 +984,6 @@ p9 <- plotEffort %>%
             fill  = "gray80") +
   geom_line(size = 1.2, alpha = 0.8) +
   coord_cartesian(expand = 0) +
-  #scale_color_manual(values = rev(col)) +
   scale_color_viridis(discrete = TRUE, option = "cividis") +
   labs(x = "Year", y = "Fishing mortality (F)") +
   annotate("text", -Inf, Inf, label = "A", size = 4, 
@@ -1201,10 +1192,7 @@ p11 <- dat %>% filter(Year < 2012 & Year > 1970) %>%
             fill  = "gray90") +
   geom_line(size = 1.5) +
   scale_linetype_manual(values = c("twodash", "dashed", "dotted", "solid")) +
-  #scale_color_manual(values = c(rev(col)[1:3], "gray30")) +
-  #scale_color_viridis(discrete = TRUE, option = magma) +
   scale_color_manual(values = c(RColorBrewer::brewer.pal("Set1", n = 3)[2], viridis(n = 3)[1:2], "grey")) +
-  #scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.8)) +
   labs(y = "Spawning stock biomass (1000 tonnes)", x = "Year") +
   scale_y_continuous(expand = c(0, 0)) +
   NULL

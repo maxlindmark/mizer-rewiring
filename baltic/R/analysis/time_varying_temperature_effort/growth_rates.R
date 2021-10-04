@@ -55,12 +55,6 @@ func <-
          ssl.verifypeer = FALSE)
 eval(parse(text = func))
 
-# Load function for extracting raincloud plot
-# func <- 
-#   getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/raincloudPlot.R", 
-#          ssl.verifypeer = FALSE)
-# eval(parse(text = func))
-
 
 #**** Read in parameters and data ==================================================
 # Read in params object
@@ -129,130 +123,6 @@ ref <- project(params,
 refGrowth <- getGrowth(ref)
 refMeanWeight <- getMeanWeight(ref)
 refSpeciesMeanWeight <- getSpeciesMeanWeight(ref)[nrow(projectEffort_m), ] 
-
-
-#**** Barnes - with resource - no physiological scaling ============================
-# sim <- 1:200
-# 
-# t <- c()
-# tt <- c()
-# groj <- c()
-# growth <- c()
-# data_list_with_res_no_phys_barn <- list()
-# mean_weight_list_with_res_no_phys_barn <- list()
-# 
-# for (i in sim) {
-# 
-# t <- params@species_params
-# 
-# t$ea_met <- 0
-# t$ea_int <- 0
-# t$ea_mor <- 0
-# 
-# tt <- MizerParams(t, 
-#                   ea_gro = 0, #0.41, #0.43, # ea$gro[i],
-#                   ea_car = ea$b_car[i], #-0.41, # 0,  # -0.41, # ea$car[i], # -ea$gro[i] 
-#                   kappa_ben = kappa_ben,
-#                   kappa = kappa,
-#                   w_bb_cutoff = w_bb_cutoff,
-#                   w_pp_cutoff = w_pp_cutoff,
-#                   r_pp = r_pp,
-#                   r_bb = r_bb,
-#                   t_ref = t_ref)
-# 
-# proj <- project(tt, 
-#                 dt = dt,
-#                 effort = projectEffort_m,
-#                 temperature = projectTemp$temperature,
-#                 diet_steps = 10) 
-# 
-# growth <- getGrowth(proj)
-# 
-# growth$ea_met <- proj@params@species_params$ea_met[1]
-# growth$ea_mor <- proj@params@species_params$ea_mor[1]
-# growth$ea_int <- proj@params@species_params$ea_int[1]
-# 
-# growth$ea_gro <- proj@params@ea_gro
-# growth$ea_car <- proj@params@ea_car
-# 
-# growth$sim <- 1 # i
-# 
-# growth$re_growth <- growth$value / refGrowth$value
-# 
-# data_list_with_res_no_phys_barn[[i]] <- growth
-#  
-# mean_weight_list_with_res_no_phys_barn[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
-# 
-# }
-# 
-# big_growth_data_w_r_n_p_barn <- dplyr::bind_rows(data_list_with_res_no_phys_barn)
-# big_mean_weight_data_w_r_n_p_barn <- dplyr::bind_rows(mean_weight_list_with_res_no_phys_barn)
-# big_mean_weight_data_w_r_n_p_barn <- big_mean_weight_data_w_r_n_p_barn %>% 
-#   dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
-# big_mean_weight_data_w_r_n_p_barn$species <- rep(ref@params@species_params$species, 200)
-
-
-#**** for loop (Barnes - with resource) =====================================================
-# sim <- 1:200
-# 
-# t <- c()
-# tt <- c()
-# groj <- c()
-# growth <- c()
-# data_list_with_res_barn <- list()
-# mean_weight_list_with_res_barn <- list()
-# 
-# for (i in sim) {
-#   
-#   t <- params@species_params
-#   
-#   t$ea_met <- ea$met[i]
-#   t$ea_int <- ea$int[i]
-#   t$ea_mor <- ea$mor[i]
-#   
-#   tt <- MizerParams(t, 
-#                     ea_gro = 0, #ea$gro[i],
-#                     ea_car = ea$b_car[i],
-#                     kappa_ben = kappa_ben,
-#                     kappa = kappa,
-#                     w_bb_cutoff = w_bb_cutoff,
-#                     w_pp_cutoff = w_pp_cutoff,
-#                     r_pp = r_pp,
-#                     r_bb = r_bb,
-#                     t_ref = t_ref)
-#   
-#   proj <- project(tt, 
-#                   dt = dt,
-#                   effort = projectEffort_m,
-#                   temperature = projectTemp$temperature,
-#                   diet_steps = 10,
-#                   t_max = t_max)   
-#   
-#   growth <- getGrowth(proj)
-#   
-#   growth$ea_met <- proj@params@species_params$ea_met[1]
-#   growth$ea_mor <- proj@params@species_params$ea_mor[1]
-#   growth$ea_int <- proj@params@species_params$ea_int[1]
-#   
-#   growth$ea_gro <- proj@params@ea_gro
-#   growth$ea_car <- proj@params@ea_car
-#   
-#   growth$sim <- i
-#   
-#   growth$re_growth <- growth$value / refGrowth$value
-#   
-#   data_list_with_res_barn[[i]] <- growth
-#   
-#   mean_weight_list_with_res_barn[[i]] <- data.frame(getSpeciesMeanWeight(proj)[nrow(projectEffort_m), ] )
-#   
-# }
-# 
-# big_growth_data_w_r_barn <- dplyr::bind_rows(data_list_with_res_barn)
-# big_mean_weight_data_w_r_barn <- dplyr::bind_rows(mean_weight_list_with_res_barn)
-# big_mean_weight_data_w_r_barn <- big_mean_weight_data_w_r_barn %>% 
-#   dplyr::rename("mean_weight" = "getSpeciesMeanWeight.proj..nrow.projectEffort_m....")
-# big_mean_weight_data_w_r_barn$species <- rep(ref@params@species_params$species, 200)
-
 
 
 #**** for loop (with resource, MTE) =====================================================
@@ -446,21 +316,14 @@ big_mean_weight_data_no_r$species <- rep(ref@params@species_params$species, 200)
 big_growth_data_w_r$scen <- "Physio. + Resource" # "With resource temp. dep."
 big_growth_data_no_r$scen <- "Physio." # "No resource temp. dep."
 big_growth_data_w_r_n_p$scen <- "Resource" # "With resource temp. dep. no. phys"
-#big_growth_data_w_r_barn$scen <- "Physio. + Resource (obs.)" # "With resource temp. dep. barn"
-#big_growth_data_w_r_n_p_barn$scen <- "Resource (obs.)" # "With resource temp. dep. barn. no. phys. "
 
 big_growth_data_w_r$sim <- paste("wr", big_growth_data_w_r$sim, sep = "")
 big_growth_data_no_r$sim <- paste("nr", big_growth_data_no_r$sim, sep = "")
 big_growth_data_w_r_n_p$sim <- paste("wr_np", big_growth_data_w_r_n_p$sim, sep = "")
-#big_growth_data_w_r_barn$sim <- paste("wr_bar", big_growth_data_w_r_barn$sim, sep = "")
-#big_growth_data_w_r_n_p_barn$sim <- paste("wr_np_bar", big_growth_data_w_r_n_p_barn$sim, sep = "")
 
 big_growth_data <- rbind(big_growth_data_w_r, 
                          big_growth_data_no_r, 
-                         big_growth_data_w_r_n_p#,
-                         #big_growth_data_w_r_barn,
-                         #big_growth_data_w_r_n_p_barn
-                         )
+                         big_growth_data_w_r_n_p)
 
 head(big_growth_data)
 str(big_growth_data)
@@ -507,8 +370,6 @@ p1 <- ggplot(mean_dat,
   labs(y = "Body mass (g)") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0)) + 
-  # scale_color_manual(values = rev(col)) +
-  # scale_fill_manual(values = rev(col)) +
   scale_fill_viridis(discrete = TRUE) +
   scale_color_viridis(discrete = TRUE) +
   guides(color = FALSE, fill = FALSE) +
@@ -531,7 +392,6 @@ p1b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
   labs(y = "Body mass (g)") +
   facet_wrap(~Species, scales = "free_y") +
   scale_y_continuous(expand = c(0, 0)) +
-  #scale_color_manual(values = rev(col)) +
   scale_color_viridis(discrete = TRUE) +
   theme_classic(base_size = 14) +
   guides(color = FALSE, fill = FALSE) +
@@ -557,7 +417,6 @@ sort(unique(big_growth_data$scen))
 
 p2 <- rel_dat %>% filter(Age > 0) %>% 
 ggplot(., 
-       #aes(x = Age, ymin = min_val, ymax = max_val, fill = factor(scen))
        aes(x = Age, ymin = val025, ymax = val975, fill = factor(scen))
        ) +
   geom_line(data = filter(rel_dat, Age > 0), aes(Age, mean_val, color = factor(scen)),
@@ -565,12 +424,7 @@ ggplot(.,
   geom_ribbon(alpha = 0.175, color = NA) +  
   labs(y = "Body mass relative to\nconstant temperature") +
   facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(expand = c(0, 0),
-                     #limits = c(0.95, 2.2)
-                     ) + 
-  # scale_color_manual(values = rev(col),
-  #                    name = "Scenario") +
-  # scale_fill_manual(values = rev(col)) +
+  scale_y_continuous(expand = c(0, 0)) + 
   scale_color_viridis(discrete = TRUE, name = "Scenario") +
   scale_fill_viridis(discrete = TRUE) +
   guides(fill = FALSE,
@@ -593,20 +447,14 @@ p2b <- big_growth_data %>% filter(Age > 0 & Age < 16) %>%
             inherit.aes = FALSE, size = 1.75, linetype = 2, alpha = 1) +
   labs(y = "Body mass relative to\nconstant temperature") +
   facet_wrap(~Species, scales = "free_y") +
-  scale_y_continuous(expand = c(0, 0)
-                     #, limits = c(0.95, 2.2)
-                     ) +
-  # scale_color_manual(values = rev(col),
-  #                    name = "Scenario") +
+  scale_y_continuous(expand = c(0, 0)) +
   scale_color_viridis(discrete = TRUE, name = "Scenario") +
   guides(colour = guide_legend(nrow = 3,
                                override.aes = list(alpha = 1,
                                                    linetype = 1))) +
   guides(linetype = FALSE) +
   theme_classic(base_size = 14) +
-  theme(legend.position = "bottom"#,
-        #legend.direction = "vertical"
-        ) +
+  theme(legend.position = "bottom") +
   geom_hline(yintercept = 1, size = 0.3, linetype = "dashed", color = "black") +
   NULL
 
@@ -622,15 +470,10 @@ ggsave("baltic/figures/growth_project.png", width = 6.5, height = 6.5, dpi = 600
 big_mean_weight_data_w_r$scen <- "Physio. + Resource" # "With resource temp. dep."
 big_mean_weight_data_no_r$scen <- "Physio." # "No resource temp. dep."
 big_mean_weight_data_w_r_n_p$scen <- "Resource" # "With resource temp. dep. no. phys"
-#big_mean_weight_data_w_r_barn$scen <- "Physio. + Resource (obs.)" # "With resource temp. dep. barn"
-#big_mean_weight_data_w_r_n_p_barn$scen <- "Resource (obs.)" # "With resource temp. dep. barn. no. phys. "
 
 big_mean_weight_data <- rbind(big_mean_weight_data_w_r, 
                               big_mean_weight_data_no_r,
-                              big_mean_weight_data_w_r_n_p#,
-                              #big_mean_weight_data_w_r_barn,
-                              #big_mean_weight_data_w_r_n_p_barn
-                              )
+                              big_mean_weight_data_w_r_n_p)
 
 big_mean_weight_data$scen <- as.factor(big_mean_weight_data$scen)
 
@@ -647,21 +490,15 @@ ref_w <- data.frame(species = c("Cod", "Sprat", "Herring"),
 # Plot
 p3 <- ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
   facet_wrap(~ species, scales = "free", nrow = 3) +
-  #coord_flip() +
-  # scale_color_manual(values = col) +
-  # scale_fill_manual(values = col, name = "Scenario") +
   scale_color_viridis(discrete = TRUE, name = "Scenario") +
   scale_fill_viridis(discrete = TRUE, name = "Scenario") +
-  # this doesn't work with facet_wrap's free scales...
-  # geom_flat_violin(position = position_nudge(x = .25, y = 0), adjust = 2, trim = FALSE, alpha = 0.7) +
   geom_point(position = position_jitter(width = .15), size = 1.1, alpha = 0.9, shape = 21, color = "white") +
   geom_boxplot(aes(x = scen, y = mean_weight),
                outlier.shape = NA, alpha = 0.1, width = .2, color = "black", size = 0.5) +
   guides(fill = FALSE) +
   labs(x = "", y = "Mean weight (g)") +
   geom_hline(data = ref_w, aes(yintercept = mean_weight), linetype = 2) +
-  guides(fill = guide_legend(#nrow = 3,
-                             override.aes = list(alpha = 0.8))) +
+  guides(fill = guide_legend(override.aes = list(alpha = 0.8))) +
   NULL
 
 pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
@@ -675,23 +512,6 @@ pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
 pWord3
 
 ggsave("baltic/figures/mean_weight.png", width = 6.5, height = 6.5, dpi = 600)
-
-# ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, colour = scen)) +
-#   facet_wrap(~ species, scales = "free", nrow = 3) +
-#   coord_flip() +
-#   scale_color_manual(values = col) +
-#   scale_fill_manual(values = col, name = "Scenario") +
-#   geom_point(position = position_jitter(width = .15), size = 1.1, alpha = 0.7, shape = 21, color = "white") +
-#   geom_boxplot(aes(x = scen, y = mean_weight),
-#                outlier.shape = NA, alpha = 0.2, width = .2, color = "black", size = 0.5) +
-#   guides(colour = FALSE) +
-#   theme_classic(base_size = 14) +
-#   theme(aspect.ratio = 3/4) +
-#   labs(y = "", x = "Mean weight [g") +
-#   geom_hline(data = ref_w, aes(yintercept = mean_weight), linetype = 2) +
-#   guides(fill = guide_legend(override.aes = list(alpha = 0.8))) +
-#   #theme(legend.position = "bottom") +
-#   NULL
 
 
 # D. Some tests ====================================================================
@@ -758,9 +578,6 @@ t <- params@species_params
 t$ea_met <- 0.8
 t$ea_int <- 0.3
 t$ea_mor <- 0.8
-
-#t$ca_int <- -0.004 # Here we just use the fixed values
-#t$ca_met <- 0.001 # Here we just use the fixed values
 
 tt <- MizerParams(t, 
                   ea_gro = 0,

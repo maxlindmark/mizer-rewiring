@@ -245,8 +245,6 @@ elnorm(d$PPMR, method = "mle/mme", ci = FALSE, ci.type = "two-sided",
 
 
 
-
-
 # Calculate ln mean and standard deviation
 dat_agg %>%
   distinct(ICES_ItemID, .keep_all = TRUE) %>% 
