@@ -1,7 +1,7 @@
 # 2019.11.16: Max Lindmark
 #
 # Code for analyzing the Baltic Sea mizer model. The params-object is saved in the
-# calibration_v1 code. 
+# calibration_v3 code. 
 # 
 # A. Load libraries and read in data and parameters
 #

@@ -2,7 +2,7 @@
 # 2019.11.16: Max Lindmark
 #
 # Code for analyzing the Baltic Sea mizer model. The params-object is saved in the
-# calibration_v1 code. 
+# calibration_v3 code. 
 # 
 # A. Load libraries and read in data and parameters
 #
@@ -41,7 +41,7 @@ library(mizer)
 # viridis_0.5.1      viridisLite_0.3.0  magrittr_1.5       RCurl_1.95-4.12   
 # bitops_1.0-6       RColorBrewer_1.1-2 devtools_2.2.1     usethis_1.5.1      ggplot2_3.2.1  
 
-# Load function for extracting size-at-age
+# Load function for extracting abundance-at-size
 func <- getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/R/functions/getSpectra.R", ssl.verifypeer = FALSE)
 eval(parse(text = func))
 
@@ -697,8 +697,8 @@ p1 <- Fmsy %>%
                                 expression(paste("T"[ref], "+2", degree*C)))) +
   labs(x = "Fishing mortality (1/year)", 
        y = "Yield (1000 tonnes/year)",
-       color = "Scenario",
-       linetype = "Metric") +
+       color = "Temp.",
+       linetype = "Scenario") +
   geom_segment(data = filter(Fmsy_sum, scen == "warm" & scen2 == "Physio. + Resource"), linetype = 3, 
                aes(x = Fm, xend = Fm, y = c(0, 0, 0), yend = c(120, 110, 70)), arrow = arrow(length = unit(0.2, "cm")),
                col = col[1], alpha  = 0.7) +
@@ -1124,14 +1124,14 @@ py <- ggplot(big_yield_data5, aes(temp_scal, Fm_scal, fill = Yield_rel)) +
   geom_hline(yintercept = 1, color = "black", size = 0.2, alpha = 0.5) +
   theme(aspect.ratio = 1) +
   geom_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = c(0.95, 1, 1.05), color = "white", size = 0.3) +
-  geom_line(data = filter(big_yield_data5, FMSY == "Y"),
-            aes(temp_scal, Fm_scal), linetype = 2, color = "white", size = 0.5) + # Add the FMSYs as zeroes
+  # geom_point(data = filter(big_yield_data5, FMSY == "Y"),
+  #           aes(temp_scal, Fm_scal), color = "white", size = 0.1) + # Add the FMSYs as zeroes
   metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 0.95,
-                          size = 2.5, color = "black", label.placement = metR::label_placement_random()) +
+                          size = 2, color = "black", label.placement = metR::label_placement_random()) +
   metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1,
-                          size = 2.5, color = "black", label.placement = metR::label_placement_random()) +
+                          size = 2, color = "black", label.placement = metR::label_placement_random()) +
   metR::geom_text_contour(aes(temp_scal, Fm_scal, z = Yield_rel), breaks = 1.05, 
-                          size = 2.5, color = "black", label.placement = metR::label_placement_random()) +
+                          size = 2, color = "black", label.placement = metR::label_placement_random()) +
   NULL
 
 pWordy <- py + theme_classic() + theme(text = element_text(size = 12),
@@ -1146,7 +1146,54 @@ pWordy <- py + theme_classic() + theme(text = element_text(size = 12),
 
 pWordy
 
-ggsave("baltic/figures/yield_heat.png", width = 6.5, height = 6.5, dpi = 600)
+# Now plot the point estimates of slopes in yield and fmsy over temperature
+
+big_yield_data5_fmsy <- big_yield_data5 %>% filter(FMSY == "Y")
+
+temp_slopes_yield <- big_yield_data5_fmsy %>%
+  mutate(id = paste(Species, Scen, sep = "_")) %>%
+  split(.$id) %>%
+  purrr::map(~lm(Yield ~ temp, data = .x)) %>%
+  purrr::map_df(broom::tidy, .id = 'id') %>%
+  filter(term == 'temp') %>% 
+  separate(id, c("Species","Scenario"), sep = "_") %>% 
+  dplyr::select(Species, Scenario, estimate) %>% 
+  mutate(metric = "Yield")
+
+temp_slopes_fmsy <- big_yield_data5_fmsy %>%
+  mutate(id = paste(Species, Scen, sep = "_")) %>%
+  split(.$id) %>%
+  purrr::map(~lm(Fm ~ temp, data = .x)) %>%
+  purrr::map_df(broom::tidy, .id = 'id') %>%
+  filter(term == 'temp') %>% 
+  separate(id, c("Species","Scenario"), sep = "_") %>% 
+  dplyr::select(Species, Scenario, estimate) %>% 
+  mutate(metric = "F[MSY]") 
+
+msy_dat <- bind_rows(temp_slopes_yield, temp_slopes_fmsy)
+
+msy_plot <- ggplot(msy_dat, aes(Species, estimate, color = Scenario)) + 
+  facet_wrap(~metric, ncol = 2, scales = "free",
+             labeller = label_parsed) +
+  geom_jitter(width = 0.1, height = 0, size = 2) + 
+  theme_classic() + 
+  labs(y = "Change per unit °C") +
+  geom_hline(yintercept = 0, color = "gray50", linetype = 2) +
+  scale_color_viridis(discrete = TRUE) +
+  theme(text = element_text(size = 12),
+        plot.title = element_text(size = 12),
+        axis.text = element_text(size = 10),
+        legend.text = element_text(size = 6),
+        legend.title = element_text(size = 8),
+        aspect.ratio = 3/4,
+        #legend.position = "bottom",
+        legend.key.height = unit(0.75, "line"),
+        legend.key.width = unit(0.5, "line")) +
+  NULL
+
+pWordy / msy_plot + plot_annotation(tag_levels = "A") + plot_layout(widths = c(15, 1), heights = c(2, 1), guides = 'collect') 
+
+ggsave("baltic/figures/yield_heat2.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 #** SOME TESTS =====================================================================

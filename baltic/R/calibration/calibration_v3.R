@@ -108,7 +108,6 @@ mean_ssb_F <- ssb_f %>%
 
 
 #**** Temperature time series =======================================================
-# This is a preliminary data set but from the correct model. Will clean this up later.
 temp_datRCP8.5 <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/data/Climate/Test_RCP8.5_from_graph.csv"), sep = ";", stringsAsFactors = FALSE)
 
 head(temp_datRCP8.5)
@@ -140,9 +139,8 @@ tempDat %>%
   dplyr::summarize(mean_T = mean(rel_T))
 
 # I want to rescale the relative temperature by adding a constant so that the mean 
-# temperature in the calibration period is 10 C. Because then the temp scalar will
-# be 1 in the calibration period, because t_ref in mizer is 10
-t_ref <- 10.11562
+# temperature in the calibration period is 10 C, i.e. our reference temperature
+t_ref <- 10
 
 
 # C. CALIBRATE MODEL ================================================================
@@ -167,7 +165,7 @@ effort = c(Cod = balticParams$AveEffort[1],
 
 #** 1. Find starting value for kappa ===============================================
 # Given the default model, what should kappa be to get ssb in the same order of magnitude? 
-# This is just an iterative process, since well opimize r_max to minimize residual sum of 
+# This is just an iterative process, since well optimize r_max to minimize residual sum of 
 # squares (RSS) between predicted and observed SSB
 dt <- 0.1
 
@@ -450,9 +448,9 @@ ssb_model <- getSSB(m3)[t_max, ] * m3@params@species_params$sd25.29.32_m.2 / 1e9
 ssb_data <- balticParams$AveSpawnBiomass
 ssb_model/ssb_data
 
-> ssb_model/ssb_data
-Cod    Sprat  Herring 
-1.038210 1.044248 1.050059 
+# > ssb_model/ssb_data
+# Cod    Sprat  Herring 
+# 1.038210 1.044248 1.050059 
 
 # Seems OK!
 
@@ -941,9 +939,9 @@ plotEffort$Year <- as.numeric(as.character(rownames(projectEffort)))
 
 
 #** Set up time varying temperature ================================================
-# The temperature data is relative to a mean (1970-1999). By adding t_ref here, the mean 
-# temperature in the calibration time period becomes 10C, which is both reasonable and arbitrary
-tempDat$mean_temp_scaled <- tempDat$mean_temp + m3b@params@t_ref
+# The temperature data is relative to a mean (1970-1999). By adding a constant here, the mean 
+# temperature in the calibration time period becomes 10C, our t_ref
+tempDat$mean_temp_scaled <- tempDat$mean_temp + 10.11562
 
 # Now I need to match year for temperature and effort
 projectEffort_ct # Centered complete effort array
@@ -1030,9 +1028,44 @@ pWord10 <- p10 + theme_classic() + theme(text = element_text(size = 12),
 
 
 # Plot effort and the two temperature-series temperature
-pWord9 / pWord10
+pWord9 + pWord10
 
 ggsave("baltic/figures/supp/effort_temp.png", width = 6.5, height = 6.5, dpi = 600)
+
+constant_temps <- t_ref * seq(0.75, 1.25, 0.01)
+
+
+p10b <- tempScen %>% filter(Year < 1996) %>% 
+  ggplot(aes(Year, (Temperature))) +
+  geom_rect(data = ref_time, inherit.aes = FALSE, 
+            aes(xmin = min(Year), 
+                xmax = max(Year),
+                ymin = min(constant_temps),
+                ymax = max(constant_temps)),
+            fill  = "gray90") +
+  geom_line(alpha = 0.8, size = 1.2) +
+  theme_classic(base_size = 15) +
+  scale_color_manual(values = rev(col)) +
+  coord_cartesian(expand = 0) +
+  geom_segment(data = as.data.frame(constant_temps), 
+               aes(
+                 x = rep(1995, length(constant_temps)),
+                 xend = rep(2200, length(constant_temps)),
+                 y = constant_temps,
+                 yend = constant_temps),
+                 inherit.aes = FALSE, color = col[1]) +
+  ylab(expression(paste("Relative temperature [", degree*C, "]"))) +
+  NULL
+
+pWord10b <- p10b + theme_classic() + theme(text = element_text(size = 12),
+                                           axis.text = element_text(size = 12), 
+                                           aspect.ratio = 3/4, 
+                                           legend.position = c(.25, .75),
+                                           legend.title = element_blank())
+
+pWord9 / pWord10 + plot_annotation(tag_levels = "A")
+
+ggsave("baltic/figures/temp_scenarios.png", width = 6.5, height = 6.5, dpi = 600)
 
 
 #** Project with temperature and effort varying through time =======================
@@ -1206,8 +1239,8 @@ ggsave("baltic/figures/supp/time_series_pred_ssb.png", width = 6.5, height = 6.5
 
 #**** Calculate and plot correlation coefficients ==================================
 # Since the temperature-scenarios are so similar, I'm just calculating the correlations
-obs_df <- filter(dat, Scenario == "Stock assessment" & Year < 2013)
-pred_wTempR_df <- filter(dat, Scenario == "Physio. + Resource" & Year < 2013)
+obs_df <- filter(dat, Scenario == "Stock assessment" & Year < 2014)
+pred_wTempR_df <- filter(dat, Scenario == "Physio. + Resource" & Year < 2014)
 
 # For the scenario with temperature-dependent resources
 cor_df <- data.frame(Year = obs_df$Year,
