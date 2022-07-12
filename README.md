@@ -5,8 +5,10 @@
 ## Description
 Here we parameterize and calibrate a multispecies size-spectrum model (mizer) for the Baltic Sea. We use this as a case study to assess interactive effects of fishing and climate change on size structure and yield of a temperate food web.
 
-**Collaborators**: Asta Audzijonyte, Julia Blanchard and Anna Gårdmark.
+**Authors**: Max Lindmark, Asta Audzijonyte, Julia Blanchard and Anna Gårdmark.
 We use non-released version of mizer with added functionality (multiple resource background spectra and temperature-dependence of vital rates), developed also with Jon Reum and Romain Forestier. This is a fork of "astaaudzi/mizer-rewiring, ref = "rewire-temp". I have kept all files and put Baltic files in the Baltic folder.
+
+Link to [preprint](https://doi.org/10.1101/2021.10.04.463018) 
 
 General info about mizer:
 
