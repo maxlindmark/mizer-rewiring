@@ -1,10 +1,14 @@
-# Warming alters the effect of fishing on the size spectra of an exploited temperate food web
+# Temperature impacts on fish physiology and resource abundance lead to faster growth but smaller fish sizes and yields under warming
+
+[![DOI](https://zenodo.org/badge/184549156.svg)](https://zenodo.org/badge/latestdoi/184549156)
+
 ## Description
 Here we parameterize and calibrate a multispecies size-spectrum model (mizer) for the Baltic Sea. We use this as a case study to assess interactive effects of fishing and climate change on size structure and yield of a temperate food web.
 
 **Collaborators**: Asta Audzijonyte, Julia Blanchard and Anna Gårdmark.
 We use non-released version of mizer with added functionality (multiple resource background spectra and temperature-dependence of vital rates), developed also with Jon Reum and Romain Forestier. This is a fork of "astaaudzi/mizer-rewiring, ref = "rewire-temp". I have kept all files and put Baltic files in the Baltic folder.
 
+General info about mizer:
 
 ## Mizer
 mizer web page: https://sizespectrum.github.io/mizer/dev/
