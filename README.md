@@ -1,6 +1,6 @@
 # Temperature impacts on fish physiology and resource abundance lead to faster growth but smaller fish sizes and yields under warming
 
-[![DOI](https://zenodo.org/badge/184549156.svg)](https://zenodo.org/badge/latestdoi/184549156)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6821926.svg)](https://doi.org/10.5281/zenodo.6821926)
 
 ## Description
 Here we parameterize and calibrate a multispecies size-spectrum model (mizer) for the Baltic Sea. We use this as a case study to assess interactive effects of fishing and climate change on size structure and yield of a temperate food web.
