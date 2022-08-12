@@ -501,8 +501,8 @@ p3 <- ggplot(big_mean_weight_data, aes(x = scen, y = mean_weight, fill = scen, c
   guides(fill = guide_legend(override.aes = list(alpha = 0.8))) +
   NULL
 
-pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 12),
-                                       axis.text = element_text(size = 10),
+pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 8),
+                                       axis.text = element_text(size = 6),
                                        axis.text.x = element_blank(),
                                        legend.direction = "vertical",
                                        legend.position = "bottom",
