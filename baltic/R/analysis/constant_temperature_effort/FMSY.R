@@ -714,8 +714,8 @@ p1 <- Fmsy %>%
   coord_cartesian(expand = 0) +
   NULL
 
-pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 12),
-                                      axis.text = element_text(size = 10),
+pWord1 <- p1 + theme_classic() + theme(text = element_text(size = 11),
+                                      axis.text = element_text(size = 9),
                                       legend.position = "bottom",
                                       aspect.ratio = 3/4,
                                       legend.text = element_text(size = 7.5),

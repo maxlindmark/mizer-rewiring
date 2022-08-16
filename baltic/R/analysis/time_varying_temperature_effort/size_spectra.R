@@ -712,8 +712,8 @@ p2 <- big_spect_data %>%
        y = "Biomass density") +
   NULL
 
-pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 10),
-                                       axis.text = element_text(size = 6))
+pWord2 <- p2 + theme_classic() + theme(text = element_text(size = 11),
+                                       axis.text = element_text(size = 7))
 
 
 # No fishing and relative spectra
@@ -741,8 +741,8 @@ p3 <- big_spect_data %>%
        color = "Scenario") +
   NULL
 
-pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 10),
-                                       axis.text = element_text(size = 6),
+pWord3 <- p3 + theme_classic() + theme(text = element_text(size = 11),
+                                       axis.text = element_text(size = 7),
                                        legend.position = "bottom")
 
 # Plot relative and absolute in the same plot!
