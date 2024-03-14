@@ -1,7 +1,8 @@
 ---
 title: "Run models for FishMIP"
 author: "Max Lindmark"
-date: '2022-11-03'
+date: today
+date-format: iso
 toc: true
 format: 
   html:
@@ -10,12 +11,8 @@ format:
 knitr: 
   opts_chunk:
     fig.align: center
-    out-width: 80%
+    out-width: 100%
 editor: source
-execute: 
-  echo: true
-  eval: true
-  cache: false
 ---
 
 ## Model runs
