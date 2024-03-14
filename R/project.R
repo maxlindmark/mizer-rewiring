@@ -103,14 +103,17 @@ NULL
 #' sim <- project(params, effort = effort_array)
 #' }
 #' 
-project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
+project <- function(params, effort = 0, t_max = 100, dt = 0.1, t_save = 1,
                     temperature = rep(params@t_ref, times = t_max), # what do we do with t_ref?
+                    #kappa_vec = rep(1, times = t_max), # ML: FishMIP addition: provide the dt-spaced vector of scalars, then we add it to the scalar array.
                     initial_n = params@initial_n,
                     initial_n_pp = params@initial_n_pp, 
                     initial_n_bb = params@initial_n_bb,
                     initial_n_aa = params@initial_n_aa,
+                    plankton_forcing_array = NULL, # ML+JR, externally created vector based on steady state stuff
+                    plankton_forcing = FALSE, # ML+JR
                     shiny_progress = NULL, 
-                    diet_steps= 0, ...) {  #default number of years (steps?) to calcualte diet for 
+                    diet_steps= 0, ...) {  #default number of years (steps?) to calculate diet for 
     validObject(params)
     
     # Do we need to create an effort array?
@@ -179,13 +182,14 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
     
     time_temperature_dt <- rep(temperature, length = t_max/dt, each = 1/dt) # works if t_max = length(temperature)
-    x_axis <- seq(length.out=(t_max/dt),from = 1)   # = time vector
+    
+    x_axis <- seq(length.out=(t_max/dt),from = 1) # = time vector
     # need smoothing?
     # myData <- data.frame("y" = time_temperature_dt, "x" = x_axis) # create dataframe for smoothing (not sure if needed)
     # temperature_dt <- matrix(predict(loess(y~x, myData, span = 0.1)), dimnames = list(x_axis, "temperature")) # temperature vector following dt
     
     temperature_dt <- matrix(time_temperature_dt, dimnames = list(x_axis, "temperature")) # without smoothing
-
+    
     #arrays with scalar values for all time, species and size
     metTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     matTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
@@ -193,6 +197,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     intTempScalar <- array(NA, dim = c(dim(params@species_params)[1], length(params@w), length(temperature_dt)), dimnames = list(params@species_params$species,params@w,temperature_dt)) 
     
     # ML: Create temperature scalars for resource parameters (note weight should be for plankton, w_full)
+    # This is actually a but unnecessary because it's not size-dependent I just take the first row anyway further down
     groTempScalar <- array(NA, dim = c(length(params@w_full), length(temperature_dt)), dimnames = list(params@w_full, temperature_dt))
     carTempScalar <- array(NA, dim = c(length(params@w_full), length(temperature_dt)), dimnames = list(params@w_full, temperature_dt))
     
@@ -241,19 +246,20 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     
     # ML: Populate the scalars for resource growth and carrying capacity using the tempFun as above 
     # but no loop needed. The temperature-parameters for the resource will be stored in params for 
-    # now, it does not make so much sence to make it species_param.
+    # now, it does not make so much sense to make it species_param.
     #str(metTempScalar)
     #str(groTempScalar)
     
-    groTempScalar[] <- tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
-                               Ea = params@ea_gro, 
-                               c_a = params@ca_gro, 
+    groTempScalar[] <- tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref,
+                               Ea = params@ea_gro,
+                               c_a = params@ca_gro,
                                w = params@w_full)
-    
+
     carTempScalar[] <- tempFun(temperature = temperature_dt[,1], t_ref = params@t_ref, 
                                Ea = params@ea_car, 
                                c_a = params@ca_car, 
                                w = params@w_full)
+    
     
     # Make the MizerSim object with the right size
     # We only save every t_save steps
@@ -283,11 +289,25 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     #plot(sim@groTempScalar[1,])
     
     # Set initial population
-    sim@n[1,,] <- initial_n 
-    sim@n_pp[1,] <- initial_n_pp
-    sim@n_bb[1,] <- initial_n_bb
-    sim@n_aa[1,] <- initial_n_aa
-
+    
+    # ML + JR
+    if(plankton_forcing == TRUE) {
+      
+      sim@n[1,,] <- initial_n 
+      # sim@n_pp[1,] <- initial_n_pp
+      sim@n_pp[1,] <- plankton_forcing_array[1, ] # FIRST time_step (dt-expanded time)
+      sim@n_bb[1,] <- initial_n_bb
+      sim@n_aa[1,] <- initial_n_aa
+      
+    } else {
+      
+      sim@n[1,,] <- initial_n 
+      sim@n_pp[1,] <- initial_n_pp
+      sim@n_bb[1,] <- initial_n_bb
+      sim@n_aa[1,] <- initial_n_aa
+    
+    }
+    
     # Handy things
     no_sp <- nrow(sim@params@species_params) # number of species
     no_w <- length(sim@params@w) # number of fish size bins
@@ -340,6 +360,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
     }
 
     for (i_time in 1:t_steps) {
+      
       # print(i_time)
         # Do it piece by piece to save repeatedly calling methods
         # Calculate amount E_{a,i}(w) of available food
@@ -447,9 +468,24 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # groTempScalar[2, 1]
         # str(groTempScalar)
         
-        tmp <- ((sim@params@rr_pp*groTempScalar[1, i_time]) * (sim@params@cc_pp*carTempScalar[1, i_time]) / 
-                  ((sim@params@rr_pp*groTempScalar[1, i_time]) + m2_background))
-        n_pp <- tmp - (tmp - n_pp) * exp(-((sim@params@rr_pp*groTempScalar[1, i_time]) + m2_background) * dt)
+        # ML + JR
+        
+        if(plankton_forcing == TRUE) {
+
+          #n_pp <- 0
+          n_pp <- plankton_forcing_array[i_time, ]
+          
+        } else {
+          
+          tmp <- ((sim@params@rr_pp*groTempScalar[1, i_time]) * (sim@params@cc_pp*carTempScalar[1, i_time]) /
+                    ((sim@params@rr_pp*groTempScalar[1, i_time]) + m2_background))  
+          
+          n_pp <- tmp - (tmp - n_pp) * exp(-((sim@params@rr_pp*groTempScalar[1, i_time]) + m2_background) * dt)
+          
+        }
+        
+
+        
         
         ##AAsp####
         # Dynamics of benthic spectrum uses a semi-chemostat model 
@@ -457,6 +493,8 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
         # ML: scaling rr_bb and cc_bb at each time step. Below is the original code:
         # tmp <- (sim@params@rr_bb * sim@params@cc_bb / (sim@params@rr_bb + m2_benthos))
         # n_bb <- tmp - (tmp - n_bb) * exp(-(sim@params@rr_bb + m2_benthos) * dt)
+        # tmp <- ((sim@params@rr_bb*groTempScalar[1, i_time]) * (sim@params@cc_bb*carTempScalar[1, i_time]) / 
+        #           ((sim@params@rr_bb*groTempScalar[1, i_time]) + m2_benthos))
         tmp <- ((sim@params@rr_bb*groTempScalar[1, i_time]) * (sim@params@cc_bb*carTempScalar[1, i_time]) / 
                   ((sim@params@rr_bb*groTempScalar[1, i_time]) + m2_benthos))
         n_bb <- tmp - (tmp - n_bb) * exp(-((sim@params@rr_bb*groTempScalar[1, i_time]) + m2_benthos) * dt)
@@ -485,7 +523,7 @@ project <- function(params, effort = 0,  t_max = 100, dt = 0.1, t_save=1,
             }
             # Store result
             sim@n[which(store), , ] <- n 
-            sim@n_pp[which(store), ] <- n_pp
+            sim@n_pp[which(store), ] <- n_pp # in theory this should be identical to forced plankton array we add in
             ##AAsp######
             sim@n_bb[which(store), ] <- n_bb
             sim@n_aa[which(store), ] <- n_aa
