@@ -1,0 +1,368 @@
+---
+title: "Downloading and preparing fishing for ISIMIP 3a Baltic mizer"
+author: "Max Lindmark, following Phoebe.Woodworth-Jefcoats@noaa.gov"
+date: today
+date-format: iso
+toc: true
+format: 
+  html:
+    page-layout: full
+    embed-resources: true
+knitr: 
+  opts_chunk:
+    fig.align: center
+    out-width: 100%
+editor: source
+---
+
+This document describes the workflow for preparing the ISIMIP 3a fishing
+
+## Data Access
+This script is used to prepare the fishing forcing using the data provided from the FishMIP coordinators (as opposed to the
+data provided on the ISIMIP server).
+
+## Data downloading and wrangling
+
+```{r}
+#| message: false
+library(ggsidekick)
+library(tidyverse); theme_set(theme_sleek())
+library(tidylog)
+library(patchwork)
+
+home <- here::here()
+```
+
+```{r}
+#| message: false
+all_effort <- read_csv(paste0(home, "/baltic/FishMIP/FishingForcing/DataFiles/effort_histsoc_1841_2010_regional_models.csv")) %>% 
+  filter(region == "Baltic.Sea")
+
+# Not sure how to use this yet
+# all_catch <- read_csv(paste0(home, "/baltic/FishMIP/FishingForcing/DataFiles/calibration_catch_histsoc_1850_2004_regional_models.csv")) %>% 
+#   filter(region == "Baltic.Sea")
+
+ggplot(all_effort, aes(Year, NomActive, fill = Gear)) +
+  geom_bar(stat = "identity") +
+  theme(legend.position = "bottom") +
+  coord_cartesian(expand = 0)
+```
+
+This plot shows the effort by gear in the Baltic Sea across all Fgroups. One thing to notice is the reconstructed effort has a very steep increase, essentially going from zero around 1940's. Early exploration also shows that effort trends very much follow each other across these gear groups. Also, the composition species groups are very similar in bottom trawl and all other gears. For instance, even in the bottom trawl (cod panel above), pelagic is the majority group in most years. Therefore, I filter by both F group and the gears that are realistically catching these species. To know that, I check Swedish Loggbook data from fisherman and read the ICES working group WGBFAS reports.
+
+![](FishMIP_gear_sp.png)
+
+Filter the effort and Fgroup data to match the mizer model (main fisheries for cod, sprat and herring)
+
+```{r}
+#| message: false
+#| fig-height: 9
+# sort(unique(all_effort$Sector))
+# sort(unique(all_effort$SAUP))
+# sort(unique(all_effort$Gear))
+# sort(unique(all_effort$FGroup))
+
+names(all_effort)
+unique(all_effort$Gear)
+
+all_effort_sum <- all_effort %>% 
+  filter(Sector == "Industrial" &
+           Gear %in% c("Trawl_Bottom", "Trawl_Midwater_or_Unsp") &
+           FGroup %in% c("demersal30-90cm", "pelagic<30cm")
+         ) %>%
+  mutate(sp = ifelse(FGroup %in% c("demersal30-90cm") & Gear %in% c("Gillnets", "Lines_Longlines",
+                                   "Lines_Unspecified", "Trawl_Bottom"),
+                     "Cod", "Sprat/Herring")) %>% 
+  group_by(sp, Year) %>% 
+  summarise(sum_NomActive = sum(NomActive)) %>% 
+  ungroup()
+
+ggplot(all_effort_sum, aes(Year, sum_NomActive)) + 
+  #geom_bar(stat = "identity") +
+  geom_line() +
+  coord_cartesian(xlim = c(1945, 2014), expand = 0) + 
+  facet_wrap(~sp, scales = "free", ncol = 1) +
+  scale_fill_brewer(palette = "Set3") +
+  theme(legend.position = "bottom")
+```
+
+The above plot shows the total effort for cod and sprat + herring. I've assumed that if the gear is bottom trawl, gillnets or lines, and the Fgroup is demersal < 90 cm,  it's cod effort. If gear is midwater trawl and Fgroup is pelagic <30, it's pelagic effort 
+
+Following the Hawaii model, I now sum *NomActive* to get two time series between 1961--2010. Then I calculate the average effort between 1992--2004, because the original model calibrated to average conditions between 1992--2002, but here we are asked to use up to year 2004 for calibrating. I divide the annual efforts by the average in the calibration time window and multiply by a factor. The Hawaii model uses 0.2 because that was used in the paper. The equivalent would be for me to use the average efforts in my calibration time window. Remember also fishing mortality is the product of selectivity ✕ catchability ✕ effort. For all species, selectivity and catchability were set to 1. 
+
+```{r}
+#| message: false
+all_effort_agg <- all_effort_sum %>% 
+  filter(Year >= 1961 & Year <= 2010) %>% 
+  group_by(sp, Year) %>% 
+  summarise(agg_NomActive = sum(sum_NomActive)) %>% 
+  ungroup()
+
+# Now I need to split sprat and herring into two groups
+all_effort_agg_cod <- all_effort_agg %>% filter(sp == "Cod")
+
+all_effort_agg <- all_effort_agg_cod %>% 
+  bind_rows(all_effort_agg %>% filter(sp == "Sprat/Herring") %>% mutate(sp = "Sprat")) %>% 
+  bind_rows(all_effort_agg %>% filter(sp == "Sprat/Herring") %>% mutate(sp = "Herring"))
+
+cal_tp_avg <- all_effort_agg %>% 
+  #filter(Year >= 1992 & Year <= 2004) %>% 
+  group_by(sp) %>% 
+  summarise(avg_NomActive = mean(agg_NomActive),
+            max_NomActive = max(agg_NomActive)) %>% 
+  ungroup()
+
+# Plot time series of effort by species group
+ggplot(all_effort_agg, aes(Year, agg_NomActive, color = sp, linetype = sp)) + 
+  geom_rect(xmin = 1992, xmax = 2004, ymin = -Inf, ymax = Inf, color = NA,
+            fill = "grey90", alpha = 0.05,
+            inherit.aes = FALSE) + 
+  geom_line(linewidth = 0.9) + 
+  facet_wrap(~sp, scales = "free", ncol = 2) +
+  geom_hline(data = cal_tp_avg, aes(yintercept = avg_NomActive, color = sp)) +
+  scale_linetype_manual(values = c(3, 1, 2)) +
+  scale_color_brewer(palette = "Dark2", name = "") +
+  guides(linetype = "none") +
+  theme(legend.position = "bottom") +
+  labs(caption = "FishMIP summed efforts before scaling, calibration time period in rectangle, horisontal lines are averages")
+
+all_effort_agg <- all_effort_agg %>% 
+  left_join(cal_tp_avg, by = "sp") %>% 
+  mutate(scaled_NomActive = agg_NomActive/avg_NomActive,
+         scaled_NomActive_max = agg_NomActive/max_NomActive)
+
+all_effort_agg %>% arrange(desc(scaled_NomActive_max))
+
+# Plot the max-scales efforts
+ggplot(all_effort_agg, aes(Year, scaled_NomActive_max, color = sp, linetype = sp)) + 
+  geom_rect(xmin = 1992, xmax = 2004, ymin = -Inf, ymax = Inf, color = NA,
+            fill = "grey90", alpha = 0.05,
+            inherit.aes = FALSE) + 
+  geom_line(linewidth = 0.9) + 
+  facet_wrap(~sp, scales = "free", ncol = 2) +
+  scale_linetype_manual(values = c(3, 1, 2)) +
+  scale_color_brewer(palette = "Dark2", name = "") +
+  guides(linetype = "none") +
+  theme(legend.position = "bottom") +
+  labs(caption = "FishMIP summed efforts before scaling, calibration time period in rectangle, horisontal lines are averages")
+```
+
+Now we to multiply the relative FishMIP series by a factor. Here I use the average fishing mortality I had in the main model (Cod = 0.899, Herring = 0.306, Sprat = 0.340)
+
+```{r}
+#| message: false
+avg_scalars <- data.frame(sp = c("Cod", "Herring", "Sprat"),
+                          avg_scalars = c(0.899, 0.306, 0.340))
+
+all_effort_agg <- all_effort_agg %>% 
+  left_join(avg_scalars, by = "sp") %>% 
+  mutate(scaled_NomActive_assess = scaled_NomActive*avg_scalars)
+
+# Mean-scaled
+all_effort_agg %>% 
+  ggplot(aes(Year, scaled_NomActive, color = sp, linetype = sp)) + 
+  geom_rect(xmin = 1992, xmax = 2004, ymin = -Inf, ymax = Inf, color = NA,
+            fill = "grey90", alpha = 0.05,
+            inherit.aes = FALSE) + 
+  geom_line(linewidth = 0.9) + 
+  scale_linetype_manual(values = c(3, 1, 2)) +
+  scale_color_brewer(palette = "Dark2", name = "") +
+  theme(legend.position = "bottom") +
+  guides(linetype = "none") +
+  labs(caption = "FishMIP scaled efforts by average in the original model")
+
+# Max-scaled
+all_effort_agg %>% 
+  ggplot(aes(Year, scaled_NomActive_max, color = sp, linetype = sp)) + 
+  geom_rect(xmin = 1992, xmax = 2004, ymin = -Inf, ymax = Inf, color = NA,
+            fill = "grey90", alpha = 0.05,
+            inherit.aes = FALSE) + 
+  geom_line(linewidth = 0.9) + 
+  scale_linetype_manual(values = c(3, 1, 2)) +
+  scale_color_brewer(palette = "Dark2", name = "") +
+  theme(legend.position = "bottom") +
+  guides(linetype = "none") +
+  labs(caption = "FishMIP scaled efforts by average in the original model")
+```
+
+Read in the fishing efforts I used in the calibration and compare with the FishMIP effort:
+
+```{r}
+#| fig-height: 7
+#| message: false
+
+# Load effort
+projectEffort <- read_csv(paste0(home, "/baltic/params/projectEffort.csv"))[, 2:4] #%>% 
+
+# Add in Year
+projectTemp_old <- read_csv(paste0(home, "/baltic/params/projectTemp.csv"))[, 2:3]
+
+projectEffort <- projectEffort %>% 
+  mutate(year = projectTemp_old$Year) %>% 
+  filter(year >= 1961 & year <= 2010) %>% 
+  pivot_longer(cols = c("Cod", "Herring", "Sprat"), names_to = "sp", values_to = "effort") %>% 
+  mutate(source = "assessment")
+
+# Add in FishMip effort
+all_effort_agg_assess <- all_effort_agg %>%
+  rename(effort = scaled_NomActive_assess,
+         year = Year) %>% 
+  dplyr::select(sp, year, effort) %>% 
+  mutate(source = "FishMIP_assessment F")
+
+all_effort_agg_assess_max <- all_effort_agg %>%
+  rename(effort = scaled_NomActive_max,
+         year = Year) %>% 
+  dplyr::select(sp, year, effort) %>% 
+  mutate(source = "FishMIP_assessment F max")
+
+projectEffort <- bind_rows(projectEffort, all_effort_agg_assess, all_effort_agg_assess_max)
+
+# Now scale the maximum to match the magnitude of the assessment F
+projectEffort %>% 
+  filter(!source == "FishMIP_assessment F") %>% 
+  ggplot(aes(year, effort, color = source)) + 
+  geom_line() + 
+  facet_wrap(~sp, ncol = 2, scales = "free") +
+  theme_sleek(base_size = 9) + 
+  scale_color_brewer(palette = "Set1", name = "") +
+  labs(x = "Year", y = "Effort") + 
+  NULL
+
+# What's the best scaling factor? Fit a regression
+d <- projectEffort %>% 
+  filter(!source == "FishMIP_assessment F") %>% 
+  dplyr::select(year, sp, effort, source) %>% 
+  pivot_wider(names_from = "source", values_from = "effort") %>% 
+  janitor::clean_names()
+
+fit <- lm(assessment - fish_mip_assessment_f_max ~ 0 + sp, data = d) %>% 
+  broom::tidy()
+
+fit
+
+# Re-scale
+projectEffort %>% 
+  filter(source == "FishMIP_assessment F max") %>% 
+  arrange(effort)
+
+projectEffort <- projectEffort %>% 
+  mutate(effort = ifelse(source == "FishMIP_assessment F max" & sp == "Cod",
+                         fit$estimate[fit$term == "spCod"] + effort,
+                         effort),
+         effort = ifelse(source == "FishMIP_assessment F max" & sp == "Sprat",
+                         fit$estimate[fit$term == "spSprat"] + effort,
+                         effort),
+         effort = ifelse(source == "FishMIP_assessment F max" & sp == "Herring",
+                         fit$estimate[fit$term == "spHerring"] + effort,
+                         effort)
+         ) %>% 
+  # Because we estimate the correction factor without forcing it to be 0 we can end up with negative efforts in some years for herring. Fix this!
+  mutate(effort = ifelse(effort < 0, 0, effort))
+
+# projectEffort %>% 
+#   filter(source == "FishMIP_assessment F max") %>% 
+#   arrange(effort)
+
+projectEffort %>% 
+  filter(!source == "FishMIP_assessment F") %>% 
+  ggplot(aes(year, effort, color = source)) + 
+  geom_line() + 
+  facet_wrap(~sp, ncol = 2, scales = "free") +
+  theme_sleek(base_size = 9) + 
+  scale_color_brewer(palette = "Set1", name = "") +
+  labs(x = "Year", y = "Effort") + 
+  NULL
+
+# This is for trimming quantiles
+# ggplot(projectEffort, aes(effort)) + 
+#   geom_histogram() + 
+#   facet_wrap(~source, ncol = 1)
+# 
+# upr <- projectEffort %>% 
+#   filter(source == "FishMIP_assessment F" & sp == "Cod") %>% 
+#   summarise(upr = quantile(effort, probs = 0.9), .by = sp)
+# 
+# projectEffort <- projectEffort %>% 
+#   mutate(effort = effort, 
+#          # effort = ifelse(sp == "Cod" &
+#          #                   source == "FishMIP_assessment F" &
+#          #                   effort > as.numeric(upr$upr),
+#          #                 as.numeric(upr$upr), effort)
+#          )
+
+# Check correlation
+projectEffort <- projectEffort %>% 
+  filter(!source == "FishMIP_assessment F") %>% 
+  mutate(source2 = ifelse(source == "assessment", "Assessment F", "FishMIP F scaled"))
+
+p1 <- projectEffort %>% 
+  filter(sp == "Cod") %>% 
+  ggplot(aes(year, effort, color = source2)) + 
+  geom_line() + 
+  facet_wrap(~sp, ncol = 2, scales = "free") +
+  scale_color_brewer(palette = "Set1", name = "") +
+  guides(color = "none") +
+  labs(x = "Year", y = "Effort") + 
+  theme_sleek(base_size = 9) + 
+  NULL
+
+p2 <- projectEffort %>% 
+  filter(sp == "Sprat") %>% 
+  ggplot(aes(year, effort, color = source2)) + 
+  geom_line() + 
+  facet_wrap(~sp, ncol = 2, scales = "free") +
+  scale_color_brewer(palette = "Set1", name = "") +
+  guides(color = "none") +
+  labs(x = "Year", y = "Effort") + 
+  theme_sleek(base_size = 9) + 
+  NULL
+
+p3 <- projectEffort %>% 
+  filter(sp == "Herring") %>% 
+  ggplot(aes(year, effort, color = source2)) + 
+  geom_line() + 
+  facet_wrap(~sp, ncol = 2, scales = "free") +
+  theme_sleek(base_size = 9) + 
+  scale_color_brewer(palette = "Set1", name = "") +
+  theme(legend.position = c(0.2, 0.8)) +
+  labs(x = "Year", y = "Effort") + 
+  NULL
+
+cors <- projectEffort %>% 
+  dplyr::select(-source) %>% 
+  pivot_wider(names_from = source2, values_from = effort) %>% 
+  summarise(cor = cor(`FishMIP F scaled`, `Assessment F`), .by = "sp")
+
+library(RColorBrewer)
+pal <- brewer.pal(name = "Set2", n = 3)
+
+p4 <- projectEffort %>% 
+  dplyr::select(-source) %>% 
+  pivot_wider(names_from = source2, values_from = effort) %>% 
+  ggplot(aes(`Assessment F`, `FishMIP F scaled`, color = sp)) + 
+  geom_abline(alpha = .6, linetype = 2) + 
+  geom_point() + 
+  scale_color_brewer(palette = "Set2", name = "") +
+  theme_sleek(base_size = 9) + 
+  theme(legend.position = c(0.1, 0.9)) +
+  annotate("text", x = 1.3, y = 2.3, label = "Cor.") +
+  annotate("text", x = 1.3, y = 2.2, color = pal[1],
+           label = cors %>% filter(sp == "Cod") %>% pull(cor) %>% round(3)) +
+  annotate("text", x = 1.3, y = 2.1, color = pal[2],
+           label = cors %>% filter(sp == "Herring") %>% pull(cor) %>% round(3)) + 
+  annotate("text", x = 1.3, y = 2, color = pal[3],
+           label = cors %>% filter(sp == "Sprat") %>% pull(cor) %>% round(3)) +
+  
+  NULL
+
+p1 + p2 + p3 + p4 + plot_annotation(tag_levels = "A") 
+```
+
+In summary, it seems that the FishMIP effort is quite different from the species-specific F derived from assessments for cod, but not that much for sprat and herring. After filtering relevant Fgroups and fishing gears, I get good match in trends and absolute values for the pelagics, but less so for cod. However, I might be able to use this since the magnitude is probably within reasonable bounds (slightly high, though the high values are spiky and perhaps it isn't for long enough to crash the stock)
+
+```{r}
+# Save
+write_csv(projectEffort, paste0(home, "/baltic/FishMIP/Input-mizer/projectEffort_df.csv"))
+```
+

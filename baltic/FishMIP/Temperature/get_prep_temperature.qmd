@@ -1,0 +1,419 @@
+---
+title: "Downloading and preparing temperature for ISIMIP 3a Baltic mizer"
+author: "Max Lindmark, following Phoebe.Woodworth-Jefcoats@noaa.gov"
+date: today
+date-format: iso
+toc: true
+format: 
+  html:
+    page-layout: full
+    embed-resources: true
+knitr: 
+  opts_chunk:
+    fig.align: center
+    out-width: 100%
+editor: source
+---
+
+This document describes the workflow for preparing the ISIMIP 3a temperature data for use in the Baltic mizer model. It includes downloading and prepping the temperature data.
+
+Temperature in mizer is to be calculated as follows:
+
+Create a bias-corrected temperature time series as follows:
+
+(Obsclim time series - Control data average value) + WOA average value
+
+## Data Access
+
+The first step was accessing the ISIMIP data. I could use the access_levante.text, but I couldn't figure out how to do it manually. I needed to do it because then I can filter by extent (Lat: 53--61, Lon: 12--32). This is necessary otherwise I get memory overload. Possibly I can use the download from the terminal if I use the `hyperfilter` function in the tidync package as I do in the plankton script --- I haven't tested.
+
+I also used World Ocean Atlas (WOA) data as a baseline temperature. I accessed the data from the [link](https://www.ncei.noaa.gov/thredds-ocean/catalog/ncei/woa/temperature/decav/1.00/catalog.html?dataset=ncei/woa/temperature/decav/1.00/woa18_decav_t00_01.nc) in draft protocoll (using the second download option, HTTPServer: /thredds-ocean/fileServer/ncei/woa/temperature/decav/1.00/woa18_decav_t00_01.nc).
+
+## Data downloading and wrangling
+
+```{r}
+library(tidyverse); theme_set(theme_light())
+library(tidylog)
+library(ncdf4)
+library(lubridate)
+library(raster)
+
+home <- here::here()
+```
+
+According to the draft protocol, the temperature to put into mizer is this: (Obsclim time series - Control data average value ) + WOA average value.
+
+First do the WOA average. Here's what I downloaded from the link in the draft Protocol
+
+<!--![](WOA_download_1){fig-align="left"} ![](WOA_download_2){fig-align="left"} ![](WOA_download_3){fig-align="left"}-->
+
+### Calculate the WOA average
+
+```{r}
+# https://towardsdatascience.com/how-to-crack-open-netcdf-files-in-r-and-extract-data-as-time-series-24107b70dcd
+
+nc_dat <- nc_open(paste0(home, "/baltic/FishMIP/Temperature/DataFiles/woa18_decav_t00_01.nc"))
+
+print(nc_dat)
+
+attributes(nc_dat$var)
+attributes(nc_dat$dim)
+
+lat <- ncvar_get(nc_dat, "lat")
+lon <- ncvar_get(nc_dat, "lon")
+depth <- ncvar_get(nc_dat, "depth")
+
+# Get the time variable. Remember: our metadata said our time units are in months since 1955-01-01 00:00:00, so you will not see a recognizable date and time format. We will take care of this later
+time <- ncvar_get(nc_dat, "time")
+time
+
+# It's only length one? So this is the relevant time average, I just need to do filter and average spatially?
+tunits <- ncatt_get(nc_dat, "time", "units") # Check units
+tunits
+
+months_since_1955 <- time
+date_ref = as.Date("1955-01-01")
+date_ref %m+% months(months_since_1955)
+
+# Get the variable in "matrix slices"
+temp_array <- ncvar_get(nc_dat, "t_an")
+
+dim(temp_array)
+
+temp_slice <- temp_array[ , , 1] 
+
+image(lon, lat, temp_slice)
+
+lonlattime <- as.matrix(expand.grid(lon, lat, depth)) # This might take several seconds
+
+# Reshape whole temp_array
+temp_long <- as.vector(temp_array)
+length(temp_long)
+
+# Create data.frame
+temp <- data.frame(cbind(lonlattime, temp_long))
+
+colnames(temp) <- c("lon", "lat", "depth", "temperature")
+
+head(temp)
+
+# hist(temp$depth)
+# hist(temp$temperature)
+
+# Trim the dataframe a little bit
+temp <- temp %>% filter(lon > 5 & lon < 30 & lat > 50 & lat < 60)
+
+# Now add ICES statistical subdivision information and filter
+# Add ICES areas
+# https://stackoverflow.com/questions/34272309/extract-shapefile-value-to-point-with-r
+# https://gis.ices.dk/sf/
+shape <- shapefile(paste0(home, "/baltic/FishMIP/ICES-StatRec-mapto-ICES-Areas/StatRec_map_Areas_Full_20170124.shp"))
+head(shape)
+
+pts <- SpatialPoints(cbind(temp$lon, temp$lat), 
+                     proj4string = CRS(proj4string(shape)))
+
+temp$subdiv <- over(pts, shape)$Area_27
+
+# Rename subdivisions to the more common names and do some more filtering (by sub div and area)
+sort(unique(temp$subdiv))
+
+temp <- temp |> 
+  mutate(sub_div = factor(subdiv),
+         sub_div = fct_recode(subdiv,
+                              "25" = "3.d.25",
+                              "26" = "3.d.26",
+                              "27" = "3.d.27",
+                              "28" = "3.d.28.1",
+                              "28" = "3.d.28.2",
+                              "29" = "3.d.29",
+                              "32" = "3.d.32"),
+         sub_div = as.character(sub_div)) %>% 
+  filter(sub_div %in% c(25, 26, 27, 28, 29, 32))
+
+ggplot(temp, aes(lon, lat, fill = sub_div)) + 
+  geom_raster() + 
+  coord_sf()
+
+# Now filter only bottom temp
+sbt <- temp %>%
+  drop_na(temperature) %>% 
+  mutate(loc = paste(lon, lat)) %>% 
+  group_by(loc) %>% 
+  filter(depth == max(depth)) %>% 
+  ungroup()
+
+sbt
+
+ggplot(sbt, aes(lon, lat, fill = temperature)) + 
+  geom_raster() + 
+  coord_sf()
+
+# Calculate the mean
+woa_avg_temp <- sbt %>% summarise(mean_sbt = mean(temperature))
+```
+
+Control clim, from this link: <https://data.isimip.org/search/tree/ISIMIP3a/InputData/climate/ocean/gfdl-mom6-cobalt2/ctrlclim/thetao/>
+
+```{r}
+# Read the nc file
+# https://stackoverflow.com/questions/76624626/extracting-data-from-netcdf-file-in-r
+
+nc_ctrl <- nc_open(paste0(home,
+                         "/baltic/FishMIP/Temperature/DataFiles/ctrl_clim/gfdl-mom6-cobalt2_ctrlclim_thetao_15arcmin_lat53.0to61.0lon12.0to32.0_monthly_1961_2010.nc"))
+print(nc_ctrl)
+attributes(nc_ctrl$var)
+attributes(nc_ctrl$dim)
+
+lat <- ncvar_get(nc_ctrl, "lat")
+lon <- ncvar_get(nc_ctrl, "lon")
+depth <- ncvar_get(nc_ctrl, "lev")
+
+# Get the time variable. 
+time <- ncvar_get(nc_ctrl, "time")
+head(time)
+
+# Check time unit
+ncatt_get(nc_ctrl, "time", "units")
+
+# Extract time in date format
+months_since_1901 <- time
+date_ref = as.Date("1901-01-01")
+dates <- date_ref %m+% months(months_since_1901) %>% as.character()
+head(dates)
+
+# Get the variable in "matrix slices"
+ctrl_array <- ncvar_get(nc_ctrl, "thetao")
+dim(ctrl_array)
+
+# Expand grid lon lat and depth, to which be cbind the actual values
+ctrl_grid <- as.matrix(expand.grid(lon, lat, depth, dates)) # This might take several seconds
+
+# Now add in the temperatures
+ctrl_df <- as.vector(ctrl_array)
+
+ctrl_df <- data.frame(cbind(ctrl_grid, ctrl_df))
+
+colnames(ctrl_df) <- c("lon", "lat", "depth", "date", "ctrl_temp")
+
+# Filter NA temperatures and select the deepest depth 
+ctrl_df <- ctrl_df %>% 
+  drop_na(ctrl_temp) %>% 
+  group_by(lon, lat) %>% 
+  filter(depth == max(depth)) %>% # TODO: I wonder if this is the correct way to get the bottom depth
+  ungroup() %>% 
+  mutate(lon = as.numeric(lon),
+         lat = as.numeric(lat),
+         depth = as.numeric(depth),
+         date = as.Date(date),
+         ctrl_temp = as.numeric(ctrl_temp)) %>% 
+  mutate(year = year(date))
+
+# Add in ICES areas so that we can filter the domain of the mizer model
+shape <- shapefile(paste0(home, "/baltic/FishMIP/ICES-StatRec-mapto-ICES-Areas/StatRec_map_Areas_Full_20170124.shp"))
+
+pts <- SpatialPoints(cbind(ctrl_df$lon, ctrl_df$lat), 
+                     proj4string = CRS(proj4string(shape)))
+
+ctrl_df$subdiv <- over(pts, shape)$Area_27
+
+# Rename subdivisions to the more common names and do some more filtering (by sub div and area)
+sort(unique(temp$subdiv))
+
+ctrl_df <- ctrl_df |> 
+  mutate(sub_div = factor(subdiv),
+         sub_div = fct_recode(subdiv,
+                              "25" = "3.d.25",
+                              "26" = "3.d.26",
+                              "27" = "3.d.27",
+                              "28" = "3.d.28.1",
+                              "28" = "3.d.28.2",
+                              "29" = "3.d.29",
+                              "32" = "3.d.32"),
+         sub_div = as.character(sub_div)) %>% 
+  filter(sub_div %in% c(25, 26, 27, 28, 29, 32))
+
+# Plot sub division
+ctrl_df %>% 
+  filter(date == "1961-01-01") %>% # Filter specific time
+  ggplot(aes(lon, lat, fill = sub_div)) + 
+  geom_raster() + 
+  coord_sf()
+
+# Test plotting temperature for the first time step
+ctrl_df %>% 
+  filter(date == "1961-01-01") %>% # Filter specific time
+  ggplot(aes(lon, lat, fill = ctrl_temp)) + 
+  geom_raster() + 
+  coord_sf()
+
+# Depth
+ctrl_df %>% 
+  filter(date == "1961-01-01") %>% # Filter specific time
+  ggplot(aes(lon, lat, fill = depth)) + 
+  geom_raster() + 
+  coord_sf()
+
+# TODO: Average by date (year + month) and plot... or do I change my dt to 1/12 and take the monthly averages?
+ctrl_df %>% 
+  summarise(mean_ctrl_temp = mean(ctrl_temp), .by = date) %>% 
+  ggplot(aes(date, mean_ctrl_temp)) + 
+  geom_line()
+
+ctrl_annual <- ctrl_df %>% 
+  summarise(mean_ctrl_temp = mean(ctrl_temp), .by = date)
+```
+
+Obs clim, from this link: <https://data.isimip.org/search/tree/ISIMIP3a/InputData/climate/ocean/gfdl-mom6-cobalt2/ctrlclim/thetao/>
+
+```{r}
+nc_obs <- nc_open(paste0(home,
+                         "/baltic/FishMIP/Temperature/DataFiles/obs_clim/gfdl-mom6-cobalt2_obsclim_thetao_15arcmin_lat53.0to61.0lon12.0to32.0_monthly_1961_2010.nc"))
+print(nc_obs)
+attributes(nc_obs$var)
+attributes(nc_obs$dim)
+
+lat <- ncvar_get(nc_obs, "lat")
+lon <- ncvar_get(nc_obs, "lon")
+depth <- ncvar_get(nc_obs, "lev")
+
+# Get the time variable. 
+time <- ncvar_get(nc_obs, "time")
+head(time)
+
+# Check time unit
+ncatt_get(nc_obs, "time", "units")
+
+# Extract time in date format
+months_since_1901 <- time
+date_ref = as.Date("1901-01-01")
+dates <- date_ref %m+% months(months_since_1901) %>% as.character()
+head(dates)
+
+# Get the variable in "matrix slices"
+obs_array <- ncvar_get(nc_obs, "thetao")
+dim(obs_array)
+
+# Expand grid lon lat and depth, to which be cbind the actual values
+obs_grid <- as.matrix(expand.grid(lon, lat, depth, dates)) # This might take several seconds
+
+# Now add in the temperatures
+obs_df <- as.vector(obs_array)
+
+obs_df <- data.frame(cbind(obs_grid, obs_df))
+
+colnames(obs_df) <- c("lon", "lat", "depth", "date", "obs_temp")
+
+# Filter NA temperatures and select the deepest depth 
+obs_df <- obs_df %>% 
+  drop_na(obs_temp) %>% 
+  group_by(lon, lat) %>% 
+  filter(depth == max(depth)) %>% # TODO: I wonder if this is the correct way to get the bottom depth
+  ungroup() %>% 
+  mutate(lon = as.numeric(lon),
+         lat = as.numeric(lat),
+         depth = as.numeric(depth),
+         date = as.Date(date),
+         obs_temp = as.numeric(obs_temp)) %>% 
+  mutate(year = year(date))
+
+# Add in ICES areas so that we can filter the domain of the mizer model
+shape <- shapefile(paste0(home, "/baltic/FishMIP/ICES-StatRec-mapto-ICES-Areas/StatRec_map_Areas_Full_20170124.shp"))
+
+pts <- SpatialPoints(cbind(obs_df$lon, obs_df$lat), 
+                     proj4string = CRS(proj4string(shape)))
+
+obs_df$subdiv <- over(pts, shape)$Area_27
+
+# Rename subdivisions to the more common names and do some more filtering (by sub div and area)
+obs_df <- obs_df |> 
+  mutate(sub_div = factor(subdiv),
+         sub_div = fct_recode(subdiv,
+                              "25" = "3.d.25",
+                              "26" = "3.d.26",
+                              "27" = "3.d.27",
+                              "28" = "3.d.28.1",
+                              "28" = "3.d.28.2",
+                              "29" = "3.d.29",
+                              "32" = "3.d.32"),
+         sub_div = as.character(sub_div)) %>% 
+  filter(sub_div %in% c(25, 26, 27, 28, 29, 32))
+
+# Plot sub division
+obs_df %>% 
+  filter(date == "1961-01-01") %>% # Filter specific time
+  ggplot(aes(lon, lat, fill = sub_div)) + 
+  geom_raster() + 
+  coord_sf()
+
+# Test plotting temperature for the first time step
+obs_df %>% 
+  filter(date == "1961-01-01") %>% # Filter specific time
+  ggplot(aes(lon, lat, fill = obs_temp)) + 
+  geom_raster() + 
+  coord_sf()
+
+# Depth
+obs_df %>% 
+  filter(date == "1961-01-01") %>% # Filter specific time
+  ggplot(aes(lon, lat, fill = depth)) + 
+  geom_raster() + 
+  coord_sf()
+
+# TODO: Average by year and plot... or do I change my dt to 1/12 and take the monthly averages?
+obs_df %>% 
+  summarise(mean_obs_temp = mean(obs_temp), .by = date) %>% 
+  ggplot(aes(date, mean_obs_temp)) + 
+  geom_line()
+
+obs_annual <- obs_df %>% 
+  summarise(mean_obs_temp = mean(obs_temp), .by = date)
+```
+
+Compare temperature series
+
+```{r}
+temps <- bind_rows(ctrl_annual %>% rename(temp = mean_ctrl_temp) %>% mutate(type = "ctrl"),
+                   obs_annual %>% rename(temp = mean_obs_temp) %>% mutate(type = "obs"))
+
+ggplot(temps, aes(date, temp, color = type)) + 
+  geom_line()
+```
+
+Phoebe’s temperature bias correction involved*:
+
+- Create a time series of average temperature (Jan 1961 - Dec 2010) across depth ranges and over the whole model area for the different ‘realms’ (different species' vertical behavior) from the experiment data i.e. obsclim, 0.25 degree
+
+- Create a time series of average temperature (Jan 1961 - Dec 1980) across depth ranges and over the whole model area for the different ‘realms’ from the control data i.e. ctrlclim, 0.25 degree. Calculate an average for each realm from the control time series. {note change on specifiers name, ctrclim is now named obsclim_1955-riverine-input}
+
+- Using World Ocean Atlas climatology here, calculate the average temperature over various depth ranges and the whole model area.
+Create a bias-corrected temperature time series as follows:
+
+(Obsclim time series - Control data average value ) + WOA average value
+
+```{r}
+# Temperature time series
+temp_df <- tibble(bias_corr_temp = (obs_annual$mean_obs_temp - mean(ctrl_annual$mean_ctrl_temp)) + woa_avg_temp$mean_sbt,
+                  date = obs_annual$date)
+
+ggplot(temp_df, aes(date, bias_corr_temp)) + 
+  geom_line()
+
+# Add year-averaged temperature
+temp_df <- temp_df %>% 
+  rename(temp = bias_corr_temp) %>% 
+  mutate(year = year(date)) %>% 
+  group_by(year) %>% 
+  mutate(temp_agg = mean(temp)) %>% 
+  ungroup()
+
+ggplot(temp_df, aes(date, temp_agg)) + 
+  geom_line()
+
+temp_df %>% 
+  distinct(year, .keep_all = TRUE) %>% 
+  ggplot(aes(year, temp_agg)) + 
+  geom_line()
+
+write_csv(temp_df, paste0(home, "/baltic/FishMIP/Input-mizer/temp_df.csv"))
+```

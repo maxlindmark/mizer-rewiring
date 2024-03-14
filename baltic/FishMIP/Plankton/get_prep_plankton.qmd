@@ -1,0 +1,386 @@
+---
+title: "Downloading and preparing plankton for ISIMIP 3a Baltic mizer"
+author: "Max Lindmark, following Phoebe.Woodworth-Jefcoats@noaa.gov"
+date: today
+date-format: iso
+toc: true
+format: 
+  html:
+    page-layout: full
+    embed-resources: true
+knitr: 
+  opts_chunk:
+    fig.align: center
+    out-width: 100%
+editor: source
+---
+
+This document describes the workflow for preparing the ISIMIP 3a plankton data for use in the Baltic mizer model. It includes downloading and prepping the plankton data. There are 5 groups of plankton
+
+## Data Access
+The first step was accessing the ISIMIP data. I use the code for plankton data in access_levante.txt and run it in the terminal
+
+## Data downloading and wrangling
+
+```{r}
+library(tidyverse); theme_set(theme_light())
+library(tidylog)
+library(tidync)
+library(ncdf4)
+library(lubridate)
+library(raster)
+library(broom)
+
+home <- here::here()
+
+# Read ICES shapefile
+shape <- shapefile(paste0(home, "/baltic/FishMIP/ICES-StatRec-mapto-ICES-Areas/StatRec_map_Areas_Full_20170124.shp"))
+```
+
+```{r}
+# Read the nc file
+# https://stackoverflow.com/questions/76624626/extracting-data-from-netcdf-file-in-r
+# library(terra)
+# library(tidyterra)
+# https://gist.github.com/potterzot/5475ca68d2b5428044a605ce70969ef9
+
+box <- list(lat = c(53, 61), lon = c(12, 32))
+
+## Diatoms
+t <- nc_open(paste0(home,
+                       "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_phydiat-vint_15arcmin_global_monthly_1961_2010.nc"))
+print(t)
+
+diatom <- tidync(paste0(home, "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_phydiat-vint_15arcmin_global_monthly_1961_2010.nc")) %>%
+  hyper_filter(
+    lat = between(lat, box$lat[[1]], box$lat[[2]]),
+    lon = between(lon, box$lon[[1]], box$lon[[2]])
+    ) %>% hyper_tibble() %>% 
+  mutate(date = as.Date("1901-01-01") %m+% months(time)) %>%
+  dplyr::select(-c(time))
+
+# Add in ICES areas so that we can filter the domain of the mizer model
+pts <- SpatialPoints(cbind(diatom$lon, diatom$lat), 
+                     proj4string = CRS(proj4string(shape)))
+
+diatom$sub_div <- over(pts, shape)$Area_27
+
+diatom <- diatom %>% 
+  filter(sub_div %in% c("3.d.25", "3.d.26", "3.d.27", "3.d.28.1", "3.d.28.2", "3.d.29", "3.d.32")) %>% 
+  mutate(sub_div = as.factor(sub_div)) %>% 
+  droplevels() %>% 
+  mutate(sub_div = fct_recode(sub_div,
+                              "25" = "3.d.25",
+                              "26" = "3.d.26",
+                              "27" = "3.d.27",
+                              "28" = "3.d.28.1",
+                              "28" = "3.d.28.2",
+                              "29" = "3.d.29",
+                              "32" = "3.d.32"))
+  
+
+
+## Diazotrophs
+t <- nc_open(paste0(home,
+                       "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_phydiaz-vint_15arcmin_global_monthly_1961_2010.nc"))
+print(t)
+
+diaz <- tidync(paste0(home, "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_phydiaz-vint_15arcmin_global_monthly_1961_2010.nc")) %>%
+  hyper_filter(
+    lat = between(lat, box$lat[[1]], box$lat[[2]]),
+    lon = between(lon, box$lon[[1]], box$lon[[2]])
+    ) %>% hyper_tibble() %>% 
+  mutate(date = as.Date("1901-01-01") %m+% months(time)) %>%
+  dplyr::select(-c(time))
+
+# Add in ICES areas so that we can filter the domain of the mizer model
+pts <- SpatialPoints(cbind(diaz$lon, diaz$lat), 
+                     proj4string = CRS(proj4string(shape)))
+
+diaz$sub_div <- over(pts, shape)$Area_27
+
+diaz <- diaz %>% 
+  filter(sub_div %in% c("3.d.25", "3.d.26", "3.d.27", "3.d.28.1", "3.d.28.2", "3.d.29", "3.d.32")) %>% 
+  mutate(sub_div = as.factor(sub_div)) %>% 
+  droplevels() %>% 
+  mutate(sub_div = fct_recode(sub_div,
+                              "25" = "3.d.25",
+                              "26" = "3.d.26",
+                              "27" = "3.d.27",
+                              "28" = "3.d.28.1",
+                              "28" = "3.d.28.2",
+                              "29" = "3.d.29",
+                              "32" = "3.d.32"))
+
+
+
+## Picophytoplankton
+t <- nc_open(paste0(home,
+                       "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_phypico-vint_15arcmin_global_monthly_1961_2010.nc"))
+print(t)
+
+pico <- tidync(paste0(home, "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_phypico-vint_15arcmin_global_monthly_1961_2010.nc")) %>%
+  hyper_filter(
+    lat = between(lat, box$lat[[1]], box$lat[[2]]),
+    lon = between(lon, box$lon[[1]], box$lon[[2]])
+    ) %>% hyper_tibble() %>% 
+  mutate(date = as.Date("1901-01-01") %m+% months(time)) %>%
+  dplyr::select(-c(time))
+
+# Add in ICES areas so that we can filter the domain of the mizer model
+pts <- SpatialPoints(cbind(pico$lon, pico$lat), 
+                     proj4string = CRS(proj4string(shape)))
+
+pico$sub_div <- over(pts, shape)$Area_27
+
+pico <- pico %>% 
+  filter(sub_div %in% c("3.d.25", "3.d.26", "3.d.27", "3.d.28.1", "3.d.28.2", "3.d.29", "3.d.32")) %>% 
+  mutate(sub_div = as.factor(sub_div)) %>% 
+  droplevels() %>% 
+  mutate(sub_div = fct_recode(sub_div,
+                              "25" = "3.d.25",
+                              "26" = "3.d.26",
+                              "27" = "3.d.27",
+                              "28" = "3.d.28.1",
+                              "28" = "3.d.28.2",
+                              "29" = "3.d.29",
+                              "32" = "3.d.32"))
+
+
+## Mesozooplankton
+t <- nc_open(paste0(home,
+                       "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_zmeso-vint_15arcmin_global_monthly_1961_2010.nc"))
+print(t)
+
+meso <- tidync(paste0(home, "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_zmeso-vint_15arcmin_global_monthly_1961_2010.nc")) %>%
+  hyper_filter(
+    lat = between(lat, box$lat[[1]], box$lat[[2]]),
+    lon = between(lon, box$lon[[1]], box$lon[[2]])
+    ) %>% hyper_tibble() %>% 
+  mutate(date = as.Date("1901-01-01") %m+% months(time)) %>%
+  dplyr::select(-c(time))
+
+# Add in ICES areas so that we can filter the domain of the mizer model
+pts <- SpatialPoints(cbind(meso$lon, meso$lat), 
+                     proj4string = CRS(proj4string(shape)))
+
+meso$sub_div <- over(pts, shape)$Area_27
+
+meso <- meso %>% 
+  filter(sub_div %in% c("3.d.25", "3.d.26", "3.d.27", "3.d.28.1", "3.d.28.2", "3.d.29", "3.d.32")) %>% 
+  mutate(sub_div = as.factor(sub_div)) %>% 
+  droplevels() %>% 
+  mutate(sub_div = fct_recode(sub_div,
+                              "25" = "3.d.25",
+                              "26" = "3.d.26",
+                              "27" = "3.d.27",
+                              "28" = "3.d.28.1",
+                              "28" = "3.d.28.2",
+                              "29" = "3.d.29",
+                              "32" = "3.d.32"))
+
+
+## Microzooplankton
+t <- nc_open(paste0(home,
+                       "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_zmicro-vint_15arcmin_global_monthly_1961_2010.nc"))
+print(t)
+
+micro <- tidync(paste0(home, "/baltic/FishMIP/Plankton/DataFiles/gfdl-mom6-cobalt2_obsclim_zmicro-vint_15arcmin_global_monthly_1961_2010.nc")) %>%
+  hyper_filter(
+    lat = between(lat, box$lat[[1]], box$lat[[2]]),
+    lon = between(lon, box$lon[[1]], box$lon[[2]])
+    ) %>% hyper_tibble() %>% 
+  mutate(date = as.Date("1901-01-01") %m+% months(time)) %>%
+  dplyr::select(-c(time))
+
+# Add in ICES areas so that we can filter the domain of the mizer model
+pts <- SpatialPoints(cbind(micro$lon, micro$lat), 
+                     proj4string = CRS(proj4string(shape)))
+
+micro$sub_div <- over(pts, shape)$Area_27
+
+micro <- micro %>% 
+  filter(sub_div %in% c("3.d.25", "3.d.26", "3.d.27", "3.d.28.1", "3.d.28.2", "3.d.29", "3.d.32")) %>% 
+  mutate(sub_div = as.factor(sub_div)) %>% 
+  droplevels() %>% 
+  mutate(sub_div = fct_recode(sub_div,
+                              "25" = "3.d.25",
+                              "26" = "3.d.26",
+                              "27" = "3.d.27",
+                              "28" = "3.d.28.1",
+                              "28" = "3.d.28.2",
+                              "29" = "3.d.29",
+                              "32" = "3.d.32"))
+
+# Combine all into a dataframe
+pl <- bind_rows(diatom %>% rename(mole_content = `phydiat-vint`) %>% mutate(type = "diatom"),
+                diaz %>% rename(mole_content = `phydiaz-vint`) %>% mutate(type = "diazotrophs"),
+                pico %>% rename(mole_content = `phypico-vint`) %>% mutate(type = "phypico"),
+                meso %>% rename(mole_content = `zmeso-vint`) %>% mutate(type = "mesozp"),
+                micro %>% rename(mole_content = `zmicro-vint`) %>% mutate(type = "microzp"))
+  
+# Do the same conversions that Phoebe does in the script Plankton_ts.jnl
+# ! We want total carbon in g, so we'll need to:
+# ! Convert from mol C to g C (*12.011)
+# ! Convert area from km^2 to m^2 (*10^6)
+# ! Sum 
+
+pl$g_C <- pl$mole_content*12.011
+
+# TODO: check if this is correct. The nc files are in units: mol m-2, so we convert from k^m to m^2??
+# I think I need to convert to my area, right? 2.49×10^11 m^2
+# But how can I do that without knowing the area of each "grid cell" the point represents?
+# Do I sum across spatial points and then just... multiply by areal extent?
+# But if it's in unit per m2, then I ought to take an average...
+
+pl_sum <- pl %>% 
+  summarise(g_C = sum(g_C), .by = c(date, type)) %>% 
+  mutate(sum_g_C = g_C*2.49e+11)
+```
+
+Convert the units to get information about the intercept and slope of the resource size-spectra. This is following Phoebe's code Prep_Plankton_therMizer.Rmd, which reads in data prepared in Plankton_ts.jnl, which reads in the nc files and "plankton carbon densities were converted to total carbon and summed over the model domain". Now we need to make further conversions.
+
+Here, this total carbon is used to create resource spectra at each time step.
+
+Size class ranges, for reference (ESD = Equivalent Spherical Diameter):  
+- Phyto = 0.2 - 200 um ESD (mid-point size = 100.1 um ESD)  
+-	pico = 0.2 - 10 um ESD (mid-point size = 5.1 um ESD)  
+-	large (diatoms and diazotrophs) = 10 - 200 um ESD (mid-point size = 105 um ESD)  
+- Zoo = 2 - 20,00 um ESD (based on the literature)(mid-point size = 10001 um ESD)  
+-	zmicro = 2 - 200 um ESD (mid-point size = 101 um ESD)  
+-	zmeso = 200 - 20000 um ESD (mid-point size = 10100 um ESD)  
+
+These size classes were informed by Dunne et al. [2005](https://doi.org/10.1029/2004GB002390), [2012](https://doi.org/10.1029/2010GB003935), and [2013](https://doi.org/10.1175/JCLI-D-12-00150.1), [Liu et al. 2021](https://doi.org/10.1029/2021GL094367), and [Stock et al. 2020](https://doi.org/10.1029/2019MS002043).
+
+Conversions used:  
+- Convert g C to gww --> $\times 10$  
+- Convert um ESD to gww --> $\frac{4}{3}\pi(0.5\times0.0001\times size)^3$
+
+```{r}
+# Create variables for referencing the size class mid points, in gww
+pico_mid <- (4/3)*pi*((0.5*0.0001*5.1)^3)
+large_mid <- (4/3)*pi*((0.5*0.0001*105)^3) 
+micro_mid <- (4/3)*pi*((0.5*0.0001*101)^3)
+meso_mid <- (4/3)*pi*((0.5*0.0001*10100)^3)
+
+mid_df <- data.frame(type = c("diatom",  "diazotrophs", "phypico", "mesozp", "microzp"),
+                     midpoint = c(large_mid, large_mid,     pico_mid,  pico_mid, micro_mid))
+
+# Convert total carbon to gww and then get numerical abundance by dividing by size class mid point
+# This step assumes that all plankton are the midpoint size
+pl <- pl %>% 
+  left_join(mid_df, by = "type") %>% 
+  mutate(abund = g_C*10/midpoint) # TODO: Pheobes g_C is scaled by to km^2, mine only converted to carbon
+
+
+# TODO: I don't need spatial data to estimate the intercept and slope, but at this point I'm not sure how to sum, so I calculate the mean in the spatial domain.
+pl_fit <- pl %>% 
+  summarise(mean_abund = mean(abund), .by = c(date, type)) %>% 
+  left_join(mid_df)
+
+ggplot(pl_fit, aes(midpoint, log(mean_abund), color = as.numeric(date))) + 
+  geom_jitter() +
+  geom_line()
+
+# Fit a model to estimate the slope and intercept for all time steps
+m <- lm(log10(mean_abund) ~ 0 + log10(midpoint)*as.factor(date), data = pl_fit)
+
+# Main effect of log(midpoint)
+main_slope <- tidy(m) %>%
+  filter(term == "log10(midpoint)") %>%
+  distinct(estimate)
+
+# Extract the slopes at each time step
+slopes <- tidy(m) %>% 
+  filter(grepl("log10", term)) %>% 
+  filter(!term == "log10(midpoint)") %>% 
+  mutate(slope = estimate + main_slope$estimate) %>% 
+  separate(term, into = c("term", "date"), ":") %>% 
+  mutate(date = str_replace(date, "as.factor", "")) %>% 
+  mutate(date = str_replace(date, "(date)", "")) %>% 
+  mutate(date = str_replace(date, "[()]", "")) %>% 
+  mutate(date = str_replace(date, "[()]", "")) %>% 
+  mutate(year = year(as.Date(date))) %>% 
+  dplyr::select(term, year, date, slope) %>% 
+  rename(estimate = slope) %>% 
+  mutate(term = "slope")
+
+ggplot(slopes, aes(estimate)) +
+  geom_histogram()
+
+ggplot(slopes, aes(as.Date(date), estimate)) +
+  geom_point()
+
+slopes %>% 
+  filter(year < 1980) %>% 
+  ggplot(aes(as.Date(date), estimate)) +
+  geom_point() + 
+  geom_line() + 
+  geom_hline(yintercept = -2-0.8+(2/3), linetype = 2)
+
+# Very cyclical! And also... the value is quite different from the size-spectrum slope I currently have, 
+
+# Now get the intercepts
+inter <- tidy(m) %>% 
+  filter(!grepl(":", term)) %>% 
+  filter(!term == "log10(midpoint)") %>% 
+  separate(term, into = c("term", "date"), "[)]") %>% 
+  mutate(term = "intercept",
+         year = year(as.Date(date))) %>% 
+  dplyr::select(term, year, date, estimate) %>% 
+  mutate(estimate = 10^estimate)
+  
+
+coefs <- bind_rows(inter, slopes) %>% 
+  mutate(month = month(as.Date(date)))
+
+# Add the scaled estimates...
+coefs <- coefs %>% 
+  group_by(term) %>% 
+  mutate(estimate_sc = estimate / mean(estimate)) %>% 
+  ungroup()
+
+ggplot(coefs, aes(as.Date(date), estimate_sc, color = factor(month))) +
+  geom_point() + 
+  facet_wrap(~term, ncol = 1)
+
+ggplot(coefs, aes(as.Date(date), estimate_sc, color = factor(month))) +
+  geom_point() + 
+  facet_wrap(~term, ncol = 1, scales = "free")
+
+# Huge difference between months... perhaps I need to aggregate?
+coefs <- coefs %>% 
+  group_by(term, year) %>% 
+  mutate(estimate_agg = mean(estimate)) %>% 
+  group_by(term) %>% 
+  mutate(estimate_agg_sc = estimate_agg / mean(estimate_agg)) %>% 
+  ungroup()
+  
+ggplot(coefs, aes(as.Date(date), estimate_agg_sc, color = factor(month))) +
+  geom_point() + 
+  facet_wrap(~term, ncol = 1, scales = "free")
+```
+
+Save
+
+```{r}
+# Make it wide before saving... much easier later
+coefs_save <- coefs %>% 
+  filter(term == "intercept") %>% 
+  rename(intercept = estimate_agg_sc) %>% 
+  dplyr::select(date, intercept)
+
+coefs_save <- coefs_save %>% 
+  left_join(coefs %>% 
+              filter(term == "slope") %>% 
+              rename(slope = estimate_agg_sc) %>% 
+              dplyr::select(date, slope), by = "date")
+
+# Erm, because there's a global intercept we don't have the slope for the first iteration
+# But since it's all aggregated by year anyway I can just fill it in now
+coefs_save
+coefs_save[1, 3] <- coefs_save[2, 3]
+coefs_save
+
+write_csv(coefs_save, paste0(home, "/baltic/FishMIP/Input-mizer/resource_df.csv"))
+```

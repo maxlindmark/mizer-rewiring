@@ -1,0 +1,498 @@
+---
+title: "Run models for FishMIP"
+author: "Max Lindmark, following Phoebe.Woodworth-Jefcoats@noaa.gov"
+date: '2022-11-03'
+toc: true
+format: 
+  html:
+    page-layout: full
+    embed-resources: true
+knitr: 
+  opts_chunk:
+    fig.align: center
+    out-width: 80%
+editor: source
+execute: 
+  echo: true
+  eval: true
+  cache: false
+---
+
+## Model runs
+
+Eventually, this script runs the two simulations: one with (histsoc) and one without (nat) fishing.
+
+First some testing... 
+
+## Set up the environment
+
+```{r setup}
+library(tidyverse); theme_set(theme_light())
+library(RColorBrewer)
+library(RCurl)
+library(tidylog)
+library(mizer) # local build! if not installed, install in "Build" tab
+
+home <- here::here()
+```
+
+## Read data and parameters
+
+```{r read data}
+# Read in 
+balticParams <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlindmark/mizer-rewiring/rewire-temp/baltic/params/species_params.csv"), sep = ";")
+
+# Read in params object
+params <- readRDS(paste0(home, "/baltic/params/mizer_param_calib.rds"))
+
+# Read in old effort
+projectEffort_old <- read_csv(paste0(home, "/baltic/params/projectEffort.csv"))[, 2:4]
+
+# Read in temperature. This started from 1874 ... 
+projectTemp_old <- read_csv(paste0(home, "/baltic/params/projectTemp.csv"))[, 2:3]
+
+# New temperature. This is a 600 length df with monthly temperatures between 1961 and 2010
+projectTemp <- read_csv(paste0(home, "/baltic/FishMIP/Input-mizer/temp_df.csv")) %>% 
+  mutate(year = year(date))
+
+projectEffort_old <- projectEffort_old %>% 
+  mutate(year = projectTemp_old$Year) %>% 
+  filter(year %in% c(projectTemp$year))
+  
+# Now I need to expand each row 12 times. Easy is to just left join into the correct dimensions
+projectEffort_old <- projectTemp %>% 
+  left_join(projectEffort_old, by = "year") %>% 
+  dplyr::select(-temp_agg, -temp, -date, -year)
+
+# OK looks good. Now make this a matrix
+projectEffort_old_m <- as.matrix(projectEffort_old)
+rownames(projectEffort_old_m) <- 1:nrow(projectEffort_old_m)
+
+# This the the effort matrix used in the calibration
+projectEffort_const <- as.matrix(projectEffort_old %>% mutate(Cod = 0.899, Herring = 0.306, Sprat = 0.340))
+rownames(projectEffort_const) <- 1:nrow(projectEffort_const)
+
+# Read in FishMIP effort
+projectEffort <- read_csv(paste0(home, "/baltic/FishMIP/Input-mizer/projectEffort_df.csv")) %>% 
+  filter(source2 == "FishMIP F scaled") %>% 
+  dplyr::select("year", "sp", "effort") %>% 
+  pivot_wider(names_from = sp, values_from = effort)
+
+# Now I need to expand each row 12 times. Easy is to just left join into the correct dimensions
+projectEffort <- projectTemp %>% 
+  left_join(projectEffort, by = "year") %>% 
+  dplyr::select(-temp_agg, -temp, -date, -year)
+
+# OK looks good. Now make this a matrix
+projectEffort <- as.matrix(projectEffort)
+rownames(projectEffort) <- 1:nrow(projectEffort)
+```
+
+- The approach for FishMIP
+  - Fit a semi chemostat using plankton forcing = false under average fishing and temperature effects for the calibration window
+  - Re calibrate!
+  - Save the steady-state plankton spectrum
+  - Add the temperature-driven changes. Do this by modifying the intercept and slopes based on the relative difference in the linear regression of slope of FishMIP data. 
+  - This gets me (600) resource spectra. Expand by DT. Add it in the project function call
+  - Check the simulation protocol...
+  
+## Check the GCB paper baseline in this new, modified FishMIP-mizer
+
+```{r}
+# First see if I can reproduce the fit to data "SSB_fit.png"
+gcb <- project(params,
+               dt = 0.2,
+               effort = projectEffort_const,
+               temperature = rep(10.11562, 600), # This is the t_ref
+               t_max = 600,
+               plankton_forcing = FALSE
+               )
+
+obs <- balticParams$AveSpawnBiomass
+pred <- colMeans(getSSB(gcb)[c(I(dim(gcb@n)[1]-20):dim(gcb@n)[1]), ] ) * 2.49e+11 / (1e9)
+
+ssb_eval <- data.frame(SSB = c(obs, pred),
+                       Source = rep(c("Observed", "Predicted"), each = 3),
+                       Species = rep(balticParams$species, 2))
+
+ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Species)) +
+  geom_point(size = 4, alpha = 0.8)
+# Yes!
+```
+
+Now fit the real model with FishMIP temperature and fishing (averaged for calibration time period) and extract the steady state plankton
+
+```{r get baseline resources}
+# Calibration time period in the FishMIP model is 1992-2004
+effort_means <- read_csv(paste0(home, "/baltic/FishMIP/Input-mizer/projectEffort_df.csv")) %>% 
+  filter(source2 == "FishMIP F scaled",
+         year >= 1992 & year <= 2004) %>% 
+  summarise(mean_effort = mean(effort), .by = "sp")
+
+projectEffort_cali <- projectEffort
+projectEffort_cali[, 1] <- as.numeric(effort_means[effort_means$sp == "Cod", "mean_effort"])
+projectEffort_cali[, 2] <- as.numeric(effort_means[effort_means$sp == "Sprat", "mean_effort"])
+projectEffort_cali[, 3] <- as.numeric(effort_means[effort_means$sp == "Herring", "mean_effort"])
+
+temperature_cali <- projectTemp %>% 
+  filter(year >= 1992 & year <= 2004) %>% 
+  summarise(mean_temp = mean(temp)) %>% 
+  pull(mean_temp)
+
+# projectTemp %>% 
+#   filter(year >= 1992 & year <= 2004) %>%
+#   ggplot(aes(date, temp)) + 
+#   geom_line()
+
+# Update params object with new t_ref
+# t <- params@species_params
+# 
+# params_fishmip <- MizerParams(t, 
+#                               t_ref = temperature_cali)
+  
+ref <- project(params,
+               dt = 0.2,
+               effort = projectEffort_cali, 
+               temperature = rep(temperature_cali, 600),
+               t_max = 600,
+               plankton_forcing = FALSE
+               )
+
+plot(ref)
+
+# This is the fit when I use average temperatures and fishing efforts from mizer, but maintain t_ref
+obs <- balticParams$AveSpawnBiomass
+pred <- colMeans(getSSB(ref)[c(I(dim(ref@n)[1]-20):dim(ref@n)[1]), ] ) * 2.49e+11 / (1e9)
+
+ssb_eval <- data.frame(SSB = c(obs, pred),
+                       Source = rep(c("Observed", "Predicted"), each = 3),
+                       Species = rep(balticParams$species, 2))
+
+ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Species)) +
+  geom_point(size = 4, alpha = 0.8)
+```
+
+The fit looks OK with FishMIP temperatures and efforts in the calibration time window, and the old t_ref. But this was with semi-chemostat. Now test what happens when I change `plankton_forcing = TRUE`. I then need to provide an array that is dt-spaced. First just do the steady state values without any FishMIP relative modifications
+
+```{r}
+plankton_forcing_array <- ref@n_pp
+
+# Now expand by dt
+# test <- plankton_forcing_array[1:3, 1:4]
+# test[2, ] <- test[1, ]*0.5
+# test[3, ] <- test[1, ]*1.5
+# 
+# test2 <- array(data = NA,
+#                dim = c(nrow(test) * 1/dt,
+#                        ncol(test)))
+# 
+# test2[] <- rep(test, each = 1/dt)
+# test2
+dt <- 0.2
+plankton_forcing_array_dt <- array(data = NA,
+                                   dim = c(nrow(plankton_forcing_array) * (1/dt),
+                                           ncol(plankton_forcing_array)),
+                                   dimnames = list(time = c(1:3000),
+                                                   w = colnames(plankton_forcing_array)))
+
+str(plankton_forcing_array_dt)
+
+colnames(plankton_forcing_array_dt)
+
+steady_state <- plankton_forcing_array[600, ]
+
+# They look extremely similar but are in fact not identical
+# The initial approximation must be really good... 
+# plot(ref@n_pp[600, ])
+# lines(ref@n_pp[600, ], col="red")
+# lines(ref@n_pp[1, ], col="blue")
+# lines(ref@params@initial_n_pp, col="green")
+# identical(ref@params@initial_n_pp, ref@n_pp[1, ])
+# identical(ref@params@initial_n_pp, ref@n_pp[600, ])
+
+# Loop in the steady state plankton densities by size for each time step
+
+for(i in 1:nrow(plankton_forcing_array_dt)) {
+  
+  plankton_forcing_array_dt[i, ] <- steady_state
+  
+}
+
+str(plankton_forcing_array_dt)
+
+# This code shows that the array is now populated with the steady state plankton abundance from the semi-chemostat for all time steps
+# plot(plankton_forcing_array_dt[, 10]); abline(a = steady_state[10], col = "red", b = 0)
+# plot(ref@n_pp[, 10]); abline(a = steady_state[10], col = "red", b = 0)
+# plot(ref@n_pp[600, ])#; abline(a = steady_state[10], col = "red", b = 0)
+# lines(plankton_forcing_array_dt[1, ], col = "red")
+# lines(plankton_forcing_array_dt[600, ], col = "blue", lty = 2)
+
+test <- project(params,
+                dt = 0.2,
+                effort = projectEffort_cali,
+                temperature = rep(temperature_cali, 600), # FIXME
+                t_max = 600,
+                plankton_forcing = TRUE,
+                plankton_forcing_array = plankton_forcing_array_dt
+                )
+
+plot(test)
+plot(ref)
+
+# The reason they look so similar is because there so small changes in the plankton densities at steady state compared to the inital n!!
+obs <- balticParams$AveSpawnBiomass
+pred <- colMeans(getSSB(test)[c(I(dim(test@n)[1]-20):dim(test@n)[1]), ] ) * 2.49e+11 / (1e9)
+
+ssb_eval <- data.frame(SSB = c(obs, pred),
+                       Source = rep(c("Observed", "Predicted"), each = 3),
+                       Species = rep(balticParams$species, 2))
+
+ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Species)) +
+  geom_point(size = 4, alpha = 0.8)
+```
+
+The model with plankton forcing but values kept at steady state is the same as the the one without forcing
+
+```{r}
+colMeans(getSSB(test)[c(I(dim(test@n)[1]-20):dim(test@n)[1]), ] ) * 2.49e+11 / (1e9)
+colMeans(getSSB(ref)[c(I(dim(ref@n)[1]-20):dim(ref@n)[1]), ] ) * 2.49e+11 / (1e9)
+```
+
+```{r}
+# Get the intercept and slope of the plankton spectrum so that I can reproduce the steady_state with an equation
+# Before I do that, I need the biomass spectra, i.e., get the sizes in each class and multiply with abundance
+
+fit_df <- tibble(n = as.numeric(steady_state),
+                 mass = as.numeric(colnames(test@n_pp))) %>% 
+  filter(n > 0) %>% 
+  mutate(log10_n = log10(n), 
+         log10_mass = log10(mass))
+
+max(fit_df$mass)
+
+# Well, it's above cutoff for sure
+ggplot(fit_df, aes(mass, n)) +
+  geom_point() + 
+  coord_cartesian(xlim = c(0, 1))
+
+ggplot(fit_df, aes(log10_mass, log10_n)) +
+  geom_line() 
+
+# Estimate the intercept and the slope in the steady state plankton from the semi-chemostat
+m <- lm(log10_n ~ log10_mass, data = fit_df) %>% broom::tidy()
+steady_intercept <- m %>% filter(term == "(Intercept)") %>% pull(estimate)
+steady_slope <- m %>% filter(term == "log10_mass") %>% pull(estimate)
+
+# Ok, looks good! Can I reproduce the steady state vector?
+res <- tibble(n = as.numeric(steady_state),
+              mass = as.numeric(colnames(test@n_pp))) %>% 
+  filter(n > 0) %>% 
+  mutate(log10_n = log10(n), 
+         log10_mass = log10(mass)) %>% 
+  mutate(pred_log10_n = steady_intercept + steady_slope*log10_mass,
+         pred_n = 10^pred_log10_n)
+
+ggplot(res) + 
+  geom_line(aes(log10_mass, log10_n), linewidth = 1) +
+  geom_line(aes(log10_mass, pred_log10_n), linetype = 2, color = "red", linewidth = 1)
+
+# Ok, now make a data frame with 600 intercepts and slopes, the read in the relative FishMIP scaling and scale. 
+plankton_scalars <- read_csv(paste0(home, "/baltic/FishMIP/Input-mizer/resource_df.csv")) %>% 
+  rename(rel_intercept = intercept,
+         rel_slope = slope) %>% 
+  # add in the steady-state slope and intercept
+  mutate(steady_intercept = steady_intercept,
+         steady_slope = steady_slope) %>% 
+  # add the perturbation
+  mutate(fishmip_intercept = steady_intercept * rel_intercept,
+         fishmip_slope = steady_slope * rel_slope)
+
+plankton_scalars
+
+# Now create 600 perturbed "steady state" vectors
+# Test first again I can reproduce the steady (taking the first value of the 600 rows)
+# steady_state_sc_test <- 10^ (plankton_scalars$steady_intercept[1] +
+#   plankton_scalars$steady_slope[1] * log10(as.numeric(names(steady_state_sc))))
+
+str(plankton_forcing_array)
+colnames(plankton_forcing_array)
+rownames(plankton_forcing_array)
+
+plankton_forcing_array[] <- 0
+
+str(plankton_forcing_array)
+
+# Loop through each of the 600 time steps and perturbate the intercept and slope before calculating the resource array
+for(i in 1:nrow(plankton_scalars)) {
+  
+  scalars_tmp <- plankton_scalars[i, ]
+  
+  steady_state_tmp <- 
+    10^(scalars_tmp$fishmip_intercept + scalars_tmp$fishmip_slope * log10(as.numeric(names(steady_state))))
+  
+  # plot(steady_state_tmp, steady_state); abline(a = 0, b = 1)
+  
+  plankton_forcing_array[i, ] <- steady_state_tmp
+  
+}
+
+str(plankton_forcing_array)
+
+options(max.print = 10000)
+# Figure out how to match time... 
+# t <- reshape2::melt(plankton_forcing_array)
+# t %>% head(601)
+# str(t)
+# Ok so it's 600 time for each body mass, then next body mass and new 600 times
+# So I want to repeat 1961, 1961, 1961 ... 12 times for each year until 2010.
+# That is length 600. Then it restarts for the next body size (2/164)
+
+# Plot each years resource array
+reshape2::melt(plankton_forcing_array) %>% 
+  mutate(year = rep(rep(1961:2010, each = 12), 164)) %>%
+  ggplot(aes(log10(w), log10(value), color = factor(year))) + 
+  coord_cartesian(xlim = c(-5, 0), ylim = c(0, 10)) +
+  geom_line()
+
+reshape2::melt(plankton_forcing_array) %>% 
+  mutate(year = rep(rep(1961:2010, each = 12), 164)) %>%
+  ggplot(aes(w, log(value), color = factor(year))) + 
+  coord_cartesian(xlim = c(0, 1)) +
+  geom_line()
+
+# Now loop again and make it dt-spaced
+plankton_forcing_array_dt[] <- 0
+colnames(plankton_forcing_array_dt)
+rownames(plankton_forcing_array_dt)
+
+str(plankton_forcing_array_dt)
+str(plankton_forcing_array)
+
+# dt is 1/5, so we expand each time step 1/(1/5) = 5 times
+
+# test <- plankton_forcing_array[1:3, 1:4]
+# test[2, ] <- test[1, ]*0.5
+# test[3, ] <- test[1, ]*1.5
+# 
+# test2 <- array(data = rep(test, each = 2),
+#                dim = c(nrow(test) * 2,
+#                        ncol(test)), 
+#                dimnames = list(rep(rownames(test), 2), colnames(test)))
+
+str(plankton_forcing_array)
+str(plankton_forcing_array_dt)
+
+plankton_forcing_array_dt <- array(data = rep(plankton_forcing_array, each = 1/dt),
+                                   dim = c(nrow(plankton_forcing_array) * (1/dt),
+                                           ncol(plankton_forcing_array)),
+                                   dimnames = list(rep(rownames(plankton_forcing_array), 1/(dt)),
+                                                   colnames(plankton_forcing_array)))
+
+str(plankton_forcing_array_dt)
+
+t <- reshape2::melt(plankton_forcing_array)
+
+t %>%
+  ggplot(aes(w, log(value), color = time)) +
+  coord_cartesian(xlim = c(0, 1)) +
+  geom_line()
+
+# Seems OK
+t %>%
+  group_by(time) %>%
+  summarise(min = min(w),
+            max = max(w)) %>%
+  distinct(min)
+
+# Now do FishMIP mean effort, mean temperature but time-varying plankton
+test_fishmip <- project(params,
+                        dt = 0.2,
+                        effort = projectEffort_cali, 
+                        temperature = rep(temperature_cali, 600), 
+                        t_max = 600,
+                        plankton_forcing = TRUE,
+                        plankton_forcing_array = plankton_forcing_array_dt
+                        )
+
+plot(test_fishmip)
+
+# Also with time-varying temperature and effort
+true_fishmip <- project(params,
+                        dt = 0.2,
+                        effort = projectEffort, 
+                        temperature = projectTemp$temp_agg, #temp_agg is the year_averaged temperature
+                        t_max = 600,
+                        plankton_forcing = TRUE,
+                        plankton_forcing_array = plankton_forcing_array_dt
+                        )
+
+plot(true_fishmip)
+
+plot(projectEffort[, 1], type = "l")
+
+
+
+# Can we now compare the Fishmip fish biomass with gcb biomass?
+pred_test_fishmip <- colMeans(getSSB(true_fishmip)[c(I(dim(true_fishmip@n)[1]-20):dim(true_fishmip@n)[1]), ] ) * 2.49e+11 / (1e9)
+
+pred_gcb <- colMeans(getSSB(gcb)[c(I(dim(gcb@n)[1]-20):dim(gcb@n)[1]), ] ) * 2.49e+11 / (1e9)
+
+pred_test_fishmip <- getSSB(test_fishmip) %>%
+  as_tibble() %>% 
+  rownames_to_column() %>% 
+  rename(time = rowname) %>% 
+  mutate(time = as.numeric(time)) %>% 
+  ungroup() %>% 
+  #filter(time > 300) %>% 
+  mutate(model = "fishmip")
+
+pred_gcb <- getSSB(gcb) %>%
+  as_tibble() %>% 
+  rownames_to_column() %>% 
+  rename(time = rowname) %>% 
+  mutate(time = as.numeric(time)) %>% 
+  ungroup() %>% 
+  #filter(time > 300) %>% 
+  mutate(model = "gcb")
+  
+comp <- bind_rows(pred_test_fishmip, pred_gcb) %>% 
+  pivot_longer(c("Cod", "Sprat", "Herring"))
+
+ggplot(comp, aes(time, value * 2.49e+11 / (1e9), color = model)) + 
+  geom_line() + 
+  facet_wrap(~name, scales = "free", ncol = 1)
+
+# Seems to work! The cyclicity is on the annual scale
+# We also see some changes between FishMIP and the baseline... 
+ggplot(comp, aes(time, value * 2.49e+11 / (1e9), color = model)) + 
+  geom_line() + 
+  geom_hline(data = ssb_eval %>%
+               filter(Source == "Observed") %>% 
+               rename(name = Species), aes(yintercept = SSB),
+             alpha = 0.5, linetype = 2) +
+  facet_wrap(~name, scales = "free", ncol = 1) + 
+  coord_cartesian(xlim = c(550, 600))
+```
+
+We can also see how the FishMIP calibration time model compares to the GCB calibration time model
+# The reason they look so similar is because there so small changes in the plankton densities at steady state compared to the inital n!!
+```{r}
+# For the FishMIP, I chose the one with forcing but kept to steady state from projection with temperature and effort held at FishMIP averages in 1992-2004
+pred_FishMIP <- colMeans(getSSB(test)[c(I(dim(test@n)[1]-20):dim(test@n)[1]), ] ) * 2.49e+11 / (1e9)
+pred_gcb <- colMeans(getSSB(gcb)[c(I(dim(gcb@n)[1]-20):dim(gcb@n)[1]), ] ) * 2.49e+11 / (1e9)
+
+ssb_eval <- data.frame(SSB = c(obs, pred_FishMIP, pred_gcb),
+                       Source = rep(c("Observed", "Predicted FishMIP", "Predicted GCB"), each = 3),
+                       Species = rep(balticParams$species, 3))
+
+ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Source)) +
+  geom_point(size = 4, alpha = 0.6)
+```
+
+```{r}
+# TODO: Check the FishMIP validation stuff. I don't think I need to do that much really about this. Looks pretty similar actually. 
+
+
+# TODO: Read up on the FishMIP output
+# TODO: Temperature scaling on physiological rates?
+```
