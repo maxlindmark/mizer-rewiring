@@ -6,16 +6,16 @@
 no_size_groups = 100
 
 # Timestep used in the integration 
-dt = 0.1
+dt = 0.2
 
 # How many years to run the model for each optimiser round.
-t_max = 200 
+t_max = 600 
 
 # Reference temperature (rescaled projection, see calibration.v1)
 t_ref <- 10.11562
 
 # Fishing mortality for calibrations. This is overall mean for calibration period, see abundance_F_time series
-effort = c(Cod = 0.899, Herring = 0.340, Sprat = 0.306)
+effort = c(Cod = 0.8387402, Herring = 0.5228106, Sprat = 0.5870666)
 
 
 # Optimization params ==============================================================
@@ -93,8 +93,8 @@ errorSSB <- function(model_run, meansteps = meansteps.par){
 run_model <- function(params, t_max, effort) {
   
   model_run <- project(params,
-                       effort = projectEffort_cali, 
-                       temperature = rep(temperature_cali, 600),
+                       effort = effort, 
+                       temperature = rep(t_ref, 600), # or temperature ?
                        t_max = 600,
                        plankton_forcing = FALSE)
   
