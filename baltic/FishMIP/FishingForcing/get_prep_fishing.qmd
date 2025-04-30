@@ -38,14 +38,21 @@ home <- here::here()
 all_effort <- read_csv(paste0(home, "/baltic/FishMIP/FishingForcing/DataFiles/effort_histsoc_1841_2010_regional_models.csv")) %>% 
   filter(region == "Baltic.Sea")
 
-# Not sure how to use this yet
-# all_catch <- read_csv(paste0(home, "/baltic/FishMIP/FishingForcing/DataFiles/calibration_catch_histsoc_1850_2004_regional_models.csv")) %>% 
-#   filter(region == "Baltic.Sea")
-
 ggplot(all_effort, aes(Year, NomActive, fill = Gear)) +
   geom_bar(stat = "identity") +
   theme(legend.position = "bottom") +
   coord_cartesian(expand = 0)
+```
+
+```{r}
+# Test if catches also have spikes
+# read_csv(paste0(home, "/baltic/FishMIP/FishingForcing/DataFiles/calibration_catch_histsoc_1850_2004_regional_models.csv")) %>%
+#   filter(Sector == "industrial",
+#          region == "Baltic.Sea",
+#          FGroup == "demersal30-90cm") %>% 
+#   summarise(rep_tot = sum(Reported), .by = "Year") %>% 
+#   ggplot(aes(Year, rep_tot)) + 
+#   geom_line()
 ```
 
 This plot shows the effort by gear in the Baltic Sea across all Fgroups. One thing to notice is the reconstructed effort has a very steep increase, essentially going from zero around 1940's. Early exploration also shows that effort trends very much follow each other across these gear groups. Also, the composition species groups are very similar in bottom trawl and all other gears. For instance, even in the bottom trawl (cod panel above), pelagic is the majority group in most years. Therefore, I filter by both F group and the gears that are realistically catching these species. To know that, I check Swedish Loggbook data from fisherman and read the ICES working group WGBFAS reports.
@@ -70,16 +77,23 @@ all_effort_sum <- all_effort %>%
            Gear %in% c("Trawl_Bottom", "Trawl_Midwater_or_Unsp") &
            FGroup %in% c("demersal30-90cm", "pelagic<30cm")
          ) %>%
-  mutate(sp = ifelse(FGroup %in% c("demersal30-90cm") & Gear %in% c("Gillnets", "Lines_Longlines",
-                                   "Lines_Unspecified", "Trawl_Bottom"),
-                     "Cod", "Sprat/Herring")) %>% 
+  mutate(sp = ifelse(FGroup %in% c("demersal30-90cm") & Gear %in% c("Trawl_Bottom"),
+                     "Cod", NA),
+         sp = ifelse(FGroup %in% c("pelagic<30cm") & Gear %in% c("Trawl_Midwater_or_Unsp"),
+                     "Sprat/Herring", sp)) %>% 
   group_by(sp, Year) %>% 
   summarise(sum_NomActive = sum(NomActive)) %>% 
-  ungroup()
+  ungroup() %>% 
+  drop_na()
 
-ggplot(all_effort_sum, aes(Year, sum_NomActive)) + 
+all_effort_sum %>% 
+  mutate(mean = mean(sum_NomActive),
+         sd = sd(sum_NomActive), .by = "sp") %>% 
+  mutate(extreme = ifelse(sum_NomActive > mean + 5*sd, "extreme", "not extreme")) %>% 
+  ggplot(aes(Year, sum_NomActive, color = extreme)) + 
   #geom_bar(stat = "identity") +
-  geom_line() +
+  #geom_line() +
+  geom_point() +
   coord_cartesian(xlim = c(1945, 2014), expand = 0) + 
   facet_wrap(~sp, scales = "free", ncol = 1) +
   scale_fill_brewer(palette = "Set3") +
@@ -106,7 +120,7 @@ all_effort_agg <- all_effort_agg_cod %>%
   bind_rows(all_effort_agg %>% filter(sp == "Sprat/Herring") %>% mutate(sp = "Herring"))
 
 cal_tp_avg <- all_effort_agg %>% 
-  #filter(Year >= 1992 & Year <= 2004) %>% 
+  filter(Year >= 1992 & Year <= 2004) %>% 
   group_by(sp) %>% 
   summarise(avg_NomActive = mean(agg_NomActive),
             max_NomActive = max(agg_NomActive)) %>% 
@@ -231,6 +245,7 @@ projectEffort %>%
 
 # What's the best scaling factor? Fit a regression
 d <- projectEffort %>% 
+  #filter(year >= 1992 & year <= 2004) %>% 
   filter(!source == "FishMIP_assessment F") %>% 
   dplyr::select(year, sp, effort, source) %>% 
   pivot_wider(names_from = "source", values_from = "effort") %>% 
@@ -239,7 +254,9 @@ d <- projectEffort %>%
 fit <- lm(assessment - fish_mip_assessment_f_max ~ 0 + sp, data = d) %>% 
   broom::tidy()
 
-fit
+sums <- d %>% 
+  summarise(mean = mean(assessment - fish_mip_assessment_f_max),
+            median = median(assessment - fish_mip_assessment_f_max), .by = "sp")
 
 # Re-scale
 projectEffort %>% 
@@ -249,22 +266,21 @@ projectEffort %>%
 projectEffort <- projectEffort %>% 
   mutate(effort = ifelse(source == "FishMIP_assessment F max" & sp == "Cod",
                          fit$estimate[fit$term == "spCod"] + effort,
+                         #sums$median[sums$sp == "Cod"] + effort,
                          effort),
          effort = ifelse(source == "FishMIP_assessment F max" & sp == "Sprat",
                          fit$estimate[fit$term == "spSprat"] + effort,
+                         #sums$median[sums$sp == "Sprat"] + effort,
                          effort),
          effort = ifelse(source == "FishMIP_assessment F max" & sp == "Herring",
                          fit$estimate[fit$term == "spHerring"] + effort,
+                         #sums$median[sums$sp == "Herring"] + effort,
                          effort)
          ) %>% 
   # Because we estimate the correction factor without forcing it to be 0 we can end up with negative efforts in some years for herring. Fix this!
-  mutate(effort = ifelse(effort < 0, 0, effort))
+  mutate(effort = ifelse(effort < 0, 0.0001, effort))
 
-# projectEffort %>% 
-#   filter(source == "FishMIP_assessment F max") %>% 
-#   arrange(effort)
-
-projectEffort %>% 
+projectEffort %>%
   filter(!source == "FishMIP_assessment F") %>% 
   ggplot(aes(year, effort, color = source)) + 
   geom_line() + 
@@ -295,6 +311,19 @@ projectEffort %>%
 projectEffort <- projectEffort %>% 
   filter(!source == "FishMIP_assessment F") %>% 
   mutate(source2 = ifelse(source == "assessment", "Assessment F", "FishMIP F scaled"))
+
+# Check average deviation from assessment:
+projectEffort %>% 
+  filter(year >= 1992 & year <= 2004) %>% 
+  dplyr::select(-source2) %>% 
+  pivot_wider(names_from = source, values_from = effort) %>% 
+  group_by(sp) %>% 
+  summarise(mean_assess = mean(`FishMIP_assessment F max` - assessment))
+  # summarise(mean_assess = mean(assessment), 
+  #           mean_fmip = mean(`FishMIP_assessment F max`),
+  #           .by = "sp") %>% 
+  # ungroup() %>% 
+  # summarise(mean = mean_assess / mean_fmip)
 
 p1 <- projectEffort %>% 
   filter(sp == "Cod") %>% 

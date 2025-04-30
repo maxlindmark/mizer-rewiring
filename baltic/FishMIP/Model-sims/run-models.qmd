@@ -33,8 +33,10 @@ We are using a local mizer version (mizer-rewiring), described [here](https://on
 
 library(tidyverse); theme_set(theme_light())
 library(RColorBrewer)
+library(patchwork)
 library(RCurl)
 library(tidylog)
+library(viridis)
 library(mizer) # local build! if not installed, install in "Build" tab
 
 home <- here::here()
@@ -51,6 +53,9 @@ balticParams <- read.csv(text = getURL("https://raw.githubusercontent.com/maxlin
 
 # Read in params object
 params <- readRDS(paste0(home, "/baltic/params/mizer_param_calib.rds"))
+
+# params@species_params
+# balticParams
 
 # Read in old effort
 projectEffort_old <- read_csv(paste0(home, "/baltic/params/projectEffort.csv"))[, 2:4]
@@ -76,7 +81,7 @@ projectEffort_old_m <- as.matrix(projectEffort_old)
 rownames(projectEffort_old_m) <- 1:nrow(projectEffort_old_m)
 
 # This the the effort matrix used in the calibration
-projectEffort_const <- as.matrix(projectEffort_old %>% mutate(Cod = 0.899, Herring = 0.306, Sprat = 0.340))
+projectEffort_const <- as.matrix(projectEffort_old %>% mutate(Cod = 0.899, Herring = 0.340, Sprat = 0.306))
 rownames(projectEffort_const) <- 1:nrow(projectEffort_const)
 
 # Read in FishMIP effort
@@ -104,10 +109,12 @@ rownames(projectEffort) <- 1:nrow(projectEffort)
 gcb <- project(params,
                dt = 0.2,
                effort = projectEffort_const,
-               temperature = rep(10.11562, 600), # This is the t_ref
+               temperature = rep(10, 600), # This is the t_ref
                t_max = 600,
                plankton_forcing = FALSE
                )
+
+plot(gcb)
 
 obs <- balticParams$AveSpawnBiomass
 pred <- colMeans(getSSB(gcb)[c(I(dim(gcb@n)[1]-20):dim(gcb@n)[1]), ] ) * 2.49e+11 / (1e9)
@@ -116,8 +123,26 @@ ssb_eval <- data.frame(SSB = c(obs, pred),
                        Source = rep(c("Observed", "Predicted"), each = 3),
                        Species = rep(balticParams$species, 2))
 
-ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Species)) +
+# Reproduce the GCB figure
+pWord6 <- ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Species)) +
   geom_point(size = 4, alpha = 0.8)
+
+ggplot(ssb_eval, aes(Species, SSB, shape = Source, fill = Species)) + 
+  geom_point(size = 4, alpha = 0.8) +
+  scale_fill_viridis(discrete = TRUE, option = "cividis") +
+  scale_shape_manual(values = c(24, 21),
+                     guide = guide_legend(override.aes = list(colour = "black", 
+                                                              fill = "black",
+                                                              size = 4))) + 
+  labs(x = "", y = "Spawning stock biomass\n(1000 tonnes)") +
+  guides(fill = "none") +
+  annotate("text", -Inf, Inf, label = "A", size = 4, 
+           fontface = "bold", hjust = -0.5, vjust = 1.3) +
+  theme_classic() + theme(text = element_text(size = 12),
+                                       axis.text = element_text(size = 12),
+                                       legend.position = c(.8, .2),
+                                       legend.title = element_blank(),
+                                       aspect.ratio = 1)
 # Yes!
 ```
 
@@ -143,6 +168,7 @@ projectEffort_cali[, 1] <- as.numeric(effort_means[effort_means$sp == "Cod", "me
 projectEffort_cali[, 2] <- as.numeric(effort_means[effort_means$sp == "Sprat", "mean_effort"])
 projectEffort_cali[, 3] <- as.numeric(effort_means[effort_means$sp == "Herring", "mean_effort"])
 
+# FishMIP temperatures
 temperature_cali <- projectTemp %>% 
   filter(year >= 1992 & year <= 2004) %>% 
   summarise(mean_temp = mean(temp)) %>% 
@@ -177,11 +203,51 @@ ssb_eval <- data.frame(SSB = c(obs, pred),
                        Source = rep(c("Observed", "Predicted"), each = 3),
                        Species = rep(balticParams$species, 2))
 
-ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Species)) +
+pWord6 +
+  ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Species)) +
   geom_point(size = 4, alpha = 0.8)
 ```
 
-This looks ok! We are not expecting the last plot to fit nicely with FishMIP fishing efforts because the model was not calibrated to match those observed SSBs with the FishMIP efforts. We mainly want to see that it works (feeding levels OK and biomasses in the ballpark)
+This looks hmm... Though, we are not expecting the last plot to fit nicely with FishMIP fishing efforts because the model was not calibrated to match those observed SSBs with the FishMIP efforts. We mainly want to see that it works (feeding levels OK and biomasses in the ballpark)
+
+What would it look like if we did local fishing?
+
+```{r}
+# This is the original
+# gcb <- project(params,
+#                dt = 0.2,
+#                effort = projectEffort_const,
+#                temperature = rep(10, 600), # This is the t_ref
+#                t_max = 600,
+#                plankton_forcing = FALSE
+#                )
+
+ref_local_fishing <- project(params,
+                             dt = 0.2,
+                             effort = projectEffort_const, 
+                             temperature = rep(temperature_cali, 600),
+                             t_max = 600,
+                             plankton_forcing = FALSE
+                             )
+
+plot(ref_local_fishing)
+
+# This is the fit when I use average temperatures and fishing efforts from mizer, but maintain t_ref
+obs <- balticParams$AveSpawnBiomass
+pred <- colMeans(getSSB(ref_local_fishing)[c(I(dim(ref_local_fishing@n)[1]-20):dim(ref_local_fishing@n)[1]), ] ) * 2.49e+11 / (1e9)
+
+ssb_eval_lf <- data.frame(SSB = c(obs, pred),
+                          Source = rep(c("Observed", "Predicted"), each = 3),
+                          Species = rep(balticParams$species, 2))
+
+pWord6 /
+  (ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Species)) + geom_point(size = 4, alpha = 0.8)) /
+  (ggplot(ssb_eval_lf, aes(Species, SSB, shape = Source, color = Species)) + geom_point(size = 4, alpha = 0.8))
+```
+
+So the difference is really due to fishing, not the temperature.
+
+HERE I AM.... NOTE WE ARE STILL IN THE CALIBRATION TIME PERIOD WITH CONSTANT THINGS.. SORT THIS!
 
 Now I want to use plankton forcing, by setting `plankton_forcing = TRUE`. I then need to provide a plankton array that is dt-spaced. I extract a template from the semi-chemostat steady-state plankton spectrum from the ref model
 
@@ -501,13 +567,41 @@ Lastly, check the final two years SSBs and compare with the observed
 #| message: false
 
 # For the FishMIP, I chose the one with forcing but kept to steady state from projection with temperature and effort held at FishMIP averages in 1992-2004
-pred_FishMIP <- colMeans(getSSB(test)[c(I(dim(test@n)[1]-24):dim(test@n)[1]), ] ) * 2.49e+11 / (1e9)
+# Find which years correspond to what index
+t <- c(1:24)
+start_date <- as.Date("1960-12-01")
+calibration_time_window <- year(ymd(start_date) + months(1:600))
+idx <- which(calibration_time_window>=1992 & calibration_time_window<=2002)
+
+pred_FishMIP <- colMeans(getSSB(test)[idx, ] ) * 2.49e+11 / (1e9)
+pred_FishMIP_true <- colMeans(getSSB(true_fishmip)[idx, ] ) * 2.49e+11 / (1e9)
 pred_gcb <- colMeans(getSSB(gcb)[c(I(dim(gcb@n)[1]-24):dim(gcb@n)[1]), ] ) * 2.49e+11 / (1e9)
 
-ssb_eval <- data.frame(SSB = c(obs, pred_FishMIP, pred_gcb),
-                       Source = rep(c("Observed", "Predicted FishMIP", "Predicted GCB"), each = 3),
-                       Species = rep(balticParams$species, 3))
+ssb_eval <- data.frame(SSB = c(obs, pred_FishMIP, pred_gcb, pred_FishMIP_true),
+                       Source = rep(c("Observed", "Predicted FishMIP", "Predicted GCB", "pred_FishMIP tw"), each = 3),
+                       Species = rep(balticParams$species, 4))
 
-ggplot(ssb_eval, aes(Species, SSB, shape = Source, color = Source)) +
-  geom_point(size = 4, alpha = 0.6)
+ssb_eval %>% 
+  filter(!Source == "Predicted FishMIP") %>% 
+  ggplot(aes(Species, SSB, shape = Source, color = Source)) +
+  geom_point(size = 4, alpha = 0.6) + 
+  #theme_sleek() + 
+  theme(legend.position = c(0.1, 0.9)) + 
+  guides(color = guide_legend(position = "inside"))
+
+
+ssb_eval %>% 
+  filter(Source %in% c("Predicted GCB", "pred_FishMIP tw")) %>% 
+  pivot_wider(names_from = Source, values_from = SSB) %>% 
+  mutate(percent_diff = ((`pred_FishMIP tw` - `Predicted GCB`) / `Predicted GCB`) * 100,
+         percent_diff2 = ((`Predicted GCB` - `pred_FishMIP tw`) / `pred_FishMIP tw`) * 100,
+         ratio = `Predicted GCB` / `pred_FishMIP tw`)
 ```
+
+## FishMIP 3a runs!
+
+* No fishing
+* Fishmip forcings
+* Fishmip forcings but keep fishing at the average in the calibration time window
+
+
