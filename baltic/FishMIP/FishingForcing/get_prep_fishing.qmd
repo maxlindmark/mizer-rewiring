@@ -147,7 +147,7 @@ all_effort_agg <- all_effort_agg %>%
 
 all_effort_agg %>% arrange(desc(scaled_NomActive_max))
 
-# Plot the max-scales efforts
+# Plot the max-scaled efforts
 ggplot(all_effort_agg, aes(Year, scaled_NomActive_max, color = sp, linetype = sp)) + 
   geom_rect(xmin = 1992, xmax = 2004, ymin = -Inf, ymax = Inf, color = NA,
             fill = "grey90", alpha = 0.05,
@@ -279,6 +279,8 @@ projectEffort <- projectEffort %>%
          ) %>% 
   # Because we estimate the correction factor without forcing it to be 0 we can end up with negative efforts in some years for herring. Fix this!
   mutate(effort = ifelse(effort < 0, 0.0001, effort))
+
+
 
 projectEffort %>%
   filter(!source == "FishMIP_assessment F") %>% 
